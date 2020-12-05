@@ -23,6 +23,32 @@ func (t TokenType) String() string {
 		return "*"
 	case intTokenType:
 		return "int"
+	case leftParenthesisTokenType:
+		return "("
+	case rightParenthesisTokenType:
+		return ")"
+	case ifTokenType:
+		return "if"
+	case elseTokenType:
+		return "else"
+	case forTokenType:
+		return "for"
+	case breakTokenType:
+		return "break"
+	case returnTokenType:
+		return "return"
+	case leftBraceTokenType:
+		return "{"
+	case rightBraceTokenType:
+		return "}"
+	case lessTokenType:
+		return "<"
+	case lessEqualTokenType:
+		return "<="
+	case greaterTokenType:
+		return ">"
+	case greaterEqualTokenType:
+		return ">="
 	}
 	return "unknown token type"
 }
@@ -30,30 +56,66 @@ func (t TokenType) String() string {
 const emptyTokenType TokenType = 0
 const unknownTokenType TokenType = 1
 
-const operatorTokenType TokenType = 100
 const addOperatorTokenType TokenType = 101
 const subOperatorTokenType TokenType = 102
 const mulOperatorTokenType TokenType = 103
-const divOperatorTokenType TokenType = 104
-const operatorEndTokenType TokenType = 110
+const divOperatorTokenType TokenType = 119
 
-const intTokenType TokenType = 200
+const leftParenthesisTokenType TokenType = 120  // (
+const rightParenthesisTokenType TokenType = 121 //)
+const leftBraceTokenType TokenType = 122        //{
+const rightBraceTokenType TokenType = 123       //}
+const lessTokenType TokenType = 133             // <
+const greaterTokenType TokenType = 134          // >
+const lessEqualTokenType TokenType = 135        // <=
+const greaterEqualTokenType TokenType = 136     // >=
+
+const ifTokenType TokenType = 230     //if
+const elseTokenType TokenType = 331   //else
+const funcTokenType TokenType = 332   //else
+const returnTokenType TokenType = 333 //else
+const breakTokenType TokenType = 334  //else
+const forTokenType TokenType = 335    //else
+
+const intTokenType TokenType = 700
+const labelTokenType TokenType = 5000
 
 type Token struct {
 	typ TokenType
-	val []byte
+	val string
 }
 
 func (t Token) String() string {
-	return fmt.Sprintf("type(%s) data(%s)", t.typ.String(), string(t.val))
+	if t.val == "" {
+		return fmt.Sprintf("type`%s`", t.typ.String())
+	}
+	return fmt.Sprintf("type`%s` data `%s`", t.typ.String(), t.val)
 }
 
 var (
-	emptyToken       = Token{typ: emptyTokenType, val: []byte(`empty`)}
-	unknownToken     = Token{typ: unknownTokenType, val: []byte(`unknown`)}
-	addOperatorToken = Token{typ: addOperatorTokenType, val: []byte{'+'}}
-	mulOperatorToken = Token{typ: mulOperatorTokenType, val: []byte{'*'}}
+	emptyToken            = Token{typ: emptyTokenType}
+	unknownToken          = Token{typ: unknownTokenType}
+	addOperatorToken      = Token{typ: addOperatorTokenType}
+	mulOperatorToken      = Token{typ: mulOperatorTokenType}
+	leftParenthesisToken  = Token{typ: leftParenthesisTokenType}
+	rightParenthesisToken = Token{typ: rightParenthesisTokenType}
+	leftBraceToken        = Token{typ: leftBraceTokenType}
+	rightBraceToken       = Token{typ: rightBraceTokenType}
+
 )
+
+var Keywords = []string{
+	"if", "else", "func", "return", "break", "for",
+}
+
+var keywordTokenType = map[string]TokenType{
+	"if":     ifTokenType,
+	"else":   elseTokenType,
+	"func":   funcTokenType,
+	"return": returnTokenType,
+	"break":  breakTokenType,
+	"for":    forTokenType,
+}
 
 type Expression interface {
 	invoke() (interface{}, error)
@@ -70,6 +132,19 @@ func (e *Expressions) invoke() (interface{}, error) {
 		}
 	}
 	return val, err
+}
+
+type _leftParenthesisExpression struct {
+}
+type rightParenthesisExpression struct {
+}
+
+func (r rightParenthesisExpression) invoke() (interface{}, error) {
+	return r, nil
+}
+
+func (l _leftParenthesisExpression) invoke() (interface{}, error) {
+	return l, nil
 }
 
 type IntExpression struct {
@@ -141,49 +216,71 @@ func (l *lexer) finish() bool {
 	return l.err != nil && l.token.typ == emptyTokenType
 }
 
+func isSpace(c byte) bool {
+	return c == ' ' || c == '\n' || c == '\r' || c == '\t'
+}
+
+func isLetter(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'
+}
+
 func (l *lexer) peek() Token {
 	if l.token.typ != emptyTokenType {
 		return l.token
 	}
-	if l.buffer.Len() == 0 {
-		if l.scanner.Scan() {
-			l.buffer.Write(l.scanner.Bytes())
-			l.line++
-		} else {
+	for {
+		if l.buffer.Len() == 0 {
+			if l.scanner.Scan() {
+				l.buffer.Write(l.scanner.Bytes())
+				l.line++
+			} else {
+				return emptyToken
+			}
+		}
+		c, err := l.buffer.ReadByte()
+		if err != nil {
+			l.err = err
 			return emptyToken
 		}
+		var token Token
+		switch {
+		case isSpace(c):
+			continue
+		case isLetter(c):
+			token = l.parseLabel(c)
+		case c == '+':
+			token = addOperatorToken
+		case c == '(':
+			token = leftParenthesisToken
+		case c == ')':
+			token = rightParenthesisToken
+		case c == '{':
+			token = leftBraceToken
+		case c == '}':
+			token = rightBraceToken
+		case c == '*':
+			token = mulOperatorToken
+		case '0' <= c && c <= '9':
+			token = l.parseNumToken(c)
+		default:
+			token = unknownToken
+		}
+		l.token = token
+		return token
 	}
-	c, err := l.buffer.ReadByte()
-	if err != nil {
-		l.err = err
-		return emptyToken
-	}
-	var token Token
-	switch {
-	case c == '+':
-		token = addOperatorToken
-	case c == '*':
-		token = mulOperatorToken
-	case '0' <= c && c <= '9':
-		token = l.parseNumToken(c)
-	default:
-		token = unknownToken
-	}
-	l.token = token
-	return token
 }
 
 func (l *lexer) parseNumToken(c byte) Token {
-	var result bytes.Buffer
-	result.WriteByte(c)
+	var buf bytes.Buffer
+	buf.WriteByte(c)
 	for {
 		c, err := l.buffer.ReadByte()
 		if err != nil {
 			l.err = err
 			break
 		}
-		if '0' <= c && c <= '9' {
-			result.WriteByte(c)
+		if isDigit(c) {
+			buf.WriteByte(c)
 		} else {
 			if err := l.buffer.UnreadByte(); err != nil {
 				panic(err)
@@ -193,12 +290,51 @@ func (l *lexer) parseNumToken(c byte) Token {
 	}
 	return Token{
 		typ: intTokenType,
-		val: result.Bytes(),
+		val: buf.String(),
 	}
 }
 
 func (l *lexer) next() {
 	l.token = emptyToken
+}
+
+func (l *lexer) parseLabel(c byte) Token {
+	fmt.Println(string(c))
+	var buf bytes.Buffer
+	buf.WriteByte(c)
+	for {
+		c, err := l.buffer.ReadByte()
+		if err != nil {
+			l.err = err
+			break
+		}
+		fmt.Println(string(c))
+		if isLetter(c) {
+			buf.WriteByte(c)
+		} else {
+			if err := l.buffer.UnreadByte(); err != nil {
+				panic(err)
+			}
+			break
+		}
+	}
+	fmt.Println(buf.String())
+	for _, keyword := range Keywords {
+		if keyword == buf.String() {
+			return Token{
+				typ: keywordTokenType[keyword],
+			}
+		}
+	}
+
+	return Token{
+		typ: labelTokenType,
+		val: buf.String(),
+	}
+}
+
+func isDigit(c byte) bool {
+	return '0' <= c && c <= '9'
 }
 
 func newLexer(reader io.Reader) *lexer {
@@ -208,7 +344,7 @@ func newLexer(reader io.Reader) *lexer {
 	}
 }
 
-func operatorPriority(tokenType TokenType) int {
+func precedence(tokenType TokenType) int {
 	switch tokenType {
 	case addOperatorTokenType, subOperatorTokenType:
 		return 1
@@ -219,8 +355,13 @@ func operatorPriority(tokenType TokenType) int {
 	}
 }
 
-func opGreaterOrEqual(first, second TokenType) bool {
-	return operatorPriority(first)-operatorPriority(second) >= 0
+//greater or equal
+func precedenceGE(first, second TokenType) bool {
+	return precedence(first)-precedence(second) >= 0
+}
+
+func isOperatorToken(token Token) bool {
+	return token.typ >= addOperatorTokenType && token.typ < divOperatorTokenType
 }
 
 type parser struct {
@@ -263,7 +404,7 @@ func (p *parser) parse() Expression {
 
 	for p.lexer.finish() == false {
 		token := p.lexer.peek()
-		fmt.Println(string(token.val))
+		fmt.Println(token)
 		switch {
 		case token.typ == intTokenType:
 			val, err := strconv.ParseInt(string(token.val), 10, 64)
@@ -272,9 +413,26 @@ func (p *parser) parse() Expression {
 				return nil
 			}
 			expressions = append(expressions, IntExpression{val: val})
-		case token.typ > operatorTokenType && token.typ < operatorEndTokenType:
-			for len(opStack) != 0 && opGreaterOrEqual(opStack[len(opStack)-1].typ, token.typ) {
+		case token.typ == leftParenthesisTokenType:
+			//expressions = append(expressions, leftParenthesisExpression)
+			opStack = append(opStack, token)
+		case token.typ == rightParenthesisTokenType:
+			fmt.Println(opStack)
+			for len(opStack) != 0 && opStack[len(opStack)-1].typ != leftParenthesisTokenType {
 				express := makeExpression(opStack[len(opStack)-1], &expressions)
+				expressions = append(expressions, express)
+				opStack = opStack[:len(opStack)-1]
+			}
+			opStack = opStack[:len(opStack)-1]
+		case isOperatorToken(token):
+			for len(opStack) != 0 &&
+				isOperatorToken(opStack[len(opStack)-1]) &&
+				precedenceGE(opStack[len(opStack)-1].typ, token.typ) {
+				express := makeExpression(opStack[len(opStack)-1], &expressions)
+				if express == nil {
+					fmt.Println("make expression failed", opStack[len(opStack)-1])
+					return nil
+				}
 				expressions = append(expressions, express)
 				opStack = opStack[:len(opStack)-1]
 			}
@@ -301,7 +459,7 @@ func TestName(t *testing.T) {
 }
 
 func TestBuffer(t *testing.T) {
-	var reader = bytes.NewReader([]byte("1+1"))
+	var reader = bytes.NewReader([]byte("1+1 if else"))
 	for {
 		c, err := reader.ReadByte()
 		if err != nil {
@@ -309,22 +467,33 @@ func TestBuffer(t *testing.T) {
 			break
 		}
 		fmt.Println(string(c))
+		fmt.Println(isLetter(c))
+		fmt.Println(c, 'a')
+		fmt.Println(c, 'i')
 	}
 }
 
 func TestLexer(t *testing.T) {
-	lexer := newLexer(bytes.NewReader([]byte("1+1")))
+	lexer := newLexer(bytes.NewReader([]byte(`1+1 if else break return for {}
+if 1+1 > 3{
+	print()
+}else{
+	print()
+}
+`)))
 	if lexer == nil {
 		t.Fatal("lexer nil")
 	}
-	for lexer.finish() == false {
+	var count = 100
+	for lexer.finish() == false && count > 0 {
 		fmt.Println(lexer.peek())
 		lexer.next()
+		count--
 	}
 }
 
 func TestParse(t *testing.T) {
-	expression := Parse("1*2+5*3")
+	expression := Parse("1*(5+5+5)*2")
 	if expression == nil {
 		t.Fatal("Parse failed")
 	}
