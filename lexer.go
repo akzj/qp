@@ -64,7 +64,12 @@ func (l *lexer) peek() Token {
 		case isLetter(c):
 			token = l.parseLabel(c)
 		case c == '+':
-			token = addOperatorToken
+			if a, _ := l.ahead(); a == '+' {
+				_, _ = l.get()
+				token = incOperatorToken
+			} else {
+				token = addOperatorToken
+			}
 		case c == '(':
 			token = leftParenthesisToken
 		case c == ')':
@@ -94,6 +99,8 @@ func (l *lexer) peek() Token {
 			token = l.parseNumToken(c)
 		case c == '=':
 			token = assignToken
+		case c == ',':
+			token = commaToken
 		default:
 			token = unknownToken
 		}
@@ -157,7 +164,7 @@ func (l *lexer) parseLabel(c byte) Token {
 	}
 
 	return Token{
-		typ: labelTokenType,
+		typ: labelType,
 		val: buf.String(),
 	}
 }

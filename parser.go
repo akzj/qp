@@ -122,7 +122,7 @@ Loop:
 			}
 			//end of expression
 			if find == false {
-				fmt.Println("break Loop")
+				fmt.Println("break Loop", len(expressions), expressions[0].getType())
 				break Loop
 			}
 			if find {
@@ -225,7 +225,7 @@ Loop:
 			//todo check in the same line
 			p.lexer.next()
 			token = p.lexer.peek()
-			if token.typ != labelTokenType {
+			if token.typ != labelType {
 				fmt.Println("error ,expect label")
 				return nil
 			}
@@ -258,13 +258,16 @@ Loop:
 			break Loop
 		case token.typ == rightBraceTokenType: // } end of statement
 			break Loop
-		case token.typ == labelTokenType:
+		case token.typ == commaTokenType: // end of expression
+			fmt.Println(token)
+			p.lexer.next()
+			break Loop
+		case token.typ == labelType:
 			label := token.val
 			p.lexer.next()
 			token = p.lexer.peek()
 			//function call
 			if token.typ == leftParenthesisTokenType {
-				fmt.Println("find function call")
 				expression := p.parseFunCallArguments()
 				if expression == nil {
 					fmt.Println("get argument failed")
@@ -274,6 +277,12 @@ Loop:
 					vm:        p.vmCtx,
 					label:     label,
 					arguments: expression})
+				// ++ increase
+			} else if token.typ == incOperatorTokenType {
+				expressions = append(expressions, &IncFieldStatement{
+					ctx:   p.vmCtx,
+					label: label,
+				})
 			} else {
 				expressions = append(expressions, &fieldStatement{
 					ctx:   p.vmCtx,
@@ -310,10 +319,9 @@ func (p *parser) parseStatement() []Statement {
 		})
 		token := p.lexer.peek()
 		if token.typ == rightBraceTokenType {
-			leftBrace = leftBrace[:len(leftBrace)-1]
-		}
-		if len(leftBrace) == 0 {
-			break
+			if leftBrace = leftBrace[:len(leftBrace)-1]; len(leftBrace) == 0 {
+				break
+			}
 		}
 	}
 	return statement
@@ -330,8 +338,8 @@ func (p *parser) parseFunCallArguments() Expressions {
 		}
 		expressions = append(expressions, expression)
 		token := p.lexer.peek()
-		p.lexer.next()
 		if token.typ == rightParenthesisTokenType {
+			p.lexer.next()
 			fmt.Println("end of arguments", len(expressions), expressions.getType())
 			break
 		}

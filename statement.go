@@ -1,19 +1,14 @@
 package qp
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+)
 
 type Statements []Statement
 
-func (Statements) getType() Type {
-	return statementsTokenType
-}
-
 type Statement struct {
 	expression Expression
-}
-
-func (s *Statement) getType() Type {
-	return statementTokenType
 }
 
 type IfStatement struct {
@@ -27,6 +22,12 @@ type ReturnStatement struct {
 	express Expression
 }
 
+//just new Object
+type VarStatement struct {
+	ctx   *VMContext
+	label string
+}
+
 type fieldStatement struct {
 	ctx   *VMContext
 	label string
@@ -36,6 +37,47 @@ type FuncCallStatement struct {
 	vm        *VMContext
 	label     string
 	arguments Expressions
+}
+
+type VarAssignStatement struct {
+	ctx        *VMContext
+	label      string
+	expression Expression
+}
+
+type IncFieldStatement struct {
+	ctx   *VMContext
+	label string
+}
+
+func (statement *IncFieldStatement) invoke() (Expression, error) {
+	object := statement.ctx.getObject(statement.label)
+	if object == nil {
+		return nil, fmt.Errorf("no find Object with label `%s`", statement.label)
+	}
+	innerObject, err := object.invoke()
+	if err != nil {
+		panic(err)
+	}
+	switch obj := innerObject.(type) {
+	case *IntObject:
+		obj.val++
+	default:
+		panic("unknown type " + reflect.TypeOf(innerObject).String())
+	}
+	return nil, nil
+}
+
+func (statement *IncFieldStatement) getType() Type {
+	panic("implement me")
+}
+
+func (Statements) getType() Type {
+	return statementsType
+}
+
+func (s *Statement) getType() Type {
+	return statementType
 }
 
 func (f *FuncCallStatement) invoke() (Expression, error) {
@@ -48,7 +90,7 @@ func (f *FuncCallStatement) invoke() (Expression, error) {
 }
 
 func (f *FuncCallStatement) getType() Type {
-	panic("implement me")
+	return funcTokenType
 }
 
 func (f *fieldStatement) invoke() (Expression, error) {
@@ -61,13 +103,7 @@ func (f *fieldStatement) invoke() (Expression, error) {
 }
 
 func (f *fieldStatement) getType() Type {
-	return labelTokenType
-}
-
-//just new Object
-type VarStatement struct {
-	ctx   *VMContext
-	label string
+	return labelType
 }
 
 func (v *VarStatement) invoke() (Expression, error) {
@@ -79,12 +115,6 @@ func (v *VarStatement) invoke() (Expression, error) {
 
 func (v VarStatement) getType() Type {
 	return varTokenType
-}
-
-type VarAssignStatement struct {
-	ctx        *VMContext
-	label      string
-	expression Expression
 }
 
 func (v *VarAssignStatement) invoke() (Expression, error) {

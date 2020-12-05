@@ -13,7 +13,7 @@ type Expression interface {
 type Expressions []Expression
 
 func (Expressions) getType() Type {
-	return expressionTokenType
+	return expressionType
 }
 
 func (expressions *Expressions) invoke() (Expression, error) {

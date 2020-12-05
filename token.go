@@ -49,13 +49,13 @@ func (t Type) String() string {
 		return ">="
 	case EOFTokenType:
 		return "EOF"
-	case labelTokenType:
+	case labelType:
 		return "label"
-	case statementTokenType:
+	case statementType:
 		return "statement"
-	case statementsTokenType:
+	case statementsType:
 		return "statements"
-	case expressionTokenType:
+	case expressionType:
 		return "expression"
 	case varTokenType:
 		return "var"
@@ -65,6 +65,12 @@ func (t Type) String() string {
 		return "var ="
 	case IntObjectType:
 		return "IntObject"
+	case commaTokenType:
+		return ","
+	case incOperatorTokenType:
+		return "++"
+	case callFunctionType:
+		return "call"
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
@@ -73,37 +79,36 @@ func (t Type) String() string {
 const EOFTokenType Type = 0
 const unknownTokenType Type = 1
 
-const addOperatorTokenType Type = 101  // +
-const subOperatorTokenType Type = 102  // -
-const mulOperatorTokenType Type = 103  // *
-const divOperatorTokenType Type = 104  // /
-const lessTokenType Type = 105         // <
-const greaterTokenType Type = 106      // >
-const lessEqualTokenType Type = 116    // <=
-const greaterEqualTokenType Type = 117 // >=
-
+const incOperatorTokenType Type = 100      // ++
+const addOperatorTokenType Type = 101      // +
+const subOperatorTokenType Type = 102      // -
+const mulOperatorTokenType Type = 103      // *
+const divOperatorTokenType Type = 104      // /
+const lessTokenType Type = 105             // <
+const greaterTokenType Type = 106          // >
+const lessEqualTokenType Type = 116        // <=
+const greaterEqualTokenType Type = 117     // >=
 const leftParenthesisTokenType Type = 120  // (
-const rightParenthesisTokenType Type = 121 //)
-const leftBraceTokenType Type = 122        //{
-const rightBraceTokenType Type = 123       //}
-
-const ifTokenType Type = 230     //if
-const elseTokenType Type = 331   //else
-const funcTokenType Type = 332   //func
-const returnTokenType Type = 333 //return
-const breakTokenType Type = 334  //break
-const forTokenType Type = 335    //for
-const elseifTokenType Type = 336 //else if
-
-const varTokenType Type = 400       // var
-const assignTokenType Type = 401    // =
-const varAssignTokenType Type = 402 // var x =
-
-const intTokenType Type = 700
-const labelTokenType Type = 5000
-const statementTokenType Type = 6001
-const statementsTokenType Type = 6003
-const expressionTokenType Type = 6002
+const rightParenthesisTokenType Type = 121 // )
+const leftBraceTokenType Type = 122        // {
+const rightBraceTokenType Type = 123       // }
+const commaTokenType Type = 124            // ,
+const ifTokenType Type = 230               //if
+const elseTokenType Type = 331             //else
+const funcTokenType Type = 332             //func
+const returnTokenType Type = 333           //return
+const breakTokenType Type = 334            //break
+const forTokenType Type = 335              //for
+const elseifTokenType Type = 336           //else if
+const varTokenType Type = 400              // var
+const assignTokenType Type = 401           // =
+const varAssignTokenType Type = 402        // var x =
+const intTokenType Type = 700              // int
+const labelType Type = 5000                // label
+const statementType Type = 6001            // statement
+const statementsType Type = 6003           // statementType
+const expressionType Type = 6002           // expressionType
+const callFunctionType Type = 6004         // call function
 
 type Token struct {
 	typ Type
@@ -131,6 +136,8 @@ var (
 	greaterToken          = Token{typ: greaterTokenType}
 	greaterEqualToken     = Token{typ: greaterEqualTokenType}
 	assignToken           = Token{typ: assignTokenType}
+	commaToken            = Token{typ: commaTokenType}
+	incOperatorToken      = Token{typ: incOperatorTokenType}
 )
 
 var Keywords = []string{

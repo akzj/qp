@@ -31,6 +31,7 @@ if 2 > 1{
 	3+3 
 return 1
 var a = 
+a ++
 `)))
 	if lexer == nil {
 		t.Fatal("lexer nil")
@@ -180,7 +181,67 @@ func TestFunctionCall(t *testing.T) {
 	}{{
 		exp: `
 var a = 1
-println(a+100+1)
+if a > 1{
+	println(a,1)
+}else if a > 2{
+	println(a,2)
+}else if a > 3{
+	println(a,3)
+}else{
+	println(a,0)
+}
+
+`, val: int64(3),
+	}}
+
+	for _, Case := range cases {
+		expression := Parse(Case.exp)
+		if expression == nil {
+			t.Fatal("Parse failed")
+		}
+		if val, err := expression.invoke(); err != nil {
+			t.Errorf(err.Error())
+		} else {
+			fmt.Println("result", val)
+		}
+	}
+}
+
+func TestInc(t *testing.T) {
+	cases := []struct {
+		exp string
+		val interface{}
+	}{{
+		exp: `
+var a = 1
+println(a)
+a++
+println(a)
+`, val: int64(3),
+	}}
+
+	for _, Case := range cases {
+		expression := Parse(Case.exp)
+		if expression == nil {
+			t.Fatal("Parse failed")
+		}
+		if _, err := expression.invoke(); err != nil {
+			t.Errorf(err.Error())
+		}
+	}
+}
+
+func TestFor(t *testing.T) {
+	cases := []struct {
+		exp string
+		val interface{}
+	}{{
+		exp: `
+for (var a = 1;a < 100;a++) {
+	println(a)
+	break
+}
+
 `, val: int64(3),
 	}}
 
