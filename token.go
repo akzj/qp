@@ -73,6 +73,8 @@ func (t Type) String() string {
 		return "call"
 	case semicolonTokenType:
 		return ";"
+	case AssignStatementType:
+		return "assignStatement"
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
@@ -113,10 +115,12 @@ const statementsType Type = 6003           // statementType
 const expressionType Type = 6002           // expressionType
 const callFunctionType Type = 6004         // call function
 const nopStatementType Type = 6005         // nop
+const AssignStatementType Type = 6006      // =
 
 type Token struct {
-	typ Type
-	val string
+	typ  Type
+	val  string
+	line int
 }
 
 func (t Token) String() string {

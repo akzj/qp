@@ -39,6 +39,12 @@ type FuncCallStatement struct {
 	arguments Expressions
 }
 
+type AssignStatement struct {
+	ctx        *VMContext
+	label      string
+	expression Expression
+}
+
 type VarAssignStatement struct {
 	ctx        *VMContext
 	label      string
@@ -54,6 +60,28 @@ type BreakStatement struct {
 }
 
 type NopStatement struct {
+}
+
+func (expression *AssignStatement) invoke() (Expression, error) {
+	fmt.Println("AssignStatement")
+	val, err := expression.expression.invoke()
+	if err != nil {
+		fmt.Println("AssignStatement .expression.invoke() failed", err.Error())
+		return nil, err
+	}
+	fmt.Println(val.getType())
+	fmt.Println(val.(*IntObject).val)
+	object := expression.ctx.getObject(expression.label)
+	if object == nil {
+		fmt.Println("AssignStatement .expression.getObject failed", object.label)
+		return nil, err
+	}
+	object.inner = val
+	return nil, nil
+}
+
+func (expression *AssignStatement) getType() Type {
+	return AssignStatementType
 }
 
 func (n *NopStatement) invoke() (Expression, error) {
@@ -126,6 +154,7 @@ func (f *ForStatement) getType() Type {
 }
 
 func (statement *IncFieldStatement) invoke() (Expression, error) {
+	fmt.Println("IncFieldStatement")
 	object := statement.ctx.getObject(statement.label)
 	if object == nil {
 		return nil, fmt.Errorf("no find Object with label `%s`", statement.label)
@@ -137,6 +166,7 @@ func (statement *IncFieldStatement) invoke() (Expression, error) {
 	switch obj := innerObject.(type) {
 	case *IntObject:
 		obj.val++
+		fmt.Println(obj.val)
 	default:
 		panic("unknown type " + reflect.TypeOf(innerObject).String())
 	}
@@ -183,8 +213,7 @@ func (f *fieldStatement) getType() Type {
 
 func (v *VarStatement) invoke() (Expression, error) {
 	//fmt.Println("VarStatement invoke")
-	object := v.ctx.allocObject()
-	object.label = v.label
+	v.ctx.allocObject(v.label)
 	return nil, nil
 }
 
@@ -192,20 +221,19 @@ func (v VarStatement) getType() Type {
 	return varTokenType
 }
 
-func (v *VarAssignStatement) invoke() (Expression, error) {
-	//fmt.Println("VarAssignStatement invoke", v.label)
-	obj, err := v.expression.invoke()
+func (expression *VarAssignStatement) invoke() (Expression, error) {
+	//fmt.Println("VarAssignStatement invoke", expression.label)
+	obj, err := expression.expression.invoke()
 	if err != nil {
 		return nil, err
 	}
-	object := v.ctx.allocObject()
-	object.label = v.label
+	object := expression.ctx.allocObject(expression.label)
 	object.inner = obj
 	object.initType()
 	return nil, nil
 }
 
-func (v *VarAssignStatement) getType() Type {
+func (expression *VarAssignStatement) getType() Type {
 	return varAssignTokenType
 }
 

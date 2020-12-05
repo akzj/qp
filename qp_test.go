@@ -86,7 +86,8 @@ func TestLessExpression(t *testing.T) {
 }
 
 func TestNumAddParse(t *testing.T) {
-	expression := Parse("1*(5+5+5)*2")
+	parser := newParser(bytes.NewReader([]byte("1*(5+5+5)*2")))
+	expression := parser.parseExpression()
 	if expression == nil {
 		t.Fatal("Parse failed")
 	}
@@ -232,6 +233,29 @@ println(a)
 	}
 }
 
+func TestAssignStatement(t *testing.T) {
+	cases := []struct {
+		exp string
+		val interface{}
+	}{{
+		exp: `
+var a = 1
+a = 100
+a++
+`, val: int64(3),
+	}}
+	for _, Case := range cases {
+		expression := Parse(Case.exp)
+		if expression == nil {
+			t.Fatal("Parse failed")
+		}
+		fmt.Println("-------------")
+		if _, err := expression.invoke(); err != nil {
+			t.Errorf(err.Error())
+		}
+	}
+}
+
 func TestFor(t *testing.T) {
 	cases := []struct {
 		exp string
@@ -239,8 +263,14 @@ func TestFor(t *testing.T) {
 	}{{
 		exp: `
 var a = 1
+var b = 1
 for ;; {
 	println(a)
+	for ;b < 10; {
+		println(a,b)
+		b++
+	}
+	b = 1
 	a++
 }
 

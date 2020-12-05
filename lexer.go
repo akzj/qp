@@ -106,6 +106,7 @@ func (l *lexer) peek() Token {
 		default:
 			token = unknownToken
 		}
+		token.line = l.line
 		l.token = token
 		return token
 	}

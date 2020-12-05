@@ -5,10 +5,14 @@ type memory struct {
 	stackObject []*Object
 }
 
-func (m *memory) alloc() *Object {
+func (m *memory) alloc(label string) *Object {
+	if o := m.getObject(label); o != nil {
+		return o
+	}
 	var obj = new(Object)
 	m.heapObject = append(m.heapObject, obj)
 	obj.pointer = len(m.heapObject) - 1
+	obj.label = label
 	return obj
 }
 
@@ -31,8 +35,8 @@ func newVMContext() *VMContext {
 	}
 }
 
-func (ctx *VMContext) allocObject() *Object {
-	return ctx.mem.alloc()
+func (ctx *VMContext) allocObject(label string) *Object {
+	return ctx.mem.alloc(label)
 }
 
 func (ctx *VMContext) getObject(label string) *Object {
