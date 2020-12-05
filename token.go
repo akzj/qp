@@ -63,6 +63,8 @@ func (t Type) String() string {
 		return "="
 	case varAssignTokenType:
 		return "var ="
+	case IntObjectType:
+		return "IntObject"
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}

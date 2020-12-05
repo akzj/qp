@@ -240,7 +240,6 @@ func (expression *MulExpression) invoke() (Expression, error) {
 
 func (expression *AddExpression) invoke() (Expression, error) {
 	fmt.Println("AddExpression invoke")
-	fmt.Println("MulExpression invoke")
 	l, err := expression.Left.invoke()
 	if err != nil {
 		fmt.Println("invoke left failed", err.Error())

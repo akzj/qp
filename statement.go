@@ -32,6 +32,25 @@ type fieldStatement struct {
 	label string
 }
 
+type FuncCallStatement struct {
+	vm        *VMContext
+	label     string
+	arguments Expressions
+}
+
+func (f *FuncCallStatement) invoke() (Expression, error) {
+	fmt.Println("FuncCallStatement invoke")
+	function, ok := builtInFunctionMap[f.label]
+	if ok {
+		return function(f.arguments...)
+	}
+	return nil, fmt.Errorf("no find function")
+}
+
+func (f *FuncCallStatement) getType() Type {
+	panic("implement me")
+}
+
 func (f *fieldStatement) invoke() (Expression, error) {
 	fmt.Println("fieldStatement invoke")
 	object := f.ctx.getObject(f.label)

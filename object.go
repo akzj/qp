@@ -20,7 +20,7 @@ func (i *IntObject) invoke() (Expression, error) {
 }
 
 func (i *IntObject) getType() Type {
-	panic("implement me")
+	return IntObjectType
 }
 
 type BoolObject struct {
@@ -75,4 +75,3 @@ func (obj *Object) AddObject(val *Object) (Expression, error) {
 	}
 	return nil, fmt.Errorf("unknown obj")
 }
-

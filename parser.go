@@ -114,13 +114,25 @@ Loop:
 		case token.typ == leftParenthesisTokenType:
 			opStack = append(opStack, token)
 		case token.typ == rightParenthesisTokenType:
-			fmt.Println(opStack)
-			for len(opStack) != 0 && opStack[len(opStack)-1].typ != leftParenthesisTokenType {
-				express := makeExpression(opStack[len(opStack)-1], &expressions)
-				expressions = append(expressions, express)
+			var find = false
+			for _, opCode := range opStack {
+				if opCode.typ == leftParenthesisTokenType {
+					find = true
+				}
+			}
+			//end of expression
+			if find == false {
+				fmt.Println("break Loop")
+				break Loop
+			}
+			if find {
+				for len(opStack) != 0 && opStack[len(opStack)-1].typ != leftParenthesisTokenType {
+					express := makeExpression(opStack[len(opStack)-1], &expressions)
+					expressions = append(expressions, express)
+					opStack = opStack[:len(opStack)-1]
+				}
 				opStack = opStack[:len(opStack)-1]
 			}
-			opStack = opStack[:len(opStack)-1]
 		case isOperatorToken(token):
 			for len(opStack) != 0 &&
 				isOperatorToken(opStack[len(opStack)-1]) &&
@@ -247,10 +259,28 @@ Loop:
 		case token.typ == rightBraceTokenType: // } end of statement
 			break Loop
 		case token.typ == labelTokenType:
-			expressions = append(expressions, &fieldStatement{
-				ctx:   p.vmCtx,
-				label: token.val,
-			})
+			label := token.val
+			p.lexer.next()
+			token = p.lexer.peek()
+			//function call
+			if token.typ == leftParenthesisTokenType {
+				fmt.Println("find function call")
+				expression := p.parseFunCallArguments()
+				if expression == nil {
+					fmt.Println("get argument failed")
+					return nil
+				}
+				expressions = append(expressions, &FuncCallStatement{
+					vm:        p.vmCtx,
+					label:     label,
+					arguments: expression})
+			} else {
+				expressions = append(expressions, &fieldStatement{
+					ctx:   p.vmCtx,
+					label: label,
+				})
+			}
+			continue
 		}
 		p.lexer.next()
 	}
@@ -287,6 +317,26 @@ func (p *parser) parseStatement() []Statement {
 		}
 	}
 	return statement
+}
+
+func (p *parser) parseFunCallArguments() Expressions {
+	var expressions Expressions
+	p.lexer.next()
+	for p.lexer.finish() == false {
+		expression := p.parse()
+		if expression == nil {
+			fmt.Println("parse expression failed")
+			return nil
+		}
+		expressions = append(expressions, expression)
+		token := p.lexer.peek()
+		p.lexer.next()
+		if token.typ == rightParenthesisTokenType {
+			fmt.Println("end of arguments", len(expressions), expressions.getType())
+			break
+		}
+	}
+	return expressions
 }
 
 func Parse(data string) Expression {

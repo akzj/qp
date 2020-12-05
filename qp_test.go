@@ -124,12 +124,39 @@ if 2 > 3{
 func TestIfStatement(t *testing.T) {
 	cases := []struct {
 		exp string
+		val int64
+	}{{
+		exp: `
+if 2 > 1{
+	return 3+3
+}
+`, val: int64(6),
+	}}
+
+	for _, Case := range cases {
+		expression := Parse(Case.exp)
+		if expression == nil {
+			t.Fatal("Parse failed")
+		}
+		if val, err := expression.invoke(); err != nil {
+			t.Errorf(err.Error())
+		} else {
+			if val.(*IntObject).val != Case.val {
+				t.Fatalf("no match %+v %+v", val.(*IntObject).val, Case.val)
+			}
+		}
+	}
+}
+
+func TestVarAssign(t *testing.T) {
+	cases := []struct {
+		exp string
 		val interface{}
 	}{{
 		exp: `
-if 2 < 1{
-	return 3+3
-}
+var a= 1
+var b=a+1
+return b+1
 `, val: int64(3),
 	}}
 
@@ -146,15 +173,14 @@ if 2 < 1{
 	}
 }
 
-func TestVarAssign(t *testing.T) {
+func TestFunctionCall(t *testing.T) {
 	cases := []struct {
 		exp string
 		val interface{}
 	}{{
 		exp: `
-var a = 10
-var b = a+1
-return b+a+b
+var a = 1
+println(a+100+1)
 `, val: int64(3),
 	}}
 
