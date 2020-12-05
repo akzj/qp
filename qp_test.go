@@ -30,6 +30,7 @@ func TestLexer(t *testing.T) {
 if 2 > 1{
 	3+3 
 return 1
+var a = 
 `)))
 	if lexer == nil {
 		t.Fatal("lexer nil")
@@ -74,7 +75,7 @@ func TestLessExpression(t *testing.T) {
 		if val, err := expression.invoke(); err != nil {
 			t.Errorf(err.Error())
 		} else {
-			if val.(bool) != Case.expect {
+			if val.(*BoolObject).val != Case.expect {
 				t.Fatalf("expression parse failed,`%s` "+
 					"result `%+v` expect `%+v`", Case.expStr, val, Case.expect)
 			}
@@ -94,15 +95,66 @@ func TestNumAddParse(t *testing.T) {
 	}
 }
 
+func TestReturnStatement(t *testing.T) {
+	cases := []struct {
+		exp string
+		val interface{}
+	}{{
+		exp: `
+	return 3+3
+if 2 > 3{
+	return 1+1
+}
+`, val: int64(3),
+	}}
+
+	for _, Case := range cases {
+		expression := Parse(Case.exp)
+		if expression == nil {
+			t.Fatal("Parse failed")
+		}
+		if val, err := expression.invoke(); err != nil {
+			t.Errorf(err.Error())
+		} else {
+			fmt.Println("result", val)
+		}
+	}
+}
+
 func TestIfStatement(t *testing.T) {
 	cases := []struct {
 		exp string
 		val interface{}
 	}{{
 		exp: `
-if 2 > 1{
+if 2 < 1{
 	return 3+3
 }
+`, val: int64(3),
+	}}
+
+	for _, Case := range cases {
+		expression := Parse(Case.exp)
+		if expression == nil {
+			t.Fatal("Parse failed")
+		}
+		if val, err := expression.invoke(); err != nil {
+			t.Errorf(err.Error())
+		} else {
+			fmt.Println("result", val)
+		}
+	}
+}
+
+func TestVarAssign(t *testing.T) {
+	cases := []struct {
+		exp string
+		val interface{}
+	}{{
+		exp: `
+var a = 10
+var b = a+1
+return b+a+b
 `, val: int64(3),
 	}}
 

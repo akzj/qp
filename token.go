@@ -5,9 +5,9 @@ import (
 	"strconv"
 )
 
-type TokenType int
+type Type int
 
-func (t TokenType) String() string {
+func (t Type) String() string {
 	switch t {
 	case addOperatorTokenType:
 		return "+"
@@ -47,52 +47,64 @@ func (t TokenType) String() string {
 		return ">"
 	case greaterEqualTokenType:
 		return ">="
-	case emptyTokenType:
-		return "empty"
+	case EOFTokenType:
+		return "EOF"
 	case labelTokenType:
 		return "label"
 	case statementTokenType:
 		return "statement"
 	case statementsTokenType:
 		return "statements"
+	case expressionTokenType:
+		return "expression"
+	case varTokenType:
+		return "var"
+	case assignTokenType:
+		return "="
+	case varAssignTokenType:
+		return "var ="
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
 }
 
-const emptyTokenType TokenType = 0
-const unknownTokenType TokenType = 1
+const EOFTokenType Type = 0
+const unknownTokenType Type = 1
 
-const addOperatorTokenType TokenType = 101  // +
-const subOperatorTokenType TokenType = 102  // -
-const mulOperatorTokenType TokenType = 103  // *
-const divOperatorTokenType TokenType = 104  // /
-const lessTokenType TokenType = 105         // <
-const greaterTokenType TokenType = 106      // >
-const lessEqualTokenType TokenType = 116    // <=
-const greaterEqualTokenType TokenType = 117 // >=
+const addOperatorTokenType Type = 101  // +
+const subOperatorTokenType Type = 102  // -
+const mulOperatorTokenType Type = 103  // *
+const divOperatorTokenType Type = 104  // /
+const lessTokenType Type = 105         // <
+const greaterTokenType Type = 106      // >
+const lessEqualTokenType Type = 116    // <=
+const greaterEqualTokenType Type = 117 // >=
 
-const leftParenthesisTokenType TokenType = 120  // (
-const rightParenthesisTokenType TokenType = 121 //)
-const leftBraceTokenType TokenType = 122        //{
-const rightBraceTokenType TokenType = 123       //}
+const leftParenthesisTokenType Type = 120  // (
+const rightParenthesisTokenType Type = 121 //)
+const leftBraceTokenType Type = 122        //{
+const rightBraceTokenType Type = 123       //}
 
-const ifTokenType TokenType = 230     //if
-const elseTokenType TokenType = 331   //else
-const funcTokenType TokenType = 332   //func
-const returnTokenType TokenType = 333 //return
-const breakTokenType TokenType = 334  //break
-const forTokenType TokenType = 335    //for
-const elseifTokenType TokenType = 336 //else if
+const ifTokenType Type = 230     //if
+const elseTokenType Type = 331   //else
+const funcTokenType Type = 332   //func
+const returnTokenType Type = 333 //return
+const breakTokenType Type = 334  //break
+const forTokenType Type = 335    //for
+const elseifTokenType Type = 336 //else if
 
-const intTokenType TokenType = 700
-const labelTokenType TokenType = 5000
-const statementTokenType TokenType = 6001
-const statementsTokenType TokenType = 6003
-const expressionTokenType TokenType = 6002
+const varTokenType Type = 400       // var
+const assignTokenType Type = 401    // =
+const varAssignTokenType Type = 402 // var x =
+
+const intTokenType Type = 700
+const labelTokenType Type = 5000
+const statementTokenType Type = 6001
+const statementsTokenType Type = 6003
+const expressionTokenType Type = 6002
 
 type Token struct {
-	typ TokenType
+	typ Type
 	val string
 }
 
@@ -104,7 +116,7 @@ func (t Token) String() string {
 }
 
 var (
-	emptyToken            = Token{typ: emptyTokenType}
+	emptyToken            = Token{typ: EOFTokenType}
 	unknownToken          = Token{typ: unknownTokenType}
 	addOperatorToken      = Token{typ: addOperatorTokenType}
 	mulOperatorToken      = Token{typ: mulOperatorTokenType}
@@ -116,17 +128,19 @@ var (
 	lessEqualToken        = Token{typ: lessEqualTokenType}
 	greaterToken          = Token{typ: greaterTokenType}
 	greaterEqualToken     = Token{typ: greaterEqualTokenType}
+	assignToken           = Token{typ: assignTokenType}
 )
 
 var Keywords = []string{
-	"if", "else", "func", "return", "break", "for",
+	"if", "else", "func", "return", "break", "for", "var",
 }
 
-var keywordTokenType = map[string]TokenType{
+var keywordTokenType = map[string]Type{
 	"if":     ifTokenType,
 	"else":   elseTokenType,
 	"func":   funcTokenType,
 	"return": returnTokenType,
 	"break":  breakTokenType,
 	"for":    forTokenType,
+	"var":    varTokenType,
 }

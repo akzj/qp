@@ -1,31 +1,32 @@
 package qp
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+)
 
 type Expression interface {
-	invoke() (interface{}, error)
-	getType() TokenType
+	invoke() (Expression, error)
+	getType() Type
 }
 
 type Expressions []Expression
 
-func (Expressions) getType() TokenType {
+func (Expressions) getType() Type {
 	return expressionTokenType
 }
 
-func (e *Expressions) invoke() (interface{}, error) {
-	var val interface{}
+func (expressions *Expressions) invoke() (Expression, error) {
+	var val Expression
 	var err error
-	for _, expression := range *e {
+	for _, expression := range *expressions {
 		if val, err = expression.invoke(); err != nil {
 			return val, err
+		} else if val != nil {
+			return val, nil
 		}
 	}
 	return val, err
-}
-
-type IntExpression struct {
-	val int64
 }
 
 type AddExpression struct {
@@ -38,7 +39,8 @@ type MulExpression struct {
 	right Expression
 }
 
-func (MulExpression) getType() TokenType {
+
+func (MulExpression) getType() Type {
 	return mulOperatorTokenType
 }
 
@@ -62,152 +64,208 @@ type GreaterEqualExpression struct {
 	right Expression
 }
 
-func (LessExpression) getType() TokenType {
+func (LessExpression) getType() Type {
 	return lessTokenType
 }
 
-func (AddExpression) getType() TokenType {
+func (AddExpression) getType() Type {
 	return addOperatorTokenType
 }
 
-func (expression LessEqualExpression) getType() TokenType {
+func (expression LessEqualExpression) getType() Type {
 	return lessEqualTokenType
 }
 
-func (IntExpression) getType() TokenType {
-	return intTokenType
-}
-
-func (GreaterExpression) getType() TokenType {
+func (GreaterExpression) getType() Type {
 	return greaterTokenType
 }
-func (GreaterEqualExpression) getType() TokenType {
+func (GreaterEqualExpression) getType() Type {
 	return greaterEqualTokenType
 }
 
-func (expression *GreaterExpression) invoke() (interface{}, error) {
+func (expression *GreaterExpression) invoke() (Expression, error) {
 	fmt.Println("GreaterExpression invoke")
 	l, err := expression.Left.invoke()
 	if err != nil {
 		fmt.Println("invoke left failed", err.Error())
+		return nil, err
 	}
+	l, err = l.invoke()
 	r, err := expression.right.invoke()
 	if err != nil {
 		fmt.Println("invoke left failed", err.Error())
+		return nil, err
 	}
-	fmt.Println("l,r", l, r)
+	r, err = r.invoke()
+	var val bool
 	switch lVal := l.(type) {
-	case int64:
+	case *IntObject:
 		switch rVal := r.(type) {
-		case int64:
-			fmt.Println(lVal, rVal)
-			return lVal > rVal, nil
+		case *IntObject:
+			val = lVal.val > rVal.val
+		default:
+			panic(reflect.TypeOf(l).String() + "\n" +
+				reflect.TypeOf(r).String())
 		}
+	default:
+		panic(reflect.TypeOf(l).String() + "\n" +
+			reflect.TypeOf(r).String())
 	}
-	return nil, fmt.Errorf("unknown operand type")
+	return &BoolObject{val: val}, nil
 }
 
-func (expression *GreaterEqualExpression) invoke() (interface{}, error) {
+func (expression *GreaterEqualExpression) invoke() (Expression, error) {
 	fmt.Println("GreaterEqualExpression invoke")
 	l, err := expression.Left.invoke()
 	if err != nil {
 		fmt.Println("invoke left failed", err.Error())
+		return nil, err
 	}
+	l, err = l.invoke()
 	r, err := expression.right.invoke()
 	if err != nil {
 		fmt.Println("invoke left failed", err.Error())
+		return nil, err
 	}
+	r, err = r.invoke()
+	var val bool
 	switch lVal := l.(type) {
-	case int64:
+	case *IntObject:
 		switch rVal := r.(type) {
-		case int64:
-			return lVal >= rVal, nil
+		case *IntObject:
+			val = lVal.val >= rVal.val
+		default:
+			panic(reflect.TypeOf(l).String() + "\n" +
+				reflect.TypeOf(r).String())
 		}
+	default:
+		panic(reflect.TypeOf(l).String() + "\n" +
+			reflect.TypeOf(r).String())
 	}
-	return nil, fmt.Errorf("unknown operand type")
+	return &BoolObject{val: val}, nil
 }
 
-func (expression *LessEqualExpression) invoke() (interface{}, error) {
+func (expression *LessEqualExpression) invoke() (Expression, error) {
 	fmt.Println("LessEqualExpression invoke")
 	l, err := expression.Left.invoke()
 	if err != nil {
 		fmt.Println("invoke left failed", err.Error())
+		return nil, err
 	}
+	l, err = l.invoke()
 	r, err := expression.right.invoke()
 	if err != nil {
 		fmt.Println("invoke left failed", err.Error())
+		return nil, err
 	}
+	r, err = r.invoke()
+	var val bool
 	switch lVal := l.(type) {
-	case int64:
+	case *IntObject:
 		switch rVal := r.(type) {
-		case int64:
-			return lVal <= rVal, nil
+		case *IntObject:
+			val = lVal.val <= rVal.val
+		default:
+			panic(reflect.TypeOf(l).String() + "\n" +
+				reflect.TypeOf(r).String())
 		}
+	default:
+		panic(reflect.TypeOf(l).String() + "\n" +
+			reflect.TypeOf(r).String())
 	}
-	return nil, fmt.Errorf("unknown operand type")
+	return &BoolObject{val: val}, nil
 }
 
-func (expression *LessExpression) invoke() (interface{}, error) {
+func (expression *LessExpression) invoke() (Expression, error) {
 	fmt.Println("LessExpression invoke")
 	l, err := expression.Left.invoke()
 	if err != nil {
 		fmt.Println("invoke left failed", err.Error())
+		return nil, err
 	}
+	l, err = l.invoke()
 	r, err := expression.right.invoke()
 	if err != nil {
 		fmt.Println("invoke left failed", err.Error())
+		return nil, err
 	}
+	r, err = r.invoke()
+	var val bool
 	switch lVal := l.(type) {
-	case int64:
+	case *IntObject:
 		switch rVal := r.(type) {
-		case int64:
-			fmt.Println(lVal, rVal)
-			return lVal < rVal, nil
+		case *IntObject:
+			val = lVal.val < rVal.val
+		default:
+			panic(reflect.TypeOf(l).String() + "\n" +
+				reflect.TypeOf(r).String())
 		}
+	default:
+		panic(reflect.TypeOf(l).String() + "\n" +
+			reflect.TypeOf(r).String())
 	}
-	return nil, fmt.Errorf("unknown operand type")
+	return &BoolObject{val: val}, nil
 }
 
-func (i IntExpression) invoke() (interface{}, error) {
-	return i.val, nil
-}
-
-func (expression *MulExpression) invoke() (interface{}, error) {
+func (expression *MulExpression) invoke() (Expression, error) {
 	fmt.Println("MulExpression invoke")
 	l, err := expression.Left.invoke()
 	if err != nil {
 		fmt.Println("invoke left failed", err.Error())
+		return nil, err
 	}
+	l, err = l.invoke()
 	r, err := expression.right.invoke()
 	if err != nil {
 		fmt.Println("invoke left failed", err.Error())
+		return nil, err
 	}
+	r, err = r.invoke()
+	var val int64
 	switch lVal := l.(type) {
-	case int64:
+	case *IntObject:
 		switch rVal := r.(type) {
-		case int64:
-			return lVal * rVal, nil
+		case *IntObject:
+			val = lVal.val * rVal.val
+		default:
+			panic(reflect.TypeOf(l).String() + "\n" +
+				reflect.TypeOf(r).String())
 		}
+	default:
+		panic(reflect.TypeOf(l).String() + "\n" +
+			reflect.TypeOf(r).String())
 	}
-	return nil, fmt.Errorf("unknown operand type")
+	return &IntObject{val: val}, nil
 }
 
-func (a *AddExpression) invoke() (interface{}, error) {
+func (expression *AddExpression) invoke() (Expression, error) {
 	fmt.Println("AddExpression invoke")
-	l, err := a.Left.invoke()
+	fmt.Println("MulExpression invoke")
+	l, err := expression.Left.invoke()
 	if err != nil {
 		fmt.Println("invoke left failed", err.Error())
+		return nil, err
 	}
-	r, err := a.right.invoke()
+	l, err = l.invoke()
+	r, err := expression.right.invoke()
 	if err != nil {
 		fmt.Println("invoke left failed", err.Error())
+		return nil, err
 	}
+	r, err = r.invoke()
+	var val int64
 	switch lVal := l.(type) {
-	case int64:
+	case *IntObject:
 		switch rVal := r.(type) {
-		case int64:
-			return lVal + rVal, nil
+		case *IntObject:
+			val = lVal.val + rVal.val
+		default:
+			panic(reflect.TypeOf(l).String() + "\n" +
+				reflect.TypeOf(r).String())
 		}
+	default:
+		panic(reflect.TypeOf(l).String() + "\n" +
+			reflect.TypeOf(r).String())
 	}
-	return nil, fmt.Errorf("unknown operand type")
+	return &IntObject{val: val}, nil
 }

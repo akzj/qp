@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-func precedence(tokenType TokenType) int {
+func precedence(tokenType Type) int {
 	switch tokenType {
 	case addOperatorTokenType, subOperatorTokenType:
 		return 100
@@ -21,7 +21,7 @@ func precedence(tokenType TokenType) int {
 }
 
 //greater or equal
-func precedenceGE(first, second TokenType) bool {
+func precedenceGE(first, second Type) bool {
 	return precedence(first)-precedence(second) >= 0
 }
 
@@ -30,13 +30,14 @@ func isOperatorToken(token Token) bool {
 }
 
 type parser struct {
-	stack []Token
 	lexer *lexer
+	vmCtx *VMContext
 }
 
 func newParser(reader io.Reader) *parser {
 	return &parser{
 		lexer: newLexer(reader),
+		vmCtx: newVMContext(),
 	}
 }
 
@@ -89,10 +90,19 @@ func (p *parser) parse() Expression {
 	var opStack []Token
 	var expressions []Expression
 
+	doMakeExpression := func() {
+		for len(opStack) != 0 {
+			express := makeExpression(opStack[len(opStack)-1], &expressions)
+			expressions = append(expressions, express)
+			opStack = opStack[:len(opStack)-1]
+		}
+	}
 Loop:
 	for p.lexer.finish() == false {
 		token := p.lexer.peek()
-		fmt.Println(token)
+		if token.typ == EOFTokenType {
+			break
+		}
 		switch {
 		case token.typ == intTokenType:
 			val, err := strconv.ParseInt(string(token.val), 10, 64)
@@ -100,7 +110,7 @@ Loop:
 				fmt.Println("parse int failed", string(token.val))
 				return nil
 			}
-			expressions = append(expressions, IntExpression{val: val})
+			expressions = append(expressions, &IntObject{val: val})
 		case token.typ == leftParenthesisTokenType:
 			opStack = append(opStack, token)
 		case token.typ == rightParenthesisTokenType:
@@ -126,7 +136,10 @@ Loop:
 			opStack = append(opStack, token)
 
 		case token.typ == ifTokenType:
-			fmt.Println("ifTokenType")
+			if len(expressions) != 0 {
+				doMakeExpression()
+			}
+			fmt.Println("ifTokenType begin")
 			p.lexer.next()
 			expression := p.parse()
 			if expression == nil {
@@ -184,6 +197,7 @@ Loop:
 				ifStatement.elseStatement = statement
 			}
 		case token.typ == returnTokenType:
+			doMakeExpression()
 			statement := ReturnStatement{}
 			p.lexer.next()
 			expression := p.parse()
@@ -193,20 +207,54 @@ Loop:
 			}
 			statement.express = expression
 			expressions = append(expressions, statement)
+			continue
+		case token.typ == varTokenType:
+			doMakeExpression()
+			//todo check in the same line
+			p.lexer.next()
+			token = p.lexer.peek()
+			if token.typ != labelTokenType {
+				fmt.Println("error ,expect label")
+				return nil
+			}
+			var label = token.val
+			p.lexer.next()
+			token = p.lexer.peek()
+			if token.typ == assignTokenType {
+				p.lexer.next()
+				token = p.lexer.peek()
+				expression := p.parse()
+				if expression == nil {
+					fmt.Println("parse assign expression failed")
+					return nil
+				}
+				expressionList := *expression.(*Expressions)
+				expressions = append(expressions, &VarAssignStatement{
+					ctx:        p.vmCtx,
+					label:      label,
+					expression: expressionList[0],
+				})
+				expressions = append(expressions, expressionList[1:]...)
+			} else {
+				expressions = append(expressions, &VarStatement{
+					ctx:   p.vmCtx,
+					label: label,
+				})
+			}
+			continue
 		case token.typ == leftBraceTokenType: //{ end of expression
 			break Loop
-
 		case token.typ == rightBraceTokenType: // } end of statement
 			break Loop
+		case token.typ == labelTokenType:
+			expressions = append(expressions, &fieldStatement{
+				ctx:   p.vmCtx,
+				label: token.val,
+			})
 		}
 		p.lexer.next()
 	}
-	fmt.Println("=====makeExpression======")
-	for len(opStack) != 0 {
-		express := makeExpression(opStack[len(opStack)-1], &expressions)
-		expressions = append(expressions, express)
-		opStack = opStack[:len(opStack)-1]
-	}
+	doMakeExpression()
 	return (*Expressions)(&expressions)
 }
 

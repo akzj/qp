@@ -15,7 +15,7 @@ type lexer struct {
 }
 
 func (l *lexer) finish() bool {
-	return l.err != nil && l.token.typ == emptyTokenType
+	return l.err != nil && l.token.typ == EOFTokenType
 }
 
 func isSpace(c byte) bool {
@@ -46,7 +46,7 @@ func (l *lexer) get() (byte, error) {
 }
 
 func (l *lexer) peek() Token {
-	if l.token.typ != emptyTokenType {
+	if l.token.typ != EOFTokenType {
 		return l.token
 	}
 	for {
@@ -92,6 +92,8 @@ func (l *lexer) peek() Token {
 			token = mulOperatorToken
 		case '0' <= c && c <= '9':
 			token = l.parseNumToken(c)
+		case c == '=':
+			token = assignToken
 		default:
 			token = unknownToken
 		}
@@ -158,6 +160,10 @@ func (l *lexer) parseLabel(c byte) Token {
 		typ: labelTokenType,
 		val: buf.String(),
 	}
+}
+
+func (l *lexer) Line() int {
+	return l.line
 }
 
 func isDigit(c byte) bool {
