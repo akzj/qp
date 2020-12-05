@@ -12,9 +12,7 @@ var builtInFunctionMap = map[string]BuiltInFunction{
 }
 
 func _println(arguments ...Expression) (Expression, error) {
-	fmt.Println("arguments size", len(arguments))
 	for _, argument := range arguments {
-		fmt.Println("argument type", argument.getType())
 		object, err := argument.invoke()
 		if err != nil {
 			fmt.Println(err.Error())

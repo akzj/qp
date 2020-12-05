@@ -101,6 +101,8 @@ func (l *lexer) peek() Token {
 			token = assignToken
 		case c == ',':
 			token = commaToken
+		case c == ';':
+			token = semicolonToken
 		default:
 			token = unknownToken
 		}

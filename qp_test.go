@@ -32,6 +32,7 @@ if 2 > 1{
 return 1
 var a = 
 a ++
+for
 `)))
 	if lexer == nil {
 		t.Fatal("lexer nil")
@@ -237,9 +238,10 @@ func TestFor(t *testing.T) {
 		val interface{}
 	}{{
 		exp: `
-for (var a = 1;a < 100;a++) {
+var a = 1
+for ;; {
 	println(a)
-	break
+	a++
 }
 
 `, val: int64(3),

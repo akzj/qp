@@ -11,6 +11,19 @@ const (
 	BoolObjectType Type = 10001
 )
 
+var breakObject = &BreakObject{}
+
+type BreakObject struct {
+}
+
+func (b BreakObject) invoke() (Expression, error) {
+	return b, nil
+}
+
+func (b BreakObject) getType() Type {
+	return breakTokenType
+}
+
 type IntObject struct {
 	val int64
 }

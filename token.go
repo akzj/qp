@@ -71,6 +71,8 @@ func (t Type) String() string {
 		return "++"
 	case callFunctionType:
 		return "call"
+	case semicolonTokenType:
+		return ";"
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
@@ -93,6 +95,7 @@ const rightParenthesisTokenType Type = 121 // )
 const leftBraceTokenType Type = 122        // {
 const rightBraceTokenType Type = 123       // }
 const commaTokenType Type = 124            // ,
+const semicolonTokenType = 125             //;
 const ifTokenType Type = 230               //if
 const elseTokenType Type = 331             //else
 const funcTokenType Type = 332             //func
@@ -109,6 +112,7 @@ const statementType Type = 6001            // statement
 const statementsType Type = 6003           // statementType
 const expressionType Type = 6002           // expressionType
 const callFunctionType Type = 6004         // call function
+const nopStatementType Type = 6005         // nop
 
 type Token struct {
 	typ Type
@@ -138,6 +142,7 @@ var (
 	assignToken           = Token{typ: assignTokenType}
 	commaToken            = Token{typ: commaTokenType}
 	incOperatorToken      = Token{typ: incOperatorTokenType}
+	semicolonToken        = Token{typ: semicolonTokenType}
 )
 
 var Keywords = []string{

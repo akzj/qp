@@ -134,6 +134,7 @@ Loop:
 				opStack = opStack[:len(opStack)-1]
 			}
 		case isOperatorToken(token):
+			fmt.Println("isOperatorToken", token)
 			for len(opStack) != 0 &&
 				isOperatorToken(opStack[len(opStack)-1]) &&
 				precedenceGE(opStack[len(opStack)-1].typ, token.typ) {
@@ -208,6 +209,17 @@ Loop:
 				}
 				ifStatement.elseStatement = statement
 			}
+		case token.typ == forTokenType:
+			if len(expressions) != 0 {
+				doMakeExpression()
+			}
+			p.lexer.next()
+			expression := p.parseForStatement()
+			if expression == nil {
+				fmt.Println("parse for statement failed")
+				return nil
+			}
+			expressions = append(expressions, expression)
 		case token.typ == returnTokenType:
 			doMakeExpression()
 			statement := ReturnStatement{}
@@ -258,6 +270,8 @@ Loop:
 			break Loop
 		case token.typ == rightBraceTokenType: // } end of statement
 			break Loop
+		case token.typ == semicolonTokenType: // ; end of expression
+			break Loop
 		case token.typ == commaTokenType: // end of expression
 			fmt.Println(token)
 			p.lexer.next()
@@ -266,6 +280,8 @@ Loop:
 			label := token.val
 			p.lexer.next()
 			token = p.lexer.peek()
+			fmt.Println("xxxxxxxxx", token)
+
 			//function call
 			if token.typ == leftParenthesisTokenType {
 				expression := p.parseFunCallArguments()
@@ -279,6 +295,7 @@ Loop:
 					arguments: expression})
 				// ++ increase
 			} else if token.typ == incOperatorTokenType {
+				fmt.Println("++,,,,")
 				expressions = append(expressions, &IncFieldStatement{
 					ctx:   p.vmCtx,
 					label: label,
@@ -300,14 +317,15 @@ Loop:
 func (p *parser) parseStatement() []Statement {
 	var statement []Statement
 	var leftBrace []Token
-	if p.lexer.finish() == false {
-		token := p.lexer.peek()
-		if token.typ != leftBraceTokenType {
-			fmt.Println("error ,expect { ")
-		}
-		leftBrace = append(leftBrace, token)
-		p.lexer.next()
+
+	token := p.lexer.peek()
+	if token.typ != leftBraceTokenType {
+		fmt.Println("error ,expect { ")
+		return nil
 	}
+	p.lexer.next()
+	leftBrace = append(leftBrace, token)
+
 	for p.lexer.finish() == false {
 		expression := p.parse()
 		if expression == nil {
@@ -319,6 +337,7 @@ func (p *parser) parseStatement() []Statement {
 		})
 		token := p.lexer.peek()
 		if token.typ == rightBraceTokenType {
+			p.lexer.next() //drop }
 			if leftBrace = leftBrace[:len(leftBrace)-1]; len(leftBrace) == 0 {
 				break
 			}
@@ -345,6 +364,84 @@ func (p *parser) parseFunCallArguments() Expressions {
 		}
 	}
 	return expressions
+}
+
+func (p *parser) parseForStatement() *ForStatement {
+	var forStatement ForStatement
+	token := p.lexer.peek()
+	if token.typ == semicolonTokenType {
+		fmt.Println("first ;")
+		forStatement.preStatement = &NopStatement{}
+		p.lexer.next()
+	} else if token.typ == leftBraceTokenType {
+		forStatement.preStatement = &NopStatement{}
+		forStatement.postStatement = &NopStatement{}
+		forStatement.checkStatement = &BoolObject{val: true}
+		statements := p.parseStatement()
+		if statements == nil {
+			fmt.Println("parse `for` statements failed")
+			return nil
+		}
+		forStatement.statements = statements
+		return &forStatement
+	} else {
+		expression := p.parse()
+		if expression == nil {
+			fmt.Println("parse `for` preStatement failed")
+			return nil
+		}
+		if p.lexer.peek().typ != semicolonTokenType {
+			fmt.Println("expect ; in `for` statement")
+			return nil
+		}
+		p.lexer.next()
+		forStatement.preStatement = expression
+	}
+	token = p.lexer.peek()
+
+	//check expression
+	if token.typ == semicolonTokenType {
+		forStatement.checkStatement = &BoolObject{val: true}
+		p.lexer.next()
+	} else {
+		expression := p.parse()
+		if expression == nil {
+			fmt.Println("parse `for` checkStatement failed")
+			return nil
+		}
+		if p.lexer.peek().typ != semicolonTokenType {
+			fmt.Println("expect ; in `for` check expression")
+			return nil
+		}
+		p.lexer.next()
+		forStatement.checkStatement = expression
+		fmt.Println("check expression ok", expression.getType())
+	}
+
+	token = p.lexer.peek()
+	//post expression
+	if token.typ == leftBraceTokenType {
+		forStatement.postStatement = &NopStatement{}
+	} else {
+		expression := p.parse()
+		if expression == nil {
+			fmt.Println("parse `for` checkStatement failed")
+			return nil
+		}
+		if p.lexer.peek().typ != leftBraceTokenType {
+			fmt.Println("expect { in `for` post expression")
+			return nil
+		}
+		forStatement.postStatement = expression
+	}
+	// statements
+	statements := p.parseStatement()
+	if statements == nil {
+		fmt.Println("parse `for` statements failed")
+		return nil
+	}
+	forStatement.statements = statements
+	return &forStatement
 }
 
 func Parse(data string) Expression {
