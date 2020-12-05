@@ -104,8 +104,7 @@ func TestReturnStatement(t *testing.T) {
 		val interface{}
 	}{{
 		exp: `
-	return 3+3
-if 2 > 3{
+if 2 < 3{
 	return 1+1
 }
 `, val: int64(3),
@@ -158,8 +157,8 @@ func TestVarAssign(t *testing.T) {
 	}{{
 		exp: `
 var a= 1
-var b=a+1
-return b+1
+println(a)
+return a+1
 `, val: int64(3),
 	}}
 
@@ -227,6 +226,7 @@ println(a)
 		if expression == nil {
 			t.Fatal("Parse failed")
 		}
+		fmt.Println("---------------------------")
 		if _, err := expression.invoke(); err != nil {
 			t.Errorf(err.Error())
 		}
@@ -264,13 +264,8 @@ func TestFor(t *testing.T) {
 		exp: `
 var a = 1
 var b = 1
-for ;; {
+for ;a < 10; {
 	println(a)
-	for ;b < 10; {
-		println(a,b)
-		b++
-	}
-	b = 1
 	a++
 }
 
@@ -282,6 +277,7 @@ for ;; {
 		if expression == nil {
 			t.Fatal("Parse failed")
 		}
+		fmt.Println("---------------------------")
 		if val, err := expression.invoke(); err != nil {
 			t.Errorf(err.Error())
 		} else {

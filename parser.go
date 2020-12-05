@@ -30,9 +30,10 @@ func isOperatorToken(token Token) bool {
 }
 
 type parser struct {
-	lastToken Token
-	lexer     *lexer
-	vmCtx     *VMContext
+	history []Token
+	tokens  []Token
+	lexer   *lexer
+	vmCtx   *VMContext
 }
 
 func newParser(reader io.Reader) *parser {
@@ -87,13 +88,35 @@ func makeExpression(opToken Token, expressions *[]Expression) Expression {
 	return expression
 }
 
-func (p *parser) nextToken() {
-	p.lastToken = p.lexer.peek()
-	p.lexer.next()
+func (p *parser) nextToken() Token {
+	if len(p.tokens) == 0 {
+		for i := 0; i < 100; i++ {
+			p.tokens = append(p.tokens, p.lexer.peek())
+			p.lexer.next()
+			if p.lexer.finish() {
+				break
+			}
+		}
+	}
+	if len(p.tokens) == 0 {
+		return emptyToken
+	}
+	token := p.tokens[0]
+	p.tokens = p.tokens[1:]
+	p.history = append(p.history, token)
+	return token
 }
 
-func (p *parser) peekToken() Token {
-	return p.lexer.peek()
+func (p *parser) historyToken(index int) Token {
+	index = len(p.history) - 1 - index
+	if index >= 0 && index < len(p.history) {
+		return p.history[index]
+	}
+	return emptyToken
+}
+
+func (p *parser) putToken(token Token) {
+	p.tokens = append([]Token{token}, p.tokens...)
 }
 
 func (p *parser) parseExpression() Expression {
@@ -107,11 +130,12 @@ func (p *parser) parseExpression() Expression {
 		}
 	}
 Loop:
-	for p.lexer.finish() == false {
-		token := p.lexer.peek()
-		if token.typ == EOFTokenType {
+	for {
+		token := p.nextToken()
+		if token == emptyToken {
 			break
 		}
+		fmt.Println("parseExpression", token)
 		switch {
 		case token.typ == intTokenType:
 			val, err := strconv.ParseInt(string(token.val), 10, 64)
@@ -131,6 +155,8 @@ Loop:
 			}
 			//end of expression
 			if find == false {
+				fmt.Println("break")
+				p.putToken(token)
 				break Loop
 			}
 			if find {
@@ -156,30 +182,39 @@ Loop:
 			opStack = append(opStack, token)
 			//function call
 		case token.typ == labelType:
-			label := token.val
-			p.nextToken()
-			token = p.lexer.peek()
-			//function call
-			if token.typ == leftParenthesisTokenType {
-				expression := p.parseFunCallArguments()
-				if expression == nil {
-					fmt.Println("get argument failed")
-					return nil
+			his := p.historyToken(1)
+			fmt.Println(his, "historyToken")
+			if isOperatorToken(his) ||
+				his.typ == leftParenthesisTokenType ||
+				his.typ == returnTokenType {
+				label := token.val
+				next := p.nextToken()
+				//function call
+				if next.typ == leftParenthesisTokenType {
+					expression := p.parseFunCallArguments()
+					if expression == nil {
+						fmt.Println("get argument failed")
+						return nil
+					}
+					expressions = append(expressions, &FuncCallStatement{
+						vm:        p.vmCtx,
+						label:     label,
+						arguments: expression})
+				} else {
+					p.putToken(next)
+					expressions = append(expressions, &fieldStatement{
+						ctx:   p.vmCtx,
+						label: label,
+					})
 				}
-				expressions = append(expressions, &FuncCallStatement{
-					vm:        p.vmCtx,
-					label:     label,
-					arguments: expression})
 			} else {
-				expressions = append(expressions, &fieldStatement{
-					ctx:   p.vmCtx,
-					label: label,
-				})
+				p.putToken(token)
+				break Loop
 			}
 		default:
+			p.putToken(token)
 			break Loop
 		}
-		p.nextToken()
 	}
 	doMakeExpression()
 	return (*Expressions)(&expressions)
@@ -197,60 +232,16 @@ func (p *parser) parse() Expression {
 		}
 	}
 Loop:
-	for p.lexer.finish() == false {
-		token := p.lexer.peek()
-		if token.typ == EOFTokenType {
+	for {
+		token := p.nextToken()
+		if token == emptyToken {
 			break
 		}
+		fmt.Println(token)
 		switch {
-		case token.typ == intTokenType:
-			val, err := strconv.ParseInt(string(token.val), 10, 64)
-			if err != nil {
-				fmt.Println("parse int failed", string(token.val))
-				return nil
-			}
-			expressions = append(expressions, &IntObject{val: val})
-		case token.typ == leftParenthesisTokenType:
-			opStack = append(opStack, token)
-		case token.typ == rightParenthesisTokenType:
-			var find = false
-			for _, opCode := range opStack {
-				if opCode.typ == leftParenthesisTokenType {
-					find = true
-				}
-			}
-			//end of expression
-			if find == false {
-				break Loop
-			}
-			if find {
-				for len(opStack) != 0 && opStack[len(opStack)-1].typ != leftParenthesisTokenType {
-					express := makeExpression(opStack[len(opStack)-1], &expressions)
-					expressions = append(expressions, express)
-					opStack = opStack[:len(opStack)-1]
-				}
-				opStack = opStack[:len(opStack)-1]
-			}
-		case isOperatorToken(token):
-			for len(opStack) != 0 &&
-				isOperatorToken(opStack[len(opStack)-1]) &&
-				precedenceGE(opStack[len(opStack)-1].typ, token.typ) {
-				express := makeExpression(opStack[len(opStack)-1], &expressions)
-				if express == nil {
-					fmt.Println("make expression failed", opStack[len(opStack)-1])
-					return nil
-				}
-				expressions = append(expressions, express)
-				opStack = opStack[:len(opStack)-1]
-			}
-			opStack = append(opStack, token)
-
 		case token.typ == ifTokenType:
-			if len(expressions) != 0 {
-				doMakeExpression()
-			}
 			p.nextToken()
-			expression := p.parse()
+			expression := p.parseExpression()
 			if expression == nil {
 				fmt.Println("parse expression failed")
 				return nil
@@ -277,12 +268,10 @@ Loop:
 				fmt.Println("no find if statement for else")
 				return nil
 			}
-			p.nextToken()
-			token = p.lexer.peek()
-			if token.typ == ifTokenType {
-				token.typ = elseifTokenType
-				p.nextToken()
-				checkExp := p.parse()
+			next := p.nextToken()
+			if next.typ == ifTokenType {
+				next.typ = elseifTokenType
+				checkExp := p.parseExpression()
 				if checkExp == nil {
 					fmt.Println("parse expression failed")
 					return nil
@@ -298,6 +287,7 @@ Loop:
 						statement: statement,
 					})
 			} else {
+				p.putToken(next)
 				statement := p.parseStatement()
 				if statement == nil {
 					fmt.Println("parseStatement failed")
@@ -309,7 +299,7 @@ Loop:
 			if len(expressions) != 0 {
 				doMakeExpression()
 			}
-			p.nextToken()
+			fmt.Println("forTokenType begin ----------")
 			expression := p.parseForStatement()
 			if expression == nil {
 				fmt.Println("parse for statement failed")
@@ -317,10 +307,10 @@ Loop:
 			}
 			expressions = append(expressions, expression)
 		case token.typ == returnTokenType:
+			fmt.Println(token, "returnTokenType")
 			doMakeExpression()
 			statement := ReturnStatement{}
-			p.nextToken()
-			expression := p.parse()
+			expression := p.parseExpression()
 			if expression == nil {
 				fmt.Println("parse return expression failed")
 				return nil
@@ -329,32 +319,26 @@ Loop:
 			expressions = append(expressions, statement)
 			continue
 		case token.typ == varTokenType:
-			doMakeExpression()
-			//todo check in the same line
-			p.nextToken()
-			token = p.lexer.peek()
+			token = p.nextToken()
 			if token.typ != labelType {
-				fmt.Println("error ,expect label")
+				fmt.Println("error ,expect label", token)
 				return nil
 			}
 			var label = token.val
-			p.nextToken()
-			token = p.lexer.peek()
+			token = p.nextToken()
 			if token.typ == assignTokenType {
-				p.nextToken()
-				token = p.lexer.peek()
-				expression := p.parse()
+				fmt.Println(assignTokenType, "begin")
+				expression := p.parseExpression()
 				if expression == nil {
 					fmt.Println("parse assign expression failed")
 					return nil
 				}
-				expressionList := *expression.(*Expressions)
+				fmt.Println("assignTokenType end")
 				expressions = append(expressions, &VarAssignStatement{
 					ctx:        p.vmCtx,
 					label:      label,
-					expression: expressionList[0],
+					expression: expression,
 				})
-				expressions = append(expressions, expressionList[1:]...)
 			} else {
 				expressions = append(expressions, &VarStatement{
 					ctx:   p.vmCtx,
@@ -373,11 +357,10 @@ Loop:
 			break Loop
 		case token.typ == labelType:
 			label := token.val
-			p.nextToken()
-			token = p.lexer.peek()
+			next := p.nextToken()
 			//function call
-			if token.typ == leftParenthesisTokenType {
-				doMakeExpression()
+			if next.typ == leftParenthesisTokenType {
+				fmt.Println("parseFunCallArguments")
 				expression := p.parseFunCallArguments()
 				if expression == nil {
 					fmt.Println("get argument failed")
@@ -388,18 +371,17 @@ Loop:
 					label:     label,
 					arguments: expression})
 				// ++ increase
-			} else if token.typ == incOperatorTokenType {
+			} else if next.typ == incOperatorTokenType {
 				p.nextToken()
 				fmt.Println("incOperatorTokenType", label)
-				doMakeExpression()
 				expressions = append(expressions, &IncFieldStatement{
 					ctx:   p.vmCtx,
 					label: label,
 				})
-			} else if token.typ == assignTokenType {
+			} else if next.typ == assignTokenType {
 				fmt.Println("assignTokenType")
 				p.nextToken()
-				expression := p.parse()
+				expression := p.parseExpression()
 				fmt.Println("assignTokenType end")
 				if expression == nil {
 					fmt.Println("get assign expression failed")
@@ -411,6 +393,7 @@ Loop:
 					expression: expression,
 				})
 			} else {
+				p.putToken(next)
 				expressions = append(expressions, &fieldStatement{
 					ctx:   p.vmCtx,
 					label: label,
@@ -418,7 +401,6 @@ Loop:
 			}
 			continue
 		}
-		p.nextToken()
 	}
 	doMakeExpression()
 	return (*Expressions)(&expressions)
@@ -428,15 +410,14 @@ func (p *parser) parseStatement() []Statement {
 	var statement []Statement
 	var leftBrace []Token
 
-	token := p.lexer.peek()
+	token := p.nextToken()
 	if token.typ != leftBraceTokenType {
 		fmt.Println("error ,expect { ")
 		return nil
 	}
-	p.nextToken()
 	leftBrace = append(leftBrace, token)
 
-	for p.lexer.finish() == false {
+	for {
 		expression := p.parse()
 		if expression == nil {
 			fmt.Println("parse expression failed")
@@ -445,7 +426,7 @@ func (p *parser) parseStatement() []Statement {
 		statement = append(statement, Statement{
 			expression: expression,
 		})
-		token := p.lexer.peek()
+		token := p.nextToken()
 		if token.typ == rightBraceTokenType {
 			p.nextToken() //drop }
 			if leftBrace = leftBrace[:len(leftBrace)-1]; len(leftBrace) == 0 {
@@ -458,17 +439,15 @@ func (p *parser) parseStatement() []Statement {
 
 func (p *parser) parseFunCallArguments() Expressions {
 	var expressions Expressions
-	p.nextToken()
-	for p.lexer.finish() == false {
-		expression := p.parse()
+	for {
+		expression := p.parseExpression()
 		if expression == nil {
 			fmt.Println("parse expression failed")
 			return nil
 		}
 		expressions = append(expressions, expression)
-		token := p.lexer.peek()
+		token := p.nextToken()
 		if token.typ == rightParenthesisTokenType {
-			p.nextToken()
 			break
 		}
 	}
@@ -477,10 +456,10 @@ func (p *parser) parseFunCallArguments() Expressions {
 
 func (p *parser) parseForStatement() *ForStatement {
 	var forStatement ForStatement
-	token := p.lexer.peek()
+	token := p.nextToken()
 	if token.typ == semicolonTokenType {
 		forStatement.preStatement = &NopStatement{}
-		p.nextToken()
+		fmt.Println("semicolonTokenType")
 	} else if token.typ == leftBraceTokenType {
 		forStatement.preStatement = &NopStatement{}
 		forStatement.postStatement = &NopStatement{}
@@ -498,46 +477,50 @@ func (p *parser) parseForStatement() *ForStatement {
 			fmt.Println("parse `for` preStatement failed")
 			return nil
 		}
-		if p.lexer.peek().typ != semicolonTokenType {
+		if p.nextToken().typ != semicolonTokenType {
 			fmt.Println("expect ; in `for` statement")
 			return nil
 		}
 		p.nextToken()
 		forStatement.preStatement = expression
 	}
-	token = p.lexer.peek()
-
+	token = p.nextToken()
 	//check expression
 	if token.typ == semicolonTokenType {
 		forStatement.checkStatement = &BoolObject{val: true}
-		p.nextToken()
+		fmt.Println("semicolonTokenType ccccccccccccccccccccc")
 	} else {
-		expression := p.parse()
+		p.putToken(token)
+		expression := p.parseExpression()
 		if expression == nil {
 			fmt.Println("parse `for` checkStatement failed")
 			return nil
 		}
-		if p.lexer.peek().typ != semicolonTokenType {
+		if p.nextToken().typ != semicolonTokenType {
 			fmt.Println("expect ; in `for` check expression")
 			return nil
 		}
-		p.nextToken()
 		forStatement.checkStatement = expression
 	}
 
-	token = p.lexer.peek()
+	token = p.nextToken()
 	//post expression
 	if token.typ == leftBraceTokenType {
 		forStatement.postStatement = &NopStatement{}
+		fmt.Println("leftBraceTokenType xxxxxxxxxxxxxx")
+		p.putToken(token)
 	} else {
 		expression := p.parse()
 		if expression == nil {
 			fmt.Println("parse `for` checkStatement failed")
 			return nil
 		}
-		if p.lexer.peek().typ != leftBraceTokenType {
+
+		if next := p.nextToken(); next.typ != leftBraceTokenType {
 			fmt.Println("expect { in `for` post expression")
 			return nil
+		} else {
+			p.putToken(next)
 		}
 		forStatement.postStatement = expression
 	}
