@@ -7,19 +7,20 @@ import (
 
 type Statements []Statement
 
-type Statement struct {
-	expression Expression
+type Statement interface {
+	Expression
 }
 
 type IfStatement struct {
 	check            Expression
 	statement        Statements
-	elseIfStatements []IfStatement
+	elseIfStatements []*IfStatement
 	elseStatement    Statements
 }
 
 type ReturnStatement struct {
-	express Expression
+	express   Expression
+	returnVal Expression
 }
 
 //just new Object
@@ -134,23 +135,19 @@ func (f *ForStatement) invoke() (Expression, error) {
 				fmt.Println("break from for")
 				return nil, nil
 			}
-			if val != nil {
+			if _, ok := val.(*ReturnStatement); ok {
 				return val, nil
 			}
 		}
-		val, err = f.postStatement.invoke()
-		if err != nil {
+		if _, err = f.postStatement.invoke(); err != nil {
 			fmt.Println("for postStatement.invoke() error", err)
 			return nil, err
-		}
-		if val != nil {
-			return nil, fmt.Errorf("for postStatement.invoke()  expect nil")
 		}
 	}
 }
 
 func (f *ForStatement) getType() Type {
-	panic("implement me")
+	return forTokenType
 }
 
 func (statement *IncFieldStatement) invoke() (Expression, error) {
@@ -166,7 +163,7 @@ func (statement *IncFieldStatement) invoke() (Expression, error) {
 	switch obj := innerObject.(type) {
 	case *IntObject:
 		obj.val++
-		fmt.Println(obj.val)
+		return object, nil
 	default:
 		panic("unknown type " + reflect.TypeOf(innerObject).String())
 	}
@@ -179,10 +176,6 @@ func (statement *IncFieldStatement) getType() Type {
 
 func (Statements) getType() Type {
 	return statementsType
-}
-
-func (s *Statement) getType() Type {
-	return statementType
 }
 
 func (f *FuncCallStatement) invoke() (Expression, error) {
@@ -222,11 +215,12 @@ func (v VarStatement) getType() Type {
 }
 
 func (expression *VarAssignStatement) invoke() (Expression, error) {
-	//fmt.Println("VarAssignStatement invoke", expression.label)
+	fmt.Println("VarAssignStatement invoke", expression.label)
 	obj, err := expression.expression.invoke()
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(obj.getType())
 	object := expression.ctx.allocObject(expression.label)
 	object.inner = obj
 	object.initType()
@@ -237,18 +231,23 @@ func (expression *VarAssignStatement) getType() Type {
 	return varAssignTokenType
 }
 
-func (r ReturnStatement) invoke() (Expression, error) {
+func (r *ReturnStatement) invoke() (Expression, error) {
 	//fmt.Println("ReturnStatement invoke")
+	if r.returnVal != nil {
+		return r, nil
+	}
 	val, err := r.express.invoke()
 	if err != nil {
 		fmt.Println("invoke return statement failed")
+		return nil, err
 	}
 	if val == nil {
 		fmt.Println("return nil error")
 		return nil, fmt.Errorf("return expression nil")
 	}
-	//fmt.Println("return val", val)
-	return val, nil
+	fmt.Println("return val", val)
+	r.returnVal = val
+	return r, nil
 }
 
 func (ReturnStatement) getType() Type {
@@ -259,24 +258,19 @@ func (IfStatement) getType() Type {
 	return ifTokenType
 }
 
-func (s *Statement) invoke() (Expression, error) {
-	//fmt.Println("Statement invoke")
-	if val, err := s.expression.invoke(); err != nil {
-		fmt.Println("invoke expression failed")
-		return nil, err
-	} else {
-		return val, nil
-	}
-}
-
-func (s *Statements) invoke() (Expression, error) {
+func (statements Statements) invoke() (Expression, error) {
 	var val Expression
 	var err error
-	for _, it := range *s {
-		if val, err = it.invoke(); err != nil {
+	for _, statement := range statements {
+		fmt.Println("statement type", statement.getType())
+		if val, err = statement.invoke(); err != nil {
 			return nil, err
 		} else if val != nil {
-			return val, nil
+			if _, ok := val.(*ReturnStatement); ok {
+				return val, nil
+			} else {
+				fmt.Println("---------", val.getType())
+			}
 		}
 	}
 	return nil, nil

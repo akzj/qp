@@ -21,8 +21,8 @@ func (expressions *Expressions) invoke() (Expression, error) {
 	var err error
 	for _, expression := range *expressions {
 		if val, err = expression.invoke(); err != nil {
-			return val, err
-		} else if val != nil {
+			return nil, err
+		} else if _, ok := val.(*ReturnStatement); ok {
 			return val, nil
 		}
 	}
@@ -38,7 +38,6 @@ type MulExpression struct {
 	Left  Expression
 	right Expression
 }
-
 
 func (MulExpression) getType() Type {
 	return mulOperatorTokenType

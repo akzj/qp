@@ -70,7 +70,8 @@ func TestLessExpression(t *testing.T) {
 	}
 
 	for _, Case := range cases {
-		expression := Parse(Case.expStr)
+		parser := newParser(bytes.NewReader([]byte(Case.expStr)))
+		expression := parser.parseExpression()
 		if expression == nil {
 			t.Fatal("Parse failed")
 		}
@@ -136,14 +137,14 @@ if 2 > 1{
 	}}
 
 	for _, Case := range cases {
-		expression := Parse(Case.exp)
-		if expression == nil {
+		statements := Parse(Case.exp)
+		if statements == nil {
 			t.Fatal("Parse failed")
 		}
-		if val, err := expression.invoke(); err != nil {
+		if val, err := statements.invoke(); err != nil {
 			t.Errorf(err.Error())
 		} else {
-			if val.(*IntObject).val != Case.val {
+			if val.(*ReturnStatement).returnVal.(*IntObject).val != Case.val {
 				t.Fatalf("no match %+v %+v", val.(*IntObject).val, Case.val)
 			}
 		}
@@ -181,12 +182,12 @@ func TestFunctionCall(t *testing.T) {
 		val interface{}
 	}{{
 		exp: `
-var a = 1
-if a > 1{
+var a = 8
+if a > 10{
 	println(a,1)
-}else if a > 2{
+}else if a > 9{
 	println(a,2)
-}else if a > 3{
+}else if a >8{
 	println(a,3)
 }else{
 	println(a,0)
@@ -196,11 +197,12 @@ if a > 1{
 	}}
 
 	for _, Case := range cases {
-		expression := Parse(Case.exp)
-		if expression == nil {
+		statements := Parse(Case.exp)
+		if statements == nil {
 			t.Fatal("Parse failed")
 		}
-		if val, err := expression.invoke(); err != nil {
+		fmt.Println("-----------------------")
+		if val, err := statements.invoke(); err != nil {
 			t.Errorf(err.Error())
 		} else {
 			fmt.Println("result", val)
@@ -242,6 +244,9 @@ func TestAssignStatement(t *testing.T) {
 var a = 1
 a = 100
 a++
+println(a)
+println(a++)
+println(a+1)
 `, val: int64(3),
 	}}
 	for _, Case := range cases {
@@ -264,9 +269,11 @@ func TestFor(t *testing.T) {
 		exp: `
 var a = 1
 var b = 1
-for ;a < 10; {
-	println(a)
-	a++
+for ;a < 10; a++{
+	println(a,b)
+	if a > 3{
+		return 1
+	}
 }
 
 `, val: int64(3),

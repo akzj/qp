@@ -116,6 +116,7 @@ func (p *parser) historyToken(index int) Token {
 }
 
 func (p *parser) putToken(token Token) {
+	p.history = p.history[:len(p.history)-1]
 	p.tokens = append([]Token{token}, p.tokens...)
 }
 
@@ -185,23 +186,31 @@ Loop:
 			his := p.historyToken(1)
 			fmt.Println(his, "historyToken")
 			if isOperatorToken(his) ||
+				his.typ == semicolonTokenType ||
+				his.typ == commaTokenType ||
+				his.typ == ifTokenType ||
+				his.typ == elseifTokenType ||
 				his.typ == leftParenthesisTokenType ||
 				his.typ == returnTokenType {
 				label := token.val
 				next := p.nextToken()
 				//function call
 				if next.typ == leftParenthesisTokenType {
-					expression := p.parseFunCallArguments()
+					expression := p.parseFunctionCall(label)
 					if expression == nil {
-						fmt.Println("get argument failed")
+						fmt.Println("parseFunctionCall failed")
 						return nil
 					}
-					expressions = append(expressions, &FuncCallStatement{
-						vm:        p.vmCtx,
-						label:     label,
-						arguments: expression})
+					expressions = append(expressions, expression)
+				} else if next.typ == incOperatorTokenType {
+					fmt.Println("incOperatorTokenType", label)
+					expressions = append(expressions, &IncFieldStatement{
+						ctx:   p.vmCtx,
+						label: label,
+					})
 				} else {
 					p.putToken(next)
+					fmt.Println("fieldStatement")
 					expressions = append(expressions, &fieldStatement{
 						ctx:   p.vmCtx,
 						label: label,
@@ -220,17 +229,8 @@ Loop:
 	return (*Expressions)(&expressions)
 }
 
-func (p *parser) parse() Expression {
-	var opStack []Token
-	var expressions []Expression
-
-	doMakeExpression := func() {
-		for len(opStack) != 0 {
-			express := makeExpression(opStack[len(opStack)-1], &expressions)
-			expressions = append(expressions, express)
-			opStack = opStack[:len(opStack)-1]
-		}
-	}
+func (p *parser) parse() Statements {
+	var statements Statements
 Loop:
 	for {
 		token := p.nextToken()
@@ -240,75 +240,22 @@ Loop:
 		fmt.Println(token)
 		switch {
 		case token.typ == ifTokenType:
-			p.nextToken()
-			expression := p.parseExpression()
+			expression := p.parseIfStatement()
 			if expression == nil {
-				fmt.Println("parse expression failed")
+				fmt.Println("parseIfStatement failed")
 				return nil
 			}
-			statements := p.parseStatement()
-			if statements == nil {
-				fmt.Println("parseStatement failed")
-				return nil
-			}
-			ifStem := IfStatement{
-				check:            expression,
-				statement:        statements,
-				elseIfStatements: nil,
-				elseStatement:    nil,
-			}
-			expressions = append(expressions, &ifStem)
-		case token.typ == elseTokenType:
-			if len(expressions) == 0 {
-				fmt.Println("no statement")
-				return nil
-			}
-			ifStatement, ok := expressions[len(expressions)-1].(*IfStatement)
-			if ok == false {
-				fmt.Println("no find if statement for else")
-				return nil
-			}
-			next := p.nextToken()
-			if next.typ == ifTokenType {
-				next.typ = elseifTokenType
-				checkExp := p.parseExpression()
-				if checkExp == nil {
-					fmt.Println("parse expression failed")
-					return nil
-				}
-				statement := p.parseStatement()
-				if statement == nil {
-					fmt.Println("parseStatement failed")
-					return nil
-				}
-				ifStatement.elseIfStatements = append(ifStatement.elseIfStatements,
-					IfStatement{
-						check:     checkExp,
-						statement: statement,
-					})
-			} else {
-				p.putToken(next)
-				statement := p.parseStatement()
-				if statement == nil {
-					fmt.Println("parseStatement failed")
-					return nil
-				}
-				ifStatement.elseStatement = statement
-			}
+			statements = append(statements, expression)
 		case token.typ == forTokenType:
-			if len(expressions) != 0 {
-				doMakeExpression()
-			}
 			fmt.Println("forTokenType begin ----------")
 			expression := p.parseForStatement()
 			if expression == nil {
 				fmt.Println("parse for statement failed")
 				return nil
 			}
-			expressions = append(expressions, expression)
+			statements = append(statements, expression)
 		case token.typ == returnTokenType:
 			fmt.Println(token, "returnTokenType")
-			doMakeExpression()
 			statement := ReturnStatement{}
 			expression := p.parseExpression()
 			if expression == nil {
@@ -316,7 +263,7 @@ Loop:
 				return nil
 			}
 			statement.express = expression
-			expressions = append(expressions, statement)
+			statements = append(statements, &statement)
 			continue
 		case token.typ == varTokenType:
 			token = p.nextToken()
@@ -334,67 +281,64 @@ Loop:
 					return nil
 				}
 				fmt.Println("assignTokenType end")
-				expressions = append(expressions, &VarAssignStatement{
+				statements = append(statements, &VarAssignStatement{
 					ctx:        p.vmCtx,
 					label:      label,
 					expression: expression,
 				})
 			} else {
-				expressions = append(expressions, &VarStatement{
+				statements = append(statements, &VarStatement{
 					ctx:   p.vmCtx,
 					label: label,
 				})
 			}
 			continue
 		case token.typ == leftBraceTokenType: //{ end of expression
+			p.putToken(token)
 			break Loop
 		case token.typ == rightBraceTokenType: // } end of statement
+			p.putToken(token)
 			break Loop
 		case token.typ == semicolonTokenType: // ; end of expression
+			p.putToken(token)
 			break Loop
 		case token.typ == commaTokenType: // end of expression
-			p.nextToken()
+			p.putToken(token)
 			break Loop
 		case token.typ == labelType:
 			label := token.val
 			next := p.nextToken()
 			//function call
 			if next.typ == leftParenthesisTokenType {
-				fmt.Println("parseFunCallArguments")
-				expression := p.parseFunCallArguments()
-				if expression == nil {
-					fmt.Println("get argument failed")
+				fmt.Println("parseFunctionCall")
+				statement := p.parseFunctionCall(label)
+				if statement == nil {
+					fmt.Println("parseFunctionCall failed")
 					return nil
 				}
-				expressions = append(expressions, &FuncCallStatement{
-					vm:        p.vmCtx,
-					label:     label,
-					arguments: expression})
-				// ++ increase
+				statements = append(statements, statement)
 			} else if next.typ == incOperatorTokenType {
-				p.nextToken()
 				fmt.Println("incOperatorTokenType", label)
-				expressions = append(expressions, &IncFieldStatement{
+				statements = append(statements, &IncFieldStatement{
 					ctx:   p.vmCtx,
 					label: label,
 				})
 			} else if next.typ == assignTokenType {
 				fmt.Println("assignTokenType")
-				p.nextToken()
 				expression := p.parseExpression()
 				fmt.Println("assignTokenType end")
 				if expression == nil {
 					fmt.Println("get assign expression failed")
 					return nil
 				}
-				expressions = append(expressions, &AssignStatement{
+				statements = append(statements, &AssignStatement{
 					ctx:        p.vmCtx,
 					label:      label,
 					expression: expression,
 				})
 			} else {
 				p.putToken(next)
-				expressions = append(expressions, &fieldStatement{
+				statements = append(statements, &fieldStatement{
 					ctx:   p.vmCtx,
 					label: label,
 				})
@@ -402,12 +346,12 @@ Loop:
 			continue
 		}
 	}
-	doMakeExpression()
-	return (*Expressions)(&expressions)
+	return statements
 }
 
-func (p *parser) parseStatement() []Statement {
-	var statement []Statement
+func (p *parser) parseStatement() Statements {
+	fmt.Println("parseStatement")
+	var statements Statements
 	var leftBrace []Token
 
 	token := p.nextToken()
@@ -418,40 +362,45 @@ func (p *parser) parseStatement() []Statement {
 	leftBrace = append(leftBrace, token)
 
 	for {
-		expression := p.parse()
-		if expression == nil {
-			fmt.Println("parse expression failed")
+		statement := p.parse()
+		if statement == nil {
+			fmt.Println("parse statement failed")
 			return nil
 		}
-		statement = append(statement, Statement{
-			expression: expression,
-		})
+		statements = append(statements, statement...)
 		token := p.nextToken()
+		fmt.Println("nextToken", token)
 		if token.typ == rightBraceTokenType {
-			p.nextToken() //drop }
 			if leftBrace = leftBrace[:len(leftBrace)-1]; len(leftBrace) == 0 {
+				fmt.Println("parseStatement break")
 				break
 			}
 		}
 	}
-	return statement
+	return statements
 }
 
-func (p *parser) parseFunCallArguments() Expressions {
-	var expressions Expressions
+func (p *parser) parseFunctionCall(label string) *FuncCallStatement {
+	var statement FuncCallStatement
+	statement.label = label
 	for {
 		expression := p.parseExpression()
 		if expression == nil {
 			fmt.Println("parse expression failed")
 			return nil
 		}
-		expressions = append(expressions, expression)
+		statement.arguments = append(statement.arguments, expression)
 		token := p.nextToken()
 		if token.typ == rightParenthesisTokenType {
 			break
+		} else if token.typ == commaTokenType {
+			// next arguments
+			continue
+		} else {
+			p.putToken(token)
 		}
 	}
-	return expressions
+	return &statement
 }
 
 func (p *parser) parseForStatement() *ForStatement {
@@ -472,7 +421,7 @@ func (p *parser) parseForStatement() *ForStatement {
 		forStatement.statements = statements
 		return &forStatement
 	} else {
-		expression := p.parse()
+		expression := p.parseExpression()
 		if expression == nil {
 			fmt.Println("parse `for` preStatement failed")
 			return nil
@@ -510,7 +459,8 @@ func (p *parser) parseForStatement() *ForStatement {
 		fmt.Println("leftBraceTokenType xxxxxxxxxxxxxx")
 		p.putToken(token)
 	} else {
-		expression := p.parse()
+		p.putToken(token)
+		expression := p.parseExpression()
 		if expression == nil {
 			fmt.Println("parse `for` checkStatement failed")
 			return nil
@@ -534,7 +484,60 @@ func (p *parser) parseForStatement() *ForStatement {
 	return &forStatement
 }
 
-func Parse(data string) Expression {
+func (p *parser) parseIfStatement() *IfStatement {
+	ifStem := IfStatement{
+		elseIfStatements: nil,
+		elseStatement:    nil,
+	}
+	if ifStem.check = p.parseExpression(); ifStem.check == nil {
+		fmt.Println("parse checkExpression failed")
+		return nil
+	}
+	if ifStem.statement = p.parseStatement(); ifStem.statement == nil {
+		fmt.Println("parseStatement failed")
+		return nil
+	}
+	fmt.Println("parseIfStatement check else if")
+	for {
+		token := p.nextToken()
+		fmt.Println(token)
+		if token.typ == elseTokenType {
+			next := p.nextToken()
+			if next.typ == ifTokenType {
+				token.typ = elseifTokenType
+			} else {
+				p.putToken(next)
+			}
+		}
+		//check else or else if
+		if token.typ == elseifTokenType {
+			elseIfStem := IfStatement{
+				elseIfStatements: nil,
+				elseStatement:    nil,
+			}
+			if elseIfStem.check = p.parseExpression(); elseIfStem.check == nil {
+				fmt.Println("parse checkExpression failed")
+				return nil
+			}
+			if elseIfStem.statement = p.parseStatement(); elseIfStem.statement == nil {
+				fmt.Println("parseStatement failed")
+				return nil
+			}
+			elseIfStem.elseIfStatements = append(elseIfStem.elseIfStatements, &elseIfStem)
+		} else if token.typ == elseTokenType {
+			if ifStem.elseStatement = p.parseStatement(); ifStem.elseStatement == nil {
+				fmt.Println("parse else statement failed")
+				return nil
+			}
+			return &ifStem
+		} else {
+			p.putToken(token)
+			return &ifStem
+		}
+	}
+}
+
+func Parse(data string) Statements {
 	parser := newParser(bytes.NewReader([]byte(data)))
 	return parser.parse()
 }

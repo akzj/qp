@@ -75,6 +75,10 @@ func (t Type) String() string {
 		return ";"
 	case AssignStatementType:
 		return "assignStatement"
+	case funcTokenType:
+		return "func"
+	case ObjectType:
+		return "object"
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
