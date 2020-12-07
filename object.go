@@ -87,6 +87,9 @@ func (sObj *StructObject) clone() *StructObject {
 }
 
 func (sObj *StructObject) addObject(k string, v *Object) {
+	if v == nil{
+		panic(v)
+	}
 	if sObj.object == nil {
 		sObj.object = map[string]*Object{}
 	}

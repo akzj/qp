@@ -592,6 +592,14 @@ func (p *parser) parseFunctionCall(labels []string) *FuncCallStatement {
 		statement.arguments = append(statement.arguments, bindSelf)
 	}
 	statement.vm = p.vmCtx
+
+	//empty arguments
+	if token := p.nextToken(); token.typ == rightParenthesisTokenType {
+		fmt.Println("empty arguments")
+		return &statement
+	} else {
+		p.putToken(token)
+	}
 	for {
 		expression := p.parseExpression()
 		if expression == nil {
@@ -612,6 +620,7 @@ func (p *parser) parseFunctionCall(labels []string) *FuncCallStatement {
 			p.putToken(token)
 		}
 	}
+	fmt.Println("-------arguments-------", len(statement.arguments))
 	return &statement
 }
 
@@ -688,15 +697,12 @@ func (p *parser) parseStructObject() *StructObject {
 	}
 	object.label = token.val
 	object.vm = p.vmCtx
-	if token = p.nextToken(); token.typ != structTokenType {
-		fmt.Println("expect `struct` keyword ")
-		return nil
-	}
 	statements := p.parseStatement()
 	if statements == nil {
 		fmt.Println("object struct parseStatement failed")
 		return nil
 	}
+	object.initStatement = statements
 	return object
 }
 
@@ -709,7 +715,7 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 	statement.vm = p.vmCtx
 	leftBrace = append(leftBrace, 1)
 	//check empty statement
-	if token := p.nextToken(); token.typ == rightParenthesisTokenType {
+	if token := p.nextToken(); token.typ == rightBraceTokenType {
 		statement.initStatements = append(statement.initStatements, &NopStatement{})
 		return &statement
 	} else {

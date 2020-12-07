@@ -320,9 +320,33 @@ println(c) //100
 	}
 }
 
+func TestStructObjectDefaultInit(t *testing.T) {
+	data := `
+type User {
+	//define user member with default IntObject 1
+	var id = 66666
+	//define user member with default nil
+	var id2
+}
+
+var user = User{}
+println(user.id) //
+
+`
+
+	expression := Parse(data)
+	if expression == nil {
+		t.Fatal("Parse failed")
+	}
+	fmt.Println("---------------------------")
+	if _, err := expression.invoke(); err != nil {
+		t.Errorf(err.Error())
+	}
+}
+
 func TestStructObject(t *testing.T) {
 	data := `
-type User struct{
+type User {
 	//define user member with default IntObject 1
 	var id = 66666
 	//define user member with default nil
@@ -330,7 +354,7 @@ type User struct{
 }
 
 var user = User{
-	a:1+1
+a:1+1
 }
 //println struct member field
 println(user.a) //2
@@ -359,7 +383,7 @@ user.print()
 
 func TestObject(t *testing.T) {
 	data := `
-type user struct{
+type user {
 	//define user member with default IntObject 1
 	var id = 1
 	//define user member with default nil
