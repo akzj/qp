@@ -89,7 +89,7 @@ func makeExpression(opToken Token, expressions *[]Expression) Expression {
 	return expression
 }
 
-func (p *parser) nextToken() Token {
+func (p *parser) nextToken(skipComment bool) Token {
 	if len(p.tokens) == 0 {
 		for i := 0; i < 100; i++ {
 			p.tokens = append(p.tokens, p.lexer.peek())
@@ -105,6 +105,9 @@ func (p *parser) nextToken() Token {
 	token := p.tokens[0]
 	p.tokens = p.tokens[1:]
 	p.history = append(p.history, token)
+	if token.typ == commentTokenType && skipComment {
+		return p.nextToken(skipComment)
+	}
 	return token
 }
 
@@ -133,7 +136,7 @@ func (p *parser) parseExpression() Expression {
 	}
 Loop:
 	for {
-		token := p.nextToken()
+		token := p.nextToken(false)
 		if token == emptyToken {
 			break
 		}
@@ -185,6 +188,18 @@ Loop:
 				opStack = opStack[:len(opStack)-1]
 			}
 			opStack = append(opStack, token)
+			//lambda func
+		case token.typ == funcTokenType:
+			expression := p.parseFunctionStatement()
+			if expression == nil {
+				fmt.Println("p.parseFunctionStatement() failed")
+				return nil
+			}
+			expressions = append(expressions, &Object{
+				inner: expression,
+				label: "lambda",
+				typ:   FuncStatementType,
+			})
 		//function call
 		case token.typ == periodTokenType:
 			//translation to `this.`
@@ -206,7 +221,7 @@ Loop:
 				his.typ == assignTokenType ||
 				his.typ == returnTokenType {
 				label := token.val
-				next := p.nextToken()
+				next := p.nextToken(true)
 				//function call
 				if next.typ == leftParenthesisTokenType {
 					expression := p.parseFunctionCall([]string{label})
@@ -262,7 +277,7 @@ func (p *parser) parse() Statements {
 	statements = append(statements, &NopStatement{})
 Loop:
 	for {
-		token := p.nextToken()
+		token := p.nextToken(true)
 		if token == emptyToken {
 			break
 		}
@@ -316,13 +331,13 @@ Loop:
 			}
 
 		case token.typ == varTokenType:
-			token = p.nextToken()
+			token = p.nextToken(true)
 			if token.typ != labelType {
 				fmt.Println("error ,expect label", token)
 				return nil
 			}
 			var label = token.val
-			token = p.nextToken()
+			token = p.nextToken(true)
 			if token.typ == assignTokenType {
 				fmt.Println(assignTokenType, "begin")
 				expression := p.parseExpression()
@@ -358,7 +373,7 @@ Loop:
 			break Loop
 		case token.typ == labelType:
 			label := token.val
-			next := p.nextToken()
+			next := p.nextToken(true)
 			//function call
 			if next.typ == leftParenthesisTokenType {
 				fmt.Println("parseFunctionCall")
@@ -412,14 +427,14 @@ func (p *parser) parseStatement() Statements {
 	var statements Statements
 	var leftBrace []Token
 
-	token := p.nextToken()
+	token := p.nextToken(true)
 	if token.typ != leftBraceTokenType {
 		fmt.Println("error ,expect { ")
 		return nil
 	}
 	leftBrace = append(leftBrace, token)
 	//check empty statement
-	if token = p.nextToken(); token.typ == rightParenthesisTokenType {
+	if token = p.nextToken(true); token.typ == rightParenthesisTokenType {
 		statements = append(statements, &NopStatement{})
 		return statements
 	}
@@ -432,7 +447,7 @@ func (p *parser) parseStatement() Statements {
 			return nil
 		}
 		statements = append(statements, statement...)
-		token := p.nextToken()
+		token := p.nextToken(true)
 		fmt.Println("nextToken", token)
 		if token.typ == rightBraceTokenType {
 			if leftBrace = leftBrace[:len(leftBrace)-1]; len(leftBrace) == 0 {
@@ -446,7 +461,7 @@ func (p *parser) parseStatement() Statements {
 
 func (p *parser) parseForStatement() *ForStatement {
 	var forStatement ForStatement
-	token := p.nextToken()
+	token := p.nextToken(true)
 	if token.typ == semicolonTokenType {
 		forStatement.preStatement = &NopStatement{}
 		fmt.Println("semicolonTokenType")
@@ -467,14 +482,14 @@ func (p *parser) parseForStatement() *ForStatement {
 			fmt.Println("parse `for` preStatement failed")
 			return nil
 		}
-		if p.nextToken().typ != semicolonTokenType {
+		if p.nextToken(true).typ != semicolonTokenType {
 			fmt.Println("expect ; in `for` statement")
 			return nil
 		}
-		p.nextToken()
+		p.nextToken(true)
 		forStatement.preStatement = expression
 	}
-	token = p.nextToken()
+	token = p.nextToken(true)
 	//check expression
 	if token.typ == semicolonTokenType {
 		forStatement.checkStatement = &BoolObject{val: true}
@@ -486,14 +501,14 @@ func (p *parser) parseForStatement() *ForStatement {
 			fmt.Println("parse `for` checkStatement failed")
 			return nil
 		}
-		if p.nextToken().typ != semicolonTokenType {
+		if p.nextToken(true).typ != semicolonTokenType {
 			fmt.Println("expect ; in `for` check expression")
 			return nil
 		}
 		forStatement.checkStatement = expression
 	}
 
-	token = p.nextToken()
+	token = p.nextToken(true)
 	//post expression
 	if token.typ == leftBraceTokenType {
 		forStatement.postStatement = &NopStatement{}
@@ -507,7 +522,7 @@ func (p *parser) parseForStatement() *ForStatement {
 			return nil
 		}
 
-		if next := p.nextToken(); next.typ != leftBraceTokenType {
+		if next := p.nextToken(true); next.typ != leftBraceTokenType {
 			fmt.Println("expect { in `for` post expression")
 			return nil
 		} else {
@@ -540,10 +555,10 @@ func (p *parser) parseIfStatement() *IfStatement {
 	}
 	fmt.Println("parseIfStatement check else if")
 	for {
-		token := p.nextToken()
+		token := p.nextToken(true)
 		fmt.Println(token)
 		if token.typ == elseTokenType {
-			next := p.nextToken()
+			next := p.nextToken(true)
 			if next.typ == ifTokenType {
 				token.typ = elseifTokenType
 			} else {
@@ -586,6 +601,7 @@ func (p *parser) parseFunctionCall(labels []string) *FuncCallStatement {
 	} else {
 		// bind self
 		bindSelf := &getStructObjectStatement{
+			this:      true,
 			vmContext: p.vmCtx,
 			labels:    labels[:len(labels)-1],
 		}
@@ -594,7 +610,7 @@ func (p *parser) parseFunctionCall(labels []string) *FuncCallStatement {
 	statement.vm = p.vmCtx
 
 	//empty arguments
-	if token := p.nextToken(); token.typ == rightParenthesisTokenType {
+	if token := p.nextToken(true); token.typ == rightParenthesisTokenType {
 		fmt.Println("empty arguments")
 		return &statement
 	} else {
@@ -610,7 +626,7 @@ func (p *parser) parseFunctionCall(labels []string) *FuncCallStatement {
 		} else {
 			statement.arguments = append(statement.arguments, expression)
 		}
-		token := p.nextToken()
+		token := p.nextToken(true)
 		if token.typ == rightParenthesisTokenType {
 			break
 		} else if token.typ == commaTokenType {
@@ -628,33 +644,34 @@ func (p *parser) parseFunctionStatement() *FuncStatement {
 	fmt.Println("--parseFunctionStatement--")
 	var functionStatement FuncStatement
 
-	//function name
 	functionStatement.vm = p.vmCtx
-	token := p.nextToken()
-	if token.typ != labelType {
-		fmt.Println("function declare expect label here")
-		return nil
-	}
-	functionStatement.label = token.val
-	for {
-		next := p.nextToken()
-		fmt.Println("next", next)
-		if next.typ == periodTokenType { //struct object function
-			functionStatement.labels = append(functionStatement.labels, token.val)
-			token = p.nextToken()
-			continue
-		} else if next.typ == leftParenthesisTokenType {
-			if functionStatement.labels != nil {
+
+	//function name
+	if token := p.nextToken(true); token.typ == labelType {
+		functionStatement.label = token.val
+		for {
+			next := p.nextToken(true)
+			fmt.Println("next", next)
+			if next.typ == periodTokenType { //struct object function
 				functionStatement.labels = append(functionStatement.labels, token.val)
+				token = p.nextToken(true)
+				continue
+			} else if next.typ == leftParenthesisTokenType {
+				if functionStatement.labels != nil {
+					functionStatement.labels = append(functionStatement.labels, token.val)
+				}
+				break
+			} else {
+				fmt.Println("expect label or . ,error")
+				return nil
 			}
-			break
-		} else {
-			fmt.Println("expect label or . ,error")
-			return nil
 		}
+	} else {
+		functionStatement.label = "lambda"
 	}
 	if functionStatement.labels != nil {
-		fmt.Println("get function label", strings.Join(functionStatement.labels, "."))
+		fmt.Println("get function label",
+			strings.Join(functionStatement.labels, "."))
 	} else {
 		fmt.Println("get function label", functionStatement.label)
 	}
@@ -663,7 +680,7 @@ func (p *parser) parseFunctionStatement() *FuncStatement {
 		functionStatement.parameters = append(functionStatement.parameters, "this")
 	}
 	for {
-		token := p.nextToken()
+		token := p.nextToken(true)
 		if token.typ == rightParenthesisTokenType {
 			// end of argument list
 			break
@@ -688,9 +705,9 @@ func (p *parser) parseFunctionStatement() *FuncStatement {
 	return &functionStatement
 }
 
-func (p *parser) parseStructObject() *StructObject {
-	var object = &StructObject{}
-	token := p.nextToken()
+func (p *parser) parseStructObject() *TypeObject {
+	var object = &TypeObject{}
+	token := p.nextToken(true)
 	if token.typ != labelType {
 		fmt.Println("expect label follow type")
 		return nil
@@ -715,7 +732,7 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 	statement.vm = p.vmCtx
 	leftBrace = append(leftBrace, 1)
 	//check empty statement
-	if token := p.nextToken(); token.typ == rightBraceTokenType {
+	if token := p.nextToken(true); token.typ == rightBraceTokenType {
 		statement.initStatements = append(statement.initStatements, &NopStatement{})
 		return &statement
 	} else {
@@ -723,12 +740,12 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 	}
 
 	for {
-		token := p.nextToken()
+		token := p.nextToken(true)
 		if token.typ != labelType {
 			fmt.Println("expect label,error", token)
 			return nil
 		}
-		if next := p.nextToken(); next.typ != colonTokenType {
+		if next := p.nextToken(true); next.typ != colonTokenType {
 			fmt.Println("expect colon `:` ,error", token)
 			return nil
 		}
@@ -743,7 +760,7 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 			expression: expression,
 		})
 		//check end
-		token = p.nextToken()
+		token = p.nextToken(true)
 		if token.typ == rightBraceTokenType {
 			fmt.Println("struct object init end", label)
 			break
@@ -759,16 +776,16 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 func (p *parser) parsePeriodStatement(label string) Statement {
 	fmt.Println("parsePeriodStatement", label)
 	var labels = []string{label}
-	token := p.nextToken()
+	token := p.nextToken(true)
 	if token.typ != labelType {
 		fmt.Println("expect label ", token)
 		return nil
 	}
 	labels = append(labels, token.val)
 	for {
-		next := p.nextToken()
+		next := p.nextToken(true)
 		if next.typ == periodTokenType {
-			token = p.nextToken()
+			token = p.nextToken(true)
 			continue
 			// a.b.c(1) //function call
 		} else if next.typ == leftParenthesisTokenType {

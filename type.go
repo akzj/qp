@@ -79,8 +79,6 @@ func (t Type) String() string {
 		return "func"
 	case ObjectType:
 		return "object"
-	case structTokenType:
-		return "struct"
 	case mapObjectType:
 		return "map"
 	case arrayObjectType:
@@ -91,14 +89,14 @@ func (t Type) String() string {
 		return "type"
 	case nopStatementType:
 		return "nop"
-	case structObjectInitStatementType:
-		return "structObjectInitStatementType"
-	case StructObjectType:
-		return "struct object"
+	case typeObjectInitStatementType:
+		return "typeObjectInitStatementType"
+	case TypeObjectType:
+		return "TypeObjectType"
 	case periodTokenType:
 		return "."
-	case getStructVarStatementType:
-		return "getStructVarStatementType"
+	case getTypeObjectVarStatementType:
+		return "getTypeObjectVarStatementType"
 	case FuncStatementType:
 		return "FuncStatementType"
 	default:
@@ -138,7 +136,6 @@ const assignTokenType Type = 401                 // =
 const varAssignTokenType Type = 402              // var x =
 const intTokenType Type = 700                    // int
 const typeTokenType Type = 999                   // type
-const structTokenType Type = 1000                // struct
 const mapObjectType Type = 1001                  // map {}
 const arrayObjectType Type = 1002                // array []
 const labelType Type = 5000                      // label
@@ -151,10 +148,10 @@ const assignStatementType Type = 6006            // =
 const ObjectType Type = 100000                   // object
 const IntObjectType Type = 10000                 //int object
 const BoolObjectType Type = 10001                // bool object
-const StructObjectType Type = 10002              // struct object
+const TypeObjectType Type = 10002                // type object
 const FuncStatementType Type = 10003             // function object
-const structObjectInitStatementType Type = 11003 // struct  object init statement
-const getStructVarStatementType Type = 10004     // getStructObjectStatement statement
+const typeObjectInitStatementType Type = 11003   // object init statement
+const getTypeObjectVarStatementType Type = 10004 // getTypeObjectStatement statement
 
 type Token struct {
 	typ  Type
@@ -191,7 +188,7 @@ var (
 )
 
 var Keywords = []string{
-	"if", "else", "func", "return", "break", "for", "var", "struct", "type",
+	"if", "else", "func", "return", "break", "for", "var", "type",
 }
 
 var keywordTokenType = map[string]Type{
@@ -202,6 +199,5 @@ var keywordTokenType = map[string]Type{
 	"break":  breakTokenType,
 	"for":    forTokenType,
 	"var":    varTokenType,
-	"struct": structTokenType,
 	"type":   typeTokenType,
 }

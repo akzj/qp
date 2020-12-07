@@ -5,13 +5,18 @@ import (
 	"reflect"
 )
 
-type Function func(arguments ...Expression) (Expression, error)
-
-var builtInFunctionMap = map[string]Function{
-	"println": _println,
+type Function interface {
+	invoke(arguments ...Expression) (Expression, error)
 }
 
-func _println(arguments ...Expression) (Expression, error) {
+var builtInFunctionMap = map[string]Function{
+	"println": &println{},
+}
+
+type println struct {
+}
+
+func (println) invoke(arguments ...Expression) (Expression, error) {
 	fmt.Println("println", len(arguments))
 	for _, argument := range arguments {
 		object, err := argument.invoke()
@@ -30,8 +35,8 @@ func _println(arguments ...Expression) (Expression, error) {
 				if err != nil {
 					return nil, err
 				}
-				if object == nil{
-					fmt.Println("expression",reflect.TypeOf(expression).String())
+				if object == nil {
+					fmt.Println("expression", reflect.TypeOf(expression).String())
 					panic(object)
 				}
 				continue

@@ -381,6 +381,33 @@ user.print()
 	}
 }
 
+func TestLambdaFunction(t *testing.T) {
+	data := `
+//assign function object to var
+
+type User{
+}
+
+var user = User{}
+
+user.a = func(){
+	println(1)
+}
+
+user.a()
+
+//call lambda function object
+`
+	statements := Parse(data)
+	if statements == nil {
+		t.Fatal("Parse failed")
+	}
+	fmt.Println("---------------------------")
+	if _, err := statements.invoke(); err != nil {
+		t.Errorf(err.Error())
+	}
+}
+
 func TestObject(t *testing.T) {
 	data := `
 type user {
@@ -398,10 +425,10 @@ func user.print(){
 // alloc field u
 var u = user{
 //init field
-	c:1,
+	c:1
 }
 // get field
-println(u.id) //i
+println(u.id) // 1
 
 //call user function
 u.print() //print(u)
@@ -415,15 +442,22 @@ u.hello = func(){
 var b = 1
 
 //closure
-u.incB= func(){
+u.incB = func(b){
 	b++
 }
 
 // call function object
 println(b) //1
-u.getB()
+u.incB(b)
 println(b) //2
 
 `
-	fmt.Println(data)
+	statements := Parse(data)
+	if statements == nil {
+		t.Fatal("Parse failed")
+	}
+	fmt.Println("-------------------------------------------------------------")
+	if _, err := statements.invoke(); err != nil {
+		t.Errorf(err.Error())
+	}
 }

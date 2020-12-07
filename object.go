@@ -26,7 +26,7 @@ type BoolObject struct {
 	val bool
 }
 
-type StructObject struct {
+type TypeObject struct {
 	vm    *VMContext
 	label string
 	//init statement when create object
@@ -36,7 +36,7 @@ type StructObject struct {
 	object map[string]*Object
 }
 
-func (sObj *StructObject) invoke() (Expression, error) {
+func (sObj *TypeObject) invoke() (Expression, error) {
 	if sObj.init {
 		return sObj, nil
 	}
@@ -48,11 +48,11 @@ func (sObj *StructObject) invoke() (Expression, error) {
 	return sObj, nil
 }
 
-func (sObj *StructObject) getType() Type {
-	return StructObjectType
+func (sObj *TypeObject) getType() Type {
+	return TypeObjectType
 }
 
-func (sObj *StructObject) getObject(label string) *Object {
+func (sObj *TypeObject) getObject(label string) *Object {
 	object, ok := sObj.object[label]
 	if ok {
 		return object
@@ -60,7 +60,7 @@ func (sObj *StructObject) getObject(label string) *Object {
 	return nil
 }
 
-func (sObj *StructObject) allocObject(label string) *Object {
+func (sObj *TypeObject) allocObject(label string) *Object {
 	if sObj.object == nil {
 		sObj.object = map[string]*Object{}
 	}
@@ -74,7 +74,7 @@ func (sObj *StructObject) allocObject(label string) *Object {
 	return object
 }
 
-func (sObj *StructObject) clone() *StructObject {
+func (sObj *TypeObject) clone() *TypeObject {
 	clone := *sObj
 	for k, v := range sObj.object {
 		clone.addObject(k, v)
@@ -86,8 +86,8 @@ func (sObj *StructObject) clone() *StructObject {
 	return &clone
 }
 
-func (sObj *StructObject) addObject(k string, v *Object) {
-	if v == nil{
+func (sObj *TypeObject) addObject(k string, v *Object) {
+	if v == nil {
 		panic(v)
 	}
 	if sObj.object == nil {
@@ -126,15 +126,22 @@ func (i *IntObject) String() string {
 }
 
 func (obj *Object) invoke() (Expression, error) {
-	if obj == nil{
+	if obj == nil {
 		panic("")
 	}
-	if obj.inner == nil{
+	if obj.inner == nil {
 		fmt.Println(reflect.TypeOf(obj).String())
 		panic("obj.inner")
 	}
-	fmt.Println("inner",reflect.TypeOf(obj.inner).String())
-	return obj.inner.(Expression), nil
+	fmt.Println("inner", reflect.TypeOf(obj.inner).String())
+	switch obj.inner.(type) {
+	case *FuncStatement:
+		return obj, nil
+	case Expression:
+		return obj.inner.(Expression), nil
+	default:
+		panic(reflect.TypeOf(obj.inner).String())
+	}
 }
 
 func (obj *Object) getType() Type {
@@ -161,4 +168,29 @@ func (obj *Object) AddObject(val *Object) (Expression, error) {
 		}
 	}
 	return nil, fmt.Errorf("unknown obj")
+}
+
+func (obj *Object) unwrapFuncStatement() *FuncStatement {
+	fmt.Println("unwrapFuncStatement start")
+	var object = obj
+	for object != nil {
+		if object.inner == object {
+			panic("object inner pointer to self ,dead loop")
+		}
+		if object.inner == nil{
+			panic("object.inner nil")
+		}
+		objectInner, ok := object.inner.(*Object)
+		if ok {
+			object = objectInner
+			fmt.Println("retry")
+			continue
+		} else if function, ok := object.inner.(*FuncStatement); ok {
+			fmt.Println("get function")
+			return function
+		} else {
+			panic(reflect.ValueOf(object.inner).String())
+		}
+	}
+	return nil
 }

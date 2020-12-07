@@ -43,13 +43,13 @@ func (m *memory) popStackFrame() {
 type VMContext struct {
 	mem           *memory
 	functions     map[string]Function
-	structObjects map[string]*StructObject
+	structObjects map[string]*TypeObject
 }
 
 func newVMContext() *VMContext {
 	return &VMContext{
 		mem:           &memory{},
-		structObjects: map[string]*StructObject{},
+		structObjects: map[string]*TypeObject{},
 		functions:     map[string]Function{},
 	}
 }
@@ -95,9 +95,7 @@ func (ctx *VMContext) addUserFunction(function *FuncStatement) error {
 		fmt.Println("function name repeated")
 		return fmt.Errorf("function name repeated")
 	}
-	ctx.functions[function.label] = func(arguments ...Expression) (Expression, error) {
-		return function.invoke(arguments...)
-	}
+	ctx.functions[function.label] = function
 	return nil
 }
 
@@ -110,11 +108,17 @@ func (ctx *VMContext) getFunction(label string) (Function, error) {
 	if ok {
 		return function, nil
 	}
+
+	if object := ctx.getObject(label); object != nil {
+		if function := object.unwrapFuncStatement(); function != nil {
+			return function, nil
+		}
+	}
 	fmt.Println("no function ", label)
 	return nil, fmt.Errorf("no find function with label `%s`", label)
 }
 
-func (ctx *VMContext) addStructObject(object *StructObject) error {
+func (ctx *VMContext) addStructObject(object *TypeObject) error {
 	if _, ok := ctx.structObjects[object.label]; ok {
 		fmt.Println("structObject repeated", object.label)
 		return fmt.Errorf("structObject repeated")
@@ -123,12 +127,12 @@ func (ctx *VMContext) addStructObject(object *StructObject) error {
 	return nil
 }
 
-func (ctx *VMContext) getStructObject(label string) *StructObject {
+func (ctx *VMContext) getStructObject(label string) *TypeObject {
 	obj, _ := ctx.structObjects[label]
 	return obj
 }
 
-func (ctx *VMContext) allocStructObject(label string) *StructObject {
+func (ctx *VMContext) allocStructObject(label string) *TypeObject {
 	obj, ok := ctx.structObjects[label]
 	if ok == false {
 		fmt.Println("no find structObject with label", label)
