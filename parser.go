@@ -137,6 +137,9 @@ Loop:
 			break
 		}
 		fmt.Println("parseExpression", token)
+		if token.typ == commentTokenType {
+			continue
+		}
 		switch {
 		case token.typ == intTokenType:
 			val, err := strconv.ParseInt(string(token.val), 10, 64)
@@ -232,6 +235,7 @@ Loop:
 
 func (p *parser) parse() Statements {
 	var statements Statements
+	statements = append(statements, &NopStatement{})
 Loop:
 	for {
 		token := p.nextToken()
@@ -239,6 +243,9 @@ Loop:
 			break
 		}
 		fmt.Println(token)
+		if token.typ == commentTokenType {
+			continue
+		}
 		switch {
 		case token.typ == ifTokenType:
 			expression := p.parseIfStatement()
@@ -273,6 +280,17 @@ Loop:
 			} else {
 				p.vmCtx.addUserFunction(functionStatement)
 			}
+		case token.typ == typeTokenType:
+			if structObject := p.parseStructObject(); structObject == nil {
+				fmt.Println("parseStructObject failed")
+				return nil
+			} else {
+				if err := p.vmCtx.addStructObject(structObject); err != nil {
+					fmt.Println("addStructObject failed", err)
+					return nil
+				}
+			}
+
 		case token.typ == varTokenType:
 			token = p.nextToken()
 			if token.typ != labelType {
@@ -295,6 +313,7 @@ Loop:
 					expression: expression,
 				})
 			} else {
+				p.putToken(token)
 				statements = append(statements, &VarStatement{
 					ctx:   p.vmCtx,
 					label: label,
@@ -368,6 +387,12 @@ func (p *parser) parseStatement() Statements {
 		return nil
 	}
 	leftBrace = append(leftBrace, token)
+	//check empty statement
+	if token = p.nextToken(); token.typ == rightParenthesisTokenType {
+		statements = append(statements, &NopStatement{})
+		return statements
+	}
+	p.putToken(token)
 
 	for {
 		statement := p.parse()
@@ -589,6 +614,40 @@ func (p *parser) parseFunctionStatement() *FuncStatement {
 	fmt.Println("--parseFunctionStatement end --- ")
 	functionStatement.statements = statement
 	return &functionStatement
+}
+
+func (p *parser) parseStructObject() *StructObject {
+	var object = &StructObject{}
+	token := p.nextToken()
+	if token.typ != labelType {
+		fmt.Println("expect label follow type")
+		return nil
+	}
+	object.label = token.val
+	object.vm = p.vmCtx
+	if token = p.nextToken(); token.typ != structTokenType {
+		fmt.Println("expect `struct` keyword ")
+		return nil
+	}
+	statements := p.parseStatement()
+	if statements == nil {
+		fmt.Println("object struct parseStatement failed")
+		return nil
+	}
+	for _, statement := range statements {
+		switch statement := statement.(type) {
+		case *VarAssignStatement:
+			statement.object = object
+		case *VarStatement:
+			statement.object = object
+		case *NopStatement:
+			fmt.Println("objectStruct init nop")
+		default:
+			fmt.Println("object init expression,expect var VarAssignStatement", statement.getType())
+			return nil
+		}
+	}
+	return object
 }
 
 func Parse(data string) Statements {

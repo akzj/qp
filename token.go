@@ -79,6 +79,18 @@ func (t Type) String() string {
 		return "func"
 	case ObjectType:
 		return "object"
+	case structTokenType:
+		return "struct"
+	case mapObjectType:
+		return "map"
+	case arrayObjectType:
+		return "Array"
+	case commentTokenType:
+		return "comment"
+	case typeTokenType:
+		return "type"
+	case nopStatementType:
+		return "nop"
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
@@ -86,7 +98,7 @@ func (t Type) String() string {
 
 const EOFTokenType Type = 0
 const unknownTokenType Type = 1
-
+const commentTokenType Type = 2            // //
 const incOperatorTokenType Type = 100      // ++
 const addOperatorTokenType Type = 101      // +
 const subOperatorTokenType Type = 102      // -
@@ -113,6 +125,10 @@ const varTokenType Type = 400              // var
 const assignTokenType Type = 401           // =
 const varAssignTokenType Type = 402        // var x =
 const intTokenType Type = 700              // int
+const typeTokenType Type = 999             // type
+const structTokenType Type = 1000          // struct
+const mapObjectType Type = 1001            // map {}
+const arrayObjectType Type = 1002          // array []
 const labelType Type = 5000                // label
 const statementType Type = 6001            // statement
 const statementsType Type = 6003           // statementType
@@ -129,9 +145,9 @@ type Token struct {
 
 func (t Token) String() string {
 	if t.val == "" {
-		return fmt.Sprintf("type`%s`", t.typ.String())
+		return fmt.Sprintf("line:%d type`%s`", t.line, t.typ.String())
 	}
-	return fmt.Sprintf("type`%s` data `%s`", t.typ.String(), t.val)
+	return fmt.Sprintf("line:%d type`%s` data `%s`", t.line, t.typ.String(), t.val)
 }
 
 var (
@@ -154,7 +170,7 @@ var (
 )
 
 var Keywords = []string{
-	"if", "else", "func", "return", "break", "for", "var",
+	"if", "else", "func", "return", "break", "for", "var", "struct", "type",
 }
 
 var keywordTokenType = map[string]Type{
@@ -165,4 +181,6 @@ var keywordTokenType = map[string]Type{
 	"break":  breakTokenType,
 	"for":    forTokenType,
 	"var":    varTokenType,
+	"struct": structTokenType,
+	"type":   typeTokenType,
 }

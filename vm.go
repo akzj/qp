@@ -38,14 +38,16 @@ func (m *memory) popStackFrame() {
 }
 
 type VMContext struct {
-	mem       *memory
-	functions map[string]Function
+	mem           *memory
+	functions     map[string]Function
+	structObjects map[string]*StructObject
 }
 
 func newVMContext() *VMContext {
 	return &VMContext{
-		mem:       &memory{},
-		functions: map[string]Function{},
+		mem:           &memory{},
+		structObjects: map[string]*StructObject{},
+		functions:     map[string]Function{},
 	}
 }
 
@@ -92,4 +94,13 @@ func (ctx *VMContext) getFunction(label string) (Function, error) {
 	}
 	fmt.Println("no function ", label)
 	return nil, fmt.Errorf("no find function with label `%s`", label)
+}
+
+func (ctx *VMContext) addStructObject(object *StructObject) error {
+	if _, ok := ctx.structObjects[object.label]; ok {
+		fmt.Println("structObject repeated", object.label)
+		return fmt.Errorf("structObject repeated")
+	}
+	ctx.structObjects[object.label] = object
+	return nil
 }

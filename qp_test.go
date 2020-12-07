@@ -33,13 +33,14 @@ return 1
 var a = 
 a ++
 for
+a//hello world
 `)))
 	if lexer == nil {
 		t.Fatal("lexer nil")
 	}
 	var count = 1000
 	for lexer.finish() == false && count > 0 {
-		fmt.Println(lexer.peek())
+		fmt.Println(lexer.peek().String())
 		lexer.next()
 		count--
 	}
@@ -317,4 +318,66 @@ println(c) //100
 	if _, err := expression.invoke(); err != nil {
 		t.Errorf(err.Error())
 	}
+}
+
+func TestStructObject(t *testing.T) {
+	data := `
+type user struct{
+	//define user member with default IntObject 1
+	var id = 1
+	//define user member with default nil
+	var id2
+}`
+
+	expression := Parse(data)
+	if expression == nil {
+		t.Fatal("Parse failed")
+	}
+	fmt.Println("---------------------------")
+	if _, err := expression.invoke(); err != nil {
+		t.Errorf(err.Error())
+	}
+}
+
+func TestObject(t *testing.T) {
+	data := `
+type user struct{
+	//define user member with default IntObject 1
+	var id = 1
+	//define user member with default nil
+	var id2
+}
+
+//define function for user
+func user.print(){
+	println(.id) //i
+}
+
+// alloc field u
+var u = user{
+	c:1,
+}
+// get field
+println(u.id) //i
+
+// assign function abject to user object
+u.hello = func(){
+	println(222)
+}
+
+//alloc int field
+var b = 1
+
+//closure
+u.incB= func(){
+	b++
+}
+
+// call function object
+println(b) //1
+u.getB()
+println(b) //2
+
+`
+	fmt.Println(data)
 }

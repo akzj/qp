@@ -25,8 +25,9 @@ type ReturnStatement struct {
 
 //just new Object
 type VarStatement struct {
-	ctx   *VMContext
-	label string
+	ctx    *VMContext
+	label  string
+	object *StructObject
 }
 
 type fieldStatement struct {
@@ -47,6 +48,7 @@ type AssignStatement struct {
 }
 
 type VarAssignStatement struct {
+	object     *StructObject
 	ctx        *VMContext
 	label      string
 	expression Expression
@@ -265,8 +267,12 @@ func (f *fieldStatement) getType() Type {
 }
 
 func (v *VarStatement) invoke() (Expression, error) {
-	//fmt.Println("VarStatement invoke")
-	v.ctx.getObject(v.label)
+	fmt.Println("VarStatement invoke")
+	if v.object != nil {
+		v.object.allocObject(v.label)
+	} else {
+		v.ctx.allocObject(v.label)
+	}
 	return nil, nil
 }
 
@@ -282,8 +288,13 @@ func (expression *VarAssignStatement) invoke() (Expression, error) {
 	}
 	fmt.Println("expression", expression.expression.getType())
 	fmt.Println(obj.getType())
-	fmt.Println(expression.label,"-----IntObject----",obj.(*IntObject).val)
-	object := expression.ctx.allocObject(expression.label)
+	fmt.Println(expression.label, "-----IntObject----", obj.(*IntObject).val)
+	var object *Object
+	if expression.object != nil {
+		object = expression.object.allocObject(expression.label)
+	} else {
+		object = expression.ctx.allocObject(expression.label)
+	}
 	object.inner = obj
 	object.initType()
 	return nil, nil

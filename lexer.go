@@ -103,6 +103,15 @@ func (l *lexer) peek() Token {
 			token = commaToken
 		case c == ';':
 			token = semicolonToken
+		case c == '/':
+			if ahead, _ := l.ahead(); ahead == '/' { //
+				_, _ = l.get()
+				token = Token{
+					typ:  commentTokenType,
+					val:  l.readline(),
+					line: l.line,
+				}
+			}
 		default:
 			token = unknownToken
 		}
@@ -149,7 +158,7 @@ func (l *lexer) parseLabel(c byte) Token {
 			l.err = err
 			break
 		}
-		if isLetter(c) {
+		if isLetter(c) || isDigit(c) || c == '_' {
 			buf.WriteByte(c)
 		} else {
 			if err := l.reader.UnreadByte(); err != nil {
@@ -174,6 +183,22 @@ func (l *lexer) parseLabel(c byte) Token {
 
 func (l *lexer) Line() int {
 	return l.line
+}
+
+func (l *lexer) readline() string {
+	var line []byte
+	for {
+		c, err := l.ahead()
+		if err != nil {
+			l.err = err
+			return string(line)
+		}
+		if c == '\n' {
+			return string(line)
+		}
+		_, _ = l.get()
+		line = append(line, c)
+	}
 }
 
 func isDigit(c byte) bool {
