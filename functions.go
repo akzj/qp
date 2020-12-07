@@ -30,6 +30,10 @@ func _println(arguments ...Expression) (Expression, error) {
 				if err != nil {
 					return nil, err
 				}
+				if object == nil{
+					fmt.Println("expression",reflect.TypeOf(expression).String())
+					panic(object)
+				}
 				continue
 			case *IntObject:
 				fmt.Print("->", expression.val)

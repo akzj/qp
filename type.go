@@ -73,7 +73,7 @@ func (t Type) String() string {
 		return "call"
 	case semicolonTokenType:
 		return ";"
-	case AssignStatementType:
+	case assignStatementType:
 		return "assignStatement"
 	case funcTokenType:
 		return "func"
@@ -91,6 +91,14 @@ func (t Type) String() string {
 		return "type"
 	case nopStatementType:
 		return "nop"
+	case structObjectInitStatementType:
+		return "structObjectInitStatementType"
+	case StructObjectType:
+		return "struct object"
+	case periodTokenType:
+		return "."
+	case getStructVarStatementType:
+		return "getStructVarStatementType"
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
@@ -98,44 +106,52 @@ func (t Type) String() string {
 
 const EOFTokenType Type = 0
 const unknownTokenType Type = 1
-const commentTokenType Type = 2            // //
-const incOperatorTokenType Type = 100      // ++
-const addOperatorTokenType Type = 101      // +
-const subOperatorTokenType Type = 102      // -
-const mulOperatorTokenType Type = 103      // *
-const divOperatorTokenType Type = 104      // /
-const lessTokenType Type = 105             // <
-const greaterTokenType Type = 106          // >
-const lessEqualTokenType Type = 116        // <=
-const greaterEqualTokenType Type = 117     // >=
-const leftParenthesisTokenType Type = 120  // (
-const rightParenthesisTokenType Type = 121 // )
-const leftBraceTokenType Type = 122        // {
-const rightBraceTokenType Type = 123       // }
-const commaTokenType Type = 124            // ,
-const semicolonTokenType = 125             //;
-const ifTokenType Type = 230               //if
-const elseTokenType Type = 331             //else
-const funcTokenType Type = 332             //func
-const returnTokenType Type = 333           //return
-const breakTokenType Type = 334            //break
-const forTokenType Type = 335              //for
-const elseifTokenType Type = 336           //else if
-const varTokenType Type = 400              // var
-const assignTokenType Type = 401           // =
-const varAssignTokenType Type = 402        // var x =
-const intTokenType Type = 700              // int
-const typeTokenType Type = 999             // type
-const structTokenType Type = 1000          // struct
-const mapObjectType Type = 1001            // map {}
-const arrayObjectType Type = 1002          // array []
-const labelType Type = 5000                // label
-const statementType Type = 6001            // statement
-const statementsType Type = 6003           // statementType
-const expressionType Type = 6002           // expressionType
-const callFunctionType Type = 6004         // call function
-const nopStatementType Type = 6005         // nop
-const AssignStatementType Type = 6006      // =
+const commentTokenType Type = 2                  // //
+const incOperatorTokenType Type = 100            // ++
+const addOperatorTokenType Type = 101            // +
+const subOperatorTokenType Type = 102            // -
+const mulOperatorTokenType Type = 103            // *
+const divOperatorTokenType Type = 104            // /
+const lessTokenType Type = 105                   // <
+const greaterTokenType Type = 106                // >
+const lessEqualTokenType Type = 116              // <=
+const greaterEqualTokenType Type = 117           // >=
+const leftParenthesisTokenType Type = 120        // (
+const rightParenthesisTokenType Type = 121       // )
+const leftBraceTokenType Type = 122              // {
+const rightBraceTokenType Type = 123             // }
+const commaTokenType Type = 124                  // ,
+const semicolonTokenType Type = 125              // ;
+const colonTokenType Type = 126                  // :
+const periodTokenType Type = 127                 // .
+const ifTokenType Type = 230                     //if
+const elseTokenType Type = 331                   //else
+const funcTokenType Type = 332                   //func
+const returnTokenType Type = 333                 //return
+const breakTokenType Type = 334                  //break
+const forTokenType Type = 335                    //for
+const elseifTokenType Type = 336                 //else if
+const varTokenType Type = 400                    // var
+const assignTokenType Type = 401                 // =
+const varAssignTokenType Type = 402              // var x =
+const intTokenType Type = 700                    // int
+const typeTokenType Type = 999                   // type
+const structTokenType Type = 1000                // struct
+const mapObjectType Type = 1001                  // map {}
+const arrayObjectType Type = 1002                // array []
+const labelType Type = 5000                      // label
+const statementType Type = 6001                  // statement
+const statementsType Type = 6003                 // statementType
+const expressionType Type = 6002                 // expressionType
+const callFunctionType Type = 6004               // call function
+const nopStatementType Type = 6005               // nop
+const assignStatementType Type = 6006            // =
+const ObjectType Type = 100000                   // object
+const IntObjectType Type = 10000                 //int object
+const BoolObjectType Type = 10001                // bool object
+const StructObjectType Type = 10002              // struct object
+const structObjectInitStatementType Type = 10003 // struct  object init statement
+const getStructVarStatementType Type = 10004     // getStructObjectStatement statement
 
 type Token struct {
 	typ  Type
@@ -167,6 +183,8 @@ var (
 	commaToken            = Token{typ: commaTokenType}
 	incOperatorToken      = Token{typ: incOperatorTokenType}
 	semicolonToken        = Token{typ: semicolonTokenType}
+	colonToken            = Token{typ: colonTokenType}
+	periodToken           = Token{typ: periodTokenType}
 )
 
 var Keywords = []string{

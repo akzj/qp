@@ -3,6 +3,7 @@ package qp
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 type Statements []Statement
@@ -30,14 +31,21 @@ type VarStatement struct {
 	object *StructObject
 }
 
-type fieldStatement struct {
+type getVarStatement struct {
 	ctx   *VMContext
 	label string
+}
+
+//a.b.c.d
+type getStructObjectStatement struct {
+	vmContext *VMContext
+	labels    []string
 }
 
 type FuncCallStatement struct {
 	vm        *VMContext
 	label     string
+	getObject *getStructObjectStatement
 	arguments Expressions
 }
 
@@ -45,13 +53,14 @@ type AssignStatement struct {
 	ctx        *VMContext
 	label      string
 	expression Expression
+	getObject  *getStructObjectStatement
 }
 
 type VarAssignStatement struct {
-	object     *StructObject
-	ctx        *VMContext
-	label      string
-	expression Expression
+	object     *StructObject //belong to struct object member field
+	ctx        *VMContext    //global or stack var
+	label      string        //var name : var a,`a` is the label
+	expression Expression    // init expression : var a = 1+1
 }
 
 type IncFieldStatement struct {
@@ -77,6 +86,86 @@ type ForStatement struct {
 	checkStatement Expression
 	postStatement  Expression
 	statements     Statements
+}
+
+type StructObjectInitStatement struct {
+	label          string // StructObject label
+	vm             *VMContext
+	initStatements Statements
+}
+
+func (g *getStructObjectStatement) invoke() (Expression, error) {
+	fmt.Println("getStructObjectStatement")
+	object := g.vmContext.getObject(g.labels[0])
+	if object == nil {
+		fmt.Println("getObject failed", g.labels[0])
+		return nil, fmt.Errorf("getObject failed")
+	}
+	if object.inner == nil {
+		fmt.Println("object nil", g.labels[0])
+		return nil, fmt.Errorf("object nil")
+	}
+	structObj, ok := object.inner.(*StructObject)
+	if ok == false {
+		fmt.Println("object type no struct object,error", reflect.TypeOf(object.inner).String())
+		return nil, fmt.Errorf("object type is no StructObject")
+	}
+	/*
+	 user.id = 1 // bind 1 to user.id
+	 println(user.id)// visit user.id
+	*/
+	var obj *Object
+	for i := 1; i < len(g.labels); i++ {
+		obj = structObj.allocObject(g.labels[i])
+		//last label
+		if i != len(g.labels)-1 {
+			var ok bool
+			structObj, ok = obj.inner.(*StructObject)
+			if ok == false {
+				label := strings.Join(g.labels[:i+1], ".")
+				fmt.Println("object is no struct object type", label)
+				return nil, fmt.Errorf("object(%s) type is no StructObject", label)
+			}
+		}
+	}
+	return obj, nil
+}
+
+func (g *getStructObjectStatement) getType() Type {
+	return getStructVarStatementType
+}
+
+func (statement *StructObjectInitStatement) invoke() (Expression, error) {
+	object := statement.vm.allocStructObject(statement.label)
+	if object == nil {
+		return nil, fmt.Errorf("allocStructObject with label `%s` failed", statement.label)
+	}
+	if _, err := object.invoke(); err != nil {
+		fmt.Println("struct object init failed", err.Error())
+		return nil, err
+	}
+	for _, initStatement := range statement.initStatements {
+		object.initStatement = append(object.initStatement, initStatement)
+	}
+	for _, init := range object.initStatement {
+		switch s := init.(type) {
+		case *VarAssignStatement:
+			s.object = object
+		case *VarStatement:
+			s.object = object
+		default:
+			panic("unknown statement " + reflect.TypeOf(init).String())
+		}
+		if _, err := init.invoke(); err != nil {
+			fmt.Println("struct object init failed")
+			return nil, err
+		}
+	}
+	return object, nil
+}
+
+func (statement *StructObjectInitStatement) getType() Type {
+	return structObjectInitStatementType
 }
 
 func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) error {
@@ -138,19 +227,28 @@ func (expression *AssignStatement) invoke() (Expression, error) {
 		fmt.Println("AssignStatement .expression.invoke() failed", err.Error())
 		return nil, err
 	}
-	fmt.Println(val.getType())
-	fmt.Println(val.(*IntObject).val)
-	object := expression.ctx.getObject(expression.label)
-	if object == nil {
-		fmt.Println("AssignStatement .expression.getObject failed", object.label)
-		return nil, err
+	if expression.getObject != nil {
+		object, err := expression.getObject.invoke()
+		if err != nil {
+			fmt.Println("on.getObject.invoke() failed", err)
+			return nil, err
+		}
+		object.(*Object).inner = val
+	} else {
+		fmt.Println(val.getType())
+		fmt.Println(val.(*IntObject).val)
+		object := expression.ctx.getObject(expression.label)
+		if object == nil {
+			fmt.Println("AssignStatement .expression.getObject failed", object.label)
+			return nil, err
+		}
+		object.inner = val
 	}
-	object.inner = val
 	return nil, nil
 }
 
 func (expression *AssignStatement) getType() Type {
-	return AssignStatementType
+	return assignStatementType
 }
 
 func (n *NopStatement) invoke() (Expression, error) {
@@ -240,21 +338,36 @@ func (Statements) getType() Type {
 }
 
 func (f *FuncCallStatement) invoke() (Expression, error) {
-	//fmt.Println("FuncCallStatement invoke")
-	function, err := f.vm.getFunction(f.label)
-	if err == nil {
-		return function(f.arguments...)
+	fmt.Println("FuncCallStatement invoke")
+	if f.getObject != nil {
+		object, err := f.getObject.invoke()
+		if err != nil {
+			fmt.Println("getObject.invoke() failed", err)
+			return nil, err
+		}
+		function, ok := object.(*Object).inner.(*FuncStatement)
+		if ok == false {
+			err = fmt.Errorf("no finction object")
+			fmt.Println(err)
+			return nil, err
+		}
+		return function.invoke(f.arguments...)
+	} else {
+		function, err := f.vm.getFunction(f.label)
+		if err == nil {
+			return function(f.arguments...)
+		}
+		fmt.Println("getFunction failed", f.label, err)
+		return nil, err
 	}
-	fmt.Println("getFunction failed", f.label, err)
-	return nil, err
 }
 
 func (f *FuncCallStatement) getType() Type {
 	return funcTokenType
 }
 
-func (f *fieldStatement) invoke() (Expression, error) {
-	fmt.Println("fieldStatement invoke")
+func (f *getVarStatement) invoke() (Expression, error) {
+	fmt.Println("getVarStatement invoke")
 	object := f.ctx.getObject(f.label)
 	if object == nil {
 		return nil, fmt.Errorf("no find Object with label `%s`", f.label)
@@ -262,7 +375,7 @@ func (f *fieldStatement) invoke() (Expression, error) {
 	return object.invoke()
 }
 
-func (f *fieldStatement) getType() Type {
+func (f *getVarStatement) getType() Type {
 	return labelType
 }
 
@@ -288,7 +401,6 @@ func (expression *VarAssignStatement) invoke() (Expression, error) {
 	}
 	fmt.Println("expression", expression.expression.getType())
 	fmt.Println(obj.getType())
-	fmt.Println(expression.label, "-----IntObject----", obj.(*IntObject).val)
 	var object *Object
 	if expression.object != nil {
 		object = expression.object.allocObject(expression.label)

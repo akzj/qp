@@ -2,13 +2,8 @@ package qp
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
-)
-
-const (
-	ObjectType     Type = 100000
-	IntObjectType  Type = 10000
-	BoolObjectType Type = 10001
 )
 
 type Object struct {
@@ -35,21 +30,40 @@ type StructObject struct {
 	vm    *VMContext
 	label string
 	//init statement when create object
+	init          bool
 	initStatement Statements
 	//user define function
-	functions map[string]*FuncStatement
-	object    map[string]*Object
+	object map[string]*Object
 }
 
 func (sObj *StructObject) invoke() (Expression, error) {
+	if sObj.init {
+		return sObj, nil
+	}
+	for _, statement := range sObj.initStatement {
+		if _, err := statement.invoke(); err != nil {
+			return nil, err
+		}
+	}
 	return sObj, nil
 }
 
 func (sObj *StructObject) getType() Type {
-	panic("implement me")
+	return StructObjectType
+}
+
+func (sObj *StructObject) getObject(label string) *Object {
+	object, ok := sObj.object[label]
+	if ok {
+		return object
+	}
+	return nil
 }
 
 func (sObj *StructObject) allocObject(label string) *Object {
+	if sObj.object == nil {
+		sObj.object = map[string]*Object{}
+	}
 	object, ok := sObj.object[label]
 	if ok {
 		return object
@@ -58,6 +72,25 @@ func (sObj *StructObject) allocObject(label string) *Object {
 		sObj.object[label] = object
 	}
 	return object
+}
+
+func (sObj *StructObject) clone() *StructObject {
+	clone := *sObj
+	for k, v := range sObj.object {
+		clone.addObject(k, v)
+	}
+	if len(sObj.initStatement) != 0 {
+		clone.initStatement = make(Statements, len(sObj.initStatement))
+		copy(clone.initStatement, sObj.initStatement)
+	}
+	return &clone
+}
+
+func (sObj *StructObject) addObject(k string, v *Object) {
+	if sObj.object == nil {
+		sObj.object = map[string]*Object{}
+	}
+	sObj.object[k] = v
 }
 
 func (b BreakObject) invoke() (Expression, error) {
@@ -90,6 +123,14 @@ func (i *IntObject) String() string {
 }
 
 func (obj *Object) invoke() (Expression, error) {
+	if obj == nil{
+		panic("")
+	}
+	if obj.inner == nil{
+		fmt.Println(reflect.TypeOf(obj).String())
+		panic("obj.inner")
+	}
+	fmt.Println("inner",reflect.TypeOf(obj.inner).String())
 	return obj.inner.(Expression), nil
 }
 

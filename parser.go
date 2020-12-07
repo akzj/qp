@@ -5,6 +5,7 @@ import (
 	"fmt"
 	io "io"
 	"strconv"
+	"strings"
 )
 
 func precedence(tokenType Type) int {
@@ -212,10 +213,25 @@ Loop:
 						ctx:   p.vmCtx,
 						label: label,
 					})
+				} else if next.typ == periodTokenType { // label.
+					expression := p.parsePeriodStatement(token.val)
+					if expression == nil {
+						fmt.Println("parsePeriodStatement failed")
+						return nil
+					}
+					expressions = append(expressions, expression)
+				} else if next.typ == leftBraceTokenType { //eg: User {
+					fmt.Println(token.val, "{")
+					statement := p.parseObjectStructInit(token.val)
+					if statement == nil {
+						fmt.Println("parseObjectStructInit failed")
+						return nil
+					}
+					return statement
 				} else {
 					p.putToken(next)
-					fmt.Println("fieldStatement")
-					expressions = append(expressions, &fieldStatement{
+					fmt.Println("getVarStatement")
+					expressions = append(expressions, &getVarStatement{
 						ctx:   p.vmCtx,
 						label: label,
 					})
@@ -350,6 +366,13 @@ Loop:
 					ctx:   p.vmCtx,
 					label: label,
 				})
+			} else if next.typ == periodTokenType { // label.
+				statement := p.parsePeriodStatement(token.val)
+				if statement == nil {
+					fmt.Println("parsePeriodStatement failed")
+					return nil
+				}
+				statements = append(statements, statement)
 			} else if next.typ == assignTokenType {
 				fmt.Println("assignTokenType")
 				expression := p.parseExpression()
@@ -365,7 +388,7 @@ Loop:
 				})
 			} else {
 				p.putToken(next)
-				statements = append(statements, &fieldStatement{
+				statements = append(statements, &getVarStatement{
 					ctx:   p.vmCtx,
 					label: label,
 				})
@@ -634,20 +657,111 @@ func (p *parser) parseStructObject() *StructObject {
 		fmt.Println("object struct parseStatement failed")
 		return nil
 	}
-	for _, statement := range statements {
-		switch statement := statement.(type) {
-		case *VarAssignStatement:
-			statement.object = object
-		case *VarStatement:
-			statement.object = object
-		case *NopStatement:
-			fmt.Println("objectStruct init nop")
-		default:
-			fmt.Println("object init expression,expect var VarAssignStatement", statement.getType())
+	return object
+}
+
+func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement {
+	fmt.Println("parseObjectStructInit")
+	var statement StructObjectInitStatement
+	var leftBrace []int
+
+	statement.label = label
+	statement.vm = p.vmCtx
+	leftBrace = append(leftBrace, 1)
+	//check empty statement
+	if token := p.nextToken(); token.typ == rightParenthesisTokenType {
+		statement.initStatements = append(statement.initStatements, &NopStatement{})
+		return &statement
+	} else {
+		p.putToken(token)
+	}
+
+	for {
+		token := p.nextToken()
+		if token.typ != labelType {
+			fmt.Println("expect label,error", token)
 			return nil
 		}
+		if next := p.nextToken(); next.typ != colonTokenType {
+			fmt.Println("expect colon `:` ,error", token)
+			return nil
+		}
+		expression := p.parseExpression()
+		if expression == nil {
+			fmt.Println("parse expression failed")
+			return nil
+		}
+		statement.initStatements = append(statement.initStatements, &VarAssignStatement{
+			ctx:        p.vmCtx,
+			label:      token.val,
+			expression: expression,
+		})
+		//check end
+		token = p.nextToken()
+		if token.typ == rightBraceTokenType {
+			fmt.Println("struct object init end", label)
+			break
+		}
+		p.putToken(token)
 	}
-	return object
+	return &statement
+}
+
+// a.b.c = 1 // assign
+// a.b.c()   // function call
+// a.b.c + 1 // get val statement
+func (p *parser) parsePeriodStatement(label string) Statement {
+	fmt.Println("parsePeriodStatement", label)
+	var labels = []string{label}
+	token := p.nextToken()
+	if token.typ != labelType {
+		fmt.Println("expect label ", token)
+		return nil
+	}
+	labels = append(labels, token.val)
+	for {
+		next := p.nextToken()
+		if next.typ == periodTokenType {
+			token = p.nextToken()
+			continue
+			// a.b.c(1) //function call
+		} else if next.typ == leftParenthesisTokenType {
+			statement := p.parseFunctionCall(strings.Join(labels, "."))
+			if statement == nil {
+				fmt.Println("parseFunctionCall failed")
+				return nil
+			}
+			statement.getObject = &getStructObjectStatement{
+				vmContext: p.vmCtx,
+				labels:    labels,
+			}
+			return statement
+		} else if next.typ == assignTokenType { // a.b = 1
+			expression := p.parseExpression()
+			if expression == nil {
+				fmt.Println("parseExpression for assign statement failed", token)
+				return nil
+			}
+			return &AssignStatement{
+				ctx:   p.vmCtx,
+				label: strings.Join(labels, "."),
+				getObject: &getStructObjectStatement{
+					vmContext: p.vmCtx,
+					labels:    labels,
+				},
+				expression: expression,
+			}
+		} else {
+			// a.b.c +  // expression
+			// var c = a.b.c //end of statement
+			fmt.Println("getStructObjectStatement", labels)
+			p.putToken(next)
+			return &getStructObjectStatement{
+				vmContext: p.vmCtx,
+				labels:    labels,
+			}
+		}
+	}
 }
 
 func Parse(data string) Statements {

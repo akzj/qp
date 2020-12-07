@@ -104,3 +104,12 @@ func (ctx *VMContext) addStructObject(object *StructObject) error {
 	ctx.structObjects[object.label] = object
 	return nil
 }
+
+func (ctx *VMContext) allocStructObject(label string) *StructObject {
+	obj, ok := ctx.structObjects[label]
+	if ok == false {
+		fmt.Println("no find structObject with label", label)
+		return nil
+	}
+	return obj.clone()
+}

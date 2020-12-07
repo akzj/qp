@@ -103,6 +103,10 @@ func (l *lexer) peek() Token {
 			token = commaToken
 		case c == ';':
 			token = semicolonToken
+		case c == ':':
+			token = colonToken
+		case c == '.':
+			token = periodToken
 		case c == '/':
 			if ahead, _ := l.ahead(); ahead == '/' { //
 				_, _ = l.get()

@@ -322,12 +322,21 @@ println(c) //100
 
 func TestStructObject(t *testing.T) {
 	data := `
-type user struct{
+type User struct{
 	//define user member with default IntObject 1
 	var id = 1
 	//define user member with default nil
 	var id2
-}`
+}
+
+var user = User{
+	a:1+1
+}
+//println struct member field
+println(user.a) //2
+user.a = 100
+println(user.a) //100
+`
 
 	expression := Parse(data)
 	if expression == nil {
@@ -355,6 +364,7 @@ func user.print(){
 
 // alloc field u
 var u = user{
+//init field
 	c:1,
 }
 // get field
