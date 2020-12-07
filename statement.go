@@ -76,9 +76,10 @@ type NopStatement struct {
 
 type FuncStatement struct {
 	label      string
-	arguments  []string
-	statements Statements
-	vm         *VMContext
+	labels     []string   // struct object function eg:user.add(){}
+	parameters []string   // parameter label
+	statements Statements // function body
+	vm         *VMContext // vm context
 }
 
 type ForStatement struct {
@@ -169,8 +170,8 @@ func (statement *StructObjectInitStatement) getType() Type {
 }
 
 func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) error {
-	if len(f.arguments) != len(inArguments) {
-		fmt.Println("argument size no match", len(f.arguments), len(inArguments))
+	if len(f.parameters) != len(inArguments) {
+		fmt.Println("argument size no match", len(f.parameters), len(inArguments))
 		return fmt.Errorf("argument size no match")
 	}
 
@@ -184,7 +185,7 @@ func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) error {
 			fmt.Println("invoke argument return nil error")
 			return fmt.Errorf("invoke argument return nil error")
 		}
-		label := f.arguments[index]
+		label := f.parameters[index]
 		object := f.vm.allocObject(label)
 		object.inner = val
 		fmt.Println("---------bind argument", label)

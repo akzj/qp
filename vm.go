@@ -1,6 +1,9 @@
 package qp
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type memory struct {
 	objects      []*Object
@@ -68,6 +71,21 @@ func (ctx *VMContext) popStackFrame() {
 }
 
 func (ctx *VMContext) addUserFunction(function *FuncStatement) error {
+	if function.labels != nil {
+		structObject := ctx.getStructObject(function.labels[0])
+		if structObject == nil { //todo fix parse order
+			fmt.Println("no find structObject", function.labels[0])
+			return fmt.Errorf("no find structObject")
+		}
+		fmt.Println(function.labels)
+		structObject.addObject(function.labels[1], &Object{
+			inner: function,
+			label: strings.Join(function.labels, "."),
+			typ:   FuncStatementType,
+		})
+		return nil
+	}
+
 	fmt.Println("addUserFunction with label", function.label)
 	if _, ok := builtInFunctionMap[function.label]; ok {
 		fmt.Println("function name conflict with built in function", function.label)
@@ -103,6 +121,11 @@ func (ctx *VMContext) addStructObject(object *StructObject) error {
 	}
 	ctx.structObjects[object.label] = object
 	return nil
+}
+
+func (ctx *VMContext) getStructObject(label string) *StructObject {
+	obj, _ := ctx.structObjects[label]
+	return obj
 }
 
 func (ctx *VMContext) allocStructObject(label string) *StructObject {

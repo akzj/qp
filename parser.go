@@ -185,7 +185,15 @@ Loop:
 				opStack = opStack[:len(opStack)-1]
 			}
 			opStack = append(opStack, token)
-			//function call
+		//function call
+		case token.typ == periodTokenType:
+			//translation to `this.`
+			expression := p.parsePeriodStatement("this")
+			if expression == nil {
+				fmt.Println("parsePeriodStatement failed")
+				return nil
+			}
+			expressions = append(expressions, expression)
 		case token.typ == labelType:
 			his := p.historyToken(1)
 			fmt.Println(his, "historyToken")
@@ -201,7 +209,7 @@ Loop:
 				next := p.nextToken()
 				//function call
 				if next.typ == leftParenthesisTokenType {
-					expression := p.parseFunctionCall(label)
+					expression := p.parseFunctionCall([]string{label})
 					if expression == nil {
 						fmt.Println("parseFunctionCall failed")
 						return nil
@@ -354,7 +362,7 @@ Loop:
 			//function call
 			if next.typ == leftParenthesisTokenType {
 				fmt.Println("parseFunctionCall")
-				statement := p.parseFunctionCall(label)
+				statement := p.parseFunctionCall([]string{label})
 				if statement == nil {
 					fmt.Println("parseFunctionCall failed")
 					return nil
@@ -434,30 +442,6 @@ func (p *parser) parseStatement() Statements {
 		}
 	}
 	return statements
-}
-
-func (p *parser) parseFunctionCall(label string) *FuncCallStatement {
-	var statement FuncCallStatement
-	statement.label = label
-	statement.vm = p.vmCtx
-	for {
-		expression := p.parseExpression()
-		if expression == nil {
-			fmt.Println("parse expression failed")
-			return nil
-		}
-		statement.arguments = append(statement.arguments, expression)
-		token := p.nextToken()
-		if token.typ == rightParenthesisTokenType {
-			break
-		} else if token.typ == commaTokenType {
-			// next arguments
-			continue
-		} else {
-			p.putToken(token)
-		}
-	}
-	return &statement
 }
 
 func (p *parser) parseForStatement() *ForStatement {
@@ -594,24 +578,80 @@ func (p *parser) parseIfStatement() *IfStatement {
 	}
 }
 
+func (p *parser) parseFunctionCall(labels []string) *FuncCallStatement {
+	fmt.Println("parseFunctionCall", labels)
+	var statement FuncCallStatement
+	if len(labels) == 1 {
+		statement.label = labels[0]
+	} else {
+		// bind self
+		bindSelf := &getStructObjectStatement{
+			vmContext: p.vmCtx,
+			labels:    labels[:len(labels)-1],
+		}
+		statement.arguments = append(statement.arguments, bindSelf)
+	}
+	statement.vm = p.vmCtx
+	for {
+		expression := p.parseExpression()
+		if expression == nil {
+			fmt.Println("parse expression failed")
+			return nil
+		}
+		if expression.getType() == nopStatementType && len(statement.arguments) == 1 {
+		} else {
+			statement.arguments = append(statement.arguments, expression)
+		}
+		token := p.nextToken()
+		if token.typ == rightParenthesisTokenType {
+			break
+		} else if token.typ == commaTokenType {
+			// next parameters
+			continue
+		} else {
+			p.putToken(token)
+		}
+	}
+	return &statement
+}
+
 func (p *parser) parseFunctionStatement() *FuncStatement {
 	fmt.Println("--parseFunctionStatement--")
 	var functionStatement FuncStatement
 
 	//function name
+	functionStatement.vm = p.vmCtx
 	token := p.nextToken()
 	if token.typ != labelType {
 		fmt.Println("function declare expect label here")
 		return nil
 	}
-	functionStatement.vm = p.vmCtx
 	functionStatement.label = token.val
-
-	fmt.Println("function label", token.val)
-
-	if p.nextToken().typ != leftParenthesisTokenType {
-		fmt.Println("function declare require `(`,error")
-		return nil
+	for {
+		next := p.nextToken()
+		fmt.Println("next", next)
+		if next.typ == periodTokenType { //struct object function
+			functionStatement.labels = append(functionStatement.labels, token.val)
+			token = p.nextToken()
+			continue
+		} else if next.typ == leftParenthesisTokenType {
+			if functionStatement.labels != nil {
+				functionStatement.labels = append(functionStatement.labels, token.val)
+			}
+			break
+		} else {
+			fmt.Println("expect label or . ,error")
+			return nil
+		}
+	}
+	if functionStatement.labels != nil {
+		fmt.Println("get function label", strings.Join(functionStatement.labels, "."))
+	} else {
+		fmt.Println("get function label", functionStatement.label)
+	}
+	//bind struct object to `this` argument
+	if functionStatement.labels != nil {
+		functionStatement.parameters = append(functionStatement.parameters, "this")
 	}
 	for {
 		token := p.nextToken()
@@ -622,7 +662,7 @@ func (p *parser) parseFunctionStatement() *FuncStatement {
 			//next argument
 			continue
 		} else if token.typ == labelType {
-			functionStatement.arguments = append(functionStatement.arguments, token.val)
+			functionStatement.parameters = append(functionStatement.parameters, token.val)
 			fmt.Println("find argument", token.val)
 		} else {
 			fmt.Println("unknown argument token", token)
@@ -726,7 +766,7 @@ func (p *parser) parsePeriodStatement(label string) Statement {
 			continue
 			// a.b.c(1) //function call
 		} else if next.typ == leftParenthesisTokenType {
-			statement := p.parseFunctionCall(strings.Join(labels, "."))
+			statement := p.parseFunctionCall(labels)
 			if statement == nil {
 				fmt.Println("parseFunctionCall failed")
 				return nil

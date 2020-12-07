@@ -324,7 +324,7 @@ func TestStructObject(t *testing.T) {
 	data := `
 type User struct{
 	//define user member with default IntObject 1
-	var id = 1
+	var id = 66666
 	//define user member with default nil
 	var id2
 }
@@ -336,6 +336,15 @@ var user = User{
 println(user.a) //2
 user.a = 100
 println(user.a) //100
+
+
+func User.print(){
+	println(.id)
+}
+
+// -----------------------------------------------------------
+user.print()
+
 `
 
 	expression := Parse(data)
@@ -369,6 +378,9 @@ var u = user{
 }
 // get field
 println(u.id) //i
+
+//call user function
+u.print() //print(u)
 
 // assign function abject to user object
 u.hello = func(){

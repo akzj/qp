@@ -99,6 +99,8 @@ func (t Type) String() string {
 		return "."
 	case getStructVarStatementType:
 		return "getStructVarStatementType"
+	case FuncStatementType:
+		return "FuncStatementType"
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
@@ -150,7 +152,8 @@ const ObjectType Type = 100000                   // object
 const IntObjectType Type = 10000                 //int object
 const BoolObjectType Type = 10001                // bool object
 const StructObjectType Type = 10002              // struct object
-const structObjectInitStatementType Type = 10003 // struct  object init statement
+const FuncStatementType Type = 10003             // function object
+const structObjectInitStatementType Type = 11003 // struct  object init statement
 const getStructVarStatementType Type = 10004     // getStructObjectStatement statement
 
 type Token struct {
