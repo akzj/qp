@@ -29,7 +29,7 @@ type IntObject struct {
 }
 
 func (i *IntObject) invoke() (Expression, error) {
-	fmt.Println("IntObject,invoke",i.val)
+	fmt.Println("IntObject,invoke", i.val)
 	return i, nil
 }
 
@@ -69,7 +69,7 @@ func (obj *Object) getType() Type {
 }
 
 func (obj *Object) String() string {
-	return fmt.Sprint(obj.inner)
+	return fmt.Sprintf("pointer %d label %s", obj.pointer, obj.label)
 }
 
 func (obj *Object) initType() {

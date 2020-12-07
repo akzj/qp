@@ -292,3 +292,29 @@ for ;a < 10; a++{
 		}
 	}
 }
+
+func TestFunction(t *testing.T) {
+	data := `
+func add(a,b){
+	var c = a+b
+	println(c) //3
+}
+
+var a = 1
+var b = 2
+var c = 100
+
+println(c) //100
+add(a,b)
+println(c) //100
+
+`
+	expression := Parse(data)
+	if expression == nil {
+		t.Fatal("Parse failed")
+	}
+	fmt.Println("---------------------------")
+	if _, err := expression.invoke(); err != nil {
+		t.Errorf(err.Error())
+	}
+}

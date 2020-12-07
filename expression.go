@@ -17,9 +17,11 @@ func (Expressions) getType() Type {
 }
 
 func (expressions *Expressions) invoke() (Expression, error) {
+	fmt.Println("expressions invoke",len(*expressions))
 	var val Expression
 	var err error
 	for _, expression := range *expressions {
+		fmt.Println("expression:",expression.getType())
 		if val, err = expression.invoke(); err != nil {
 			return nil, err
 		} else if _, ok := val.(*ReturnStatement); ok {

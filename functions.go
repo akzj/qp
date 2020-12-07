@@ -5,9 +5,9 @@ import (
 	"reflect"
 )
 
-type BuiltInFunction func(arguments ...Expression) (Expression, error)
+type Function func(arguments ...Expression) (Expression, error)
 
-var builtInFunctionMap = map[string]BuiltInFunction{
+var builtInFunctionMap = map[string]Function{
 	"println": _println,
 }
 

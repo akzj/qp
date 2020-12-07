@@ -191,6 +191,7 @@ Loop:
 				his.typ == ifTokenType ||
 				his.typ == elseifTokenType ||
 				his.typ == leftParenthesisTokenType ||
+				his.typ == assignTokenType ||
 				his.typ == returnTokenType {
 				label := token.val
 				next := p.nextToken()
@@ -265,6 +266,13 @@ Loop:
 			statement.express = expression
 			statements = append(statements, &statement)
 			continue
+		case token.typ == funcTokenType:
+			if functionStatement := p.parseFunctionStatement(); functionStatement == nil {
+				fmt.Println("parseFunctionStatement failed")
+				return nil
+			} else {
+				p.vmCtx.addUserFunction(functionStatement)
+			}
 		case token.typ == varTokenType:
 			token = p.nextToken()
 			if token.typ != labelType {
@@ -383,6 +391,7 @@ func (p *parser) parseStatement() Statements {
 func (p *parser) parseFunctionCall(label string) *FuncCallStatement {
 	var statement FuncCallStatement
 	statement.label = label
+	statement.vm = p.vmCtx
 	for {
 		expression := p.parseExpression()
 		if expression == nil {
@@ -535,6 +544,51 @@ func (p *parser) parseIfStatement() *IfStatement {
 			return &ifStem
 		}
 	}
+}
+
+func (p *parser) parseFunctionStatement() *FuncStatement {
+	fmt.Println("--parseFunctionStatement--")
+	var functionStatement FuncStatement
+
+	//function name
+	token := p.nextToken()
+	if token.typ != labelType {
+		fmt.Println("function declare expect label here")
+		return nil
+	}
+	functionStatement.vm = p.vmCtx
+	functionStatement.label = token.val
+
+	fmt.Println("function label", token.val)
+
+	if p.nextToken().typ != leftParenthesisTokenType {
+		fmt.Println("function declare require `(`,error")
+		return nil
+	}
+	for {
+		token := p.nextToken()
+		if token.typ == rightParenthesisTokenType {
+			// end of argument list
+			break
+		} else if token.typ == commaTokenType {
+			//next argument
+			continue
+		} else if token.typ == labelType {
+			functionStatement.arguments = append(functionStatement.arguments, token.val)
+			fmt.Println("find argument", token.val)
+		} else {
+			fmt.Println("unknown argument token", token)
+			return nil
+		}
+	}
+	statement := p.parseStatement()
+	if statement == nil {
+		fmt.Println("parseForStatement for function failed")
+		return nil
+	}
+	fmt.Println("--parseFunctionStatement end --- ")
+	functionStatement.statements = statement
+	return &functionStatement
 }
 
 func Parse(data string) Statements {
