@@ -27,7 +27,9 @@ func (obj *Object) invoke() (Expression, error) {
 		panic(reflect.TypeOf(obj.inner).String())
 	}
 }
-
+func (obj *Object) isNil() bool {
+	return obj.inner == nil
+}
 func (obj *Object) getType() Type {
 	return ObjectType
 }

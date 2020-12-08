@@ -105,6 +105,10 @@ func (t Type) String() string {
 		return "string"
 	case unknownTokenType:
 		return "unknown"
+	case nilTokenType:
+		return "nil"
+	case EqualTokenType:
+		return "=="
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
@@ -115,6 +119,7 @@ const EOFTokenType Type = 0
 const unknownTokenType Type = 1
 const commentTokenType Type = 2                // //
 const stringTokenType Type = 3                 // string "" ''
+const nilTokenType Type = 4                    // null
 const incOperatorTokenType Type = 100          // ++
 const addOperatorTokenType Type = 101          // +
 const subOperatorTokenType Type = 102          // -
@@ -124,6 +129,7 @@ const lessTokenType Type = 105                 // <
 const greaterTokenType Type = 106              // >
 const lessEqualTokenType Type = 116            // <=
 const greaterEqualTokenType Type = 117         // >=
+const EqualTokenType Type = 118                // ==
 const leftParenthesisTokenType Type = 120      // (
 const rightParenthesisTokenType Type = 121     // )
 const leftBraceTokenType Type = 122            // {
@@ -132,13 +138,13 @@ const commaTokenType Type = 124                // ,
 const semicolonTokenType Type = 125            // ;
 const colonTokenType Type = 126                // :
 const periodTokenType Type = 127               // .
-const ifTokenType Type = 230                   //if
-const elseTokenType Type = 331                 //else
-const funcTokenType Type = 332                 //func
-const returnTokenType Type = 333               //return
-const breakTokenType Type = 334                //break
-const forTokenType Type = 335                  //for
-const elseifTokenType Type = 336               //else if
+const ifTokenType Type = 230                   // if
+const elseTokenType Type = 331                 // else
+const funcTokenType Type = 332                 // func
+const returnTokenType Type = 333               // return
+const breakTokenType Type = 334                // break
+const forTokenType Type = 335                  // for
+const elseifTokenType Type = 336               // else if
 const varTokenType Type = 400                  // var
 const assignTokenType Type = 401               // =
 const varAssignTokenType Type = 402            // var x =
@@ -154,7 +160,7 @@ const callFunctionType Type = 6004             // call function
 const nopStatementType Type = 6005             // nop
 const assignStatementType Type = 6006          // =
 const ObjectType Type = 100000                 // objects
-const IntObjectType Type = 10000               //int objects
+const IntObjectType Type = 10000               // int objects
 const BoolObjectType Type = 10001              // bool objects
 const TypeObjectType Type = 10002              // type objects
 const FuncStatementType Type = 10003           // function objects
@@ -193,10 +199,11 @@ var (
 	semicolonToken        = Token{typ: semicolonTokenType}
 	colonToken            = Token{typ: colonTokenType}
 	periodToken           = Token{typ: periodTokenType}
+	equalToken            = Token{typ: EqualTokenType}
 )
 
 var Keywords = []string{
-	"if", "else", "func", "return", "break", "for", "var", "type",
+	"if", "else", "func", "return", "break", "for", "var", "type", "nil",
 }
 
 var keywordTokenType = map[string]Type{
@@ -208,4 +215,5 @@ var keywordTokenType = map[string]Type{
 	"for":    forTokenType,
 	"var":    varTokenType,
 	"type":   typeTokenType,
+	"nil":    nilTokenType,
 }

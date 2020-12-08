@@ -98,6 +98,10 @@ func (l *lexer) peek() Token {
 			token = l.parseNumToken(c)
 		case c == '=':
 			token = assignToken
+			if c, _ = l.ahead(); c == '=' {
+				_, _ = l.get()
+				token = equalToken
+			}
 		case c == ',':
 			token = commaToken
 		case c == ';':

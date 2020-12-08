@@ -63,6 +63,57 @@ type GreaterEqualExpression struct {
 	right Expression
 }
 
+type EqualExpression struct {
+	Left  Expression
+	right Expression
+}
+
+func (expression *EqualExpression) invoke() (Expression, error) {
+	left, err := expression.Left.invoke()
+	if err != nil {
+		log.Panic("invoke left failed", err.Error())
+	}
+	left, err = left.invoke()
+	right, err := expression.right.invoke()
+	if err != nil {
+		log.Panic("invoke left failed", err.Error())
+		return nil, err
+	}
+	right, err = right.invoke()
+	var val bool
+	switch lVal := left.(type) {
+	case *IntObject:
+		switch rVal := right.(type) {
+		case *IntObject:
+			val = lVal.val == rVal.val
+		default:
+			val = false
+		}
+	case *StringObject:
+		switch e := right.(type) {
+		case *StringObject:
+			val = lVal.data == e.data
+		default:
+			val = false
+		}
+	case *NilObject:
+		switch right.(type) {
+		case *NilObject:
+			val = true
+		default:
+			val = false
+		}
+	default:
+		panic(reflect.TypeOf(left).String() + "\n" +
+			reflect.TypeOf(right).String())
+	}
+	return &BoolObject{val: val}, nil
+}
+
+func (EqualExpression) getType() Type {
+	return EqualTokenType
+}
+
 func (LessExpression) getType() Type {
 	return lessTokenType
 }

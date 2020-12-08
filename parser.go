@@ -27,7 +27,7 @@ func precedenceGE(first, second Type) bool {
 }
 
 func isOperatorToken(token Token) bool {
-	return token.typ >= addOperatorTokenType && token.typ <= greaterEqualTokenType
+	return token.typ >= addOperatorTokenType && token.typ <= EqualTokenType
 }
 
 type closureCheck struct {
@@ -109,6 +109,12 @@ func makeExpression(opToken Token, expressions *[]Expression) Expression {
 			right: (*expressions)[len(*expressions)-1],
 		}
 		*expressions = (*expressions)[:len(*expressions)-2]
+	case EqualTokenType:
+		expression = &EqualExpression{
+			Left:  (*expressions)[len(*expressions)-2],
+			right: (*expressions)[len(*expressions)-1],
+		}
+		*expressions = (*expressions)[:len(*expressions)-2]
 	default:
 		panic(opToken)
 	}
@@ -184,6 +190,8 @@ Loop:
 				},
 				data: token.data,
 			})
+		case token.typ == nilTokenType:
+			expressions = append(expressions, nilObject)
 		case token.typ == leftParenthesisTokenType:
 			opStack = append(opStack, token)
 		case token.typ == rightParenthesisTokenType:
@@ -411,7 +419,7 @@ func (p *parser) parseStatement() Statements {
 
 	token := p.nextToken(true)
 	if token.typ != leftBraceTokenType {
-		log.Panic("error ,expect { ")
+		log.Panic("error ,expect { ", token)
 	}
 	leftBrace = append(leftBrace, token)
 	//check empty statement

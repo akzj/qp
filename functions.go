@@ -35,11 +35,10 @@ func (println) invoke(arguments ...Expression) (Expression, error) {
 					log.Panic("expression", reflect.TypeOf(expression).String())
 				}
 				continue
-			case *IntObject:
-				fmt.Println("------>", expression.val)
-				break Loop
-			case *StringObject:
-				fmt.Println("------>", expression.data)
+			case *IntObject,
+				*StringObject,
+				*NilObject:
+				fmt.Print(expression)
 				break Loop
 			default:
 				panic("unknown type" + reflect.TypeOf(object).String())

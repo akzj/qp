@@ -35,7 +35,10 @@ a ++
 for
 a//hello world
 "hello"
-` + "` multi-line hello\n\nworld`")))
+` + "` multi-line hello\n\nworld`" + `
+var a = nil
+==
+`)))
 	if lexer == nil {
 		t.Fatal("lexer nil")
 	}
@@ -575,4 +578,16 @@ println(a,b)
 	if _, err := statements.invoke(); err != nil {
 		t.Fatal("test failed", err)
 	}
+}
+
+func TestNil(t *testing.T) {
+	data := `
+var a
+if a == nil{
+	println("a is nil",1000)
+}else{
+	println(a)
+}
+`
+	Parse(data).invoke()
 }

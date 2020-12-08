@@ -12,6 +12,10 @@ type StringObject struct {
 	data string
 }
 
+func (s *StringObject) String() string {
+	return s.data
+}
+
 func (s *StringObject) invoke() (Expression, error) {
 	if s.init {
 		return s, nil

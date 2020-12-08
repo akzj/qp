@@ -431,9 +431,9 @@ func (f *getVarStatement) getType() Type {
 
 func (v *VarStatement) invoke() (Expression, error) {
 	if v.object != nil {
-		v.object.allocObject(v.label)
+		v.object.allocObject(v.label).inner = nilObject
 	} else {
-		v.ctx.allocObject(v.label)
+		v.ctx.allocObject(v.label).inner = nilObject
 	}
 	return nil, nil
 }
