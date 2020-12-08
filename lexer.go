@@ -112,7 +112,7 @@ func (l *lexer) peek() Token {
 				_, _ = l.get()
 				token = Token{
 					typ:  commentTokenType,
-					val:  l.readline(),
+					data: l.readline(),
 					line: l.line,
 				}
 			}
@@ -144,8 +144,8 @@ func (l *lexer) parseNumToken(c byte) Token {
 		}
 	}
 	return Token{
-		typ: intTokenType,
-		val: buf.String(),
+		typ:  intTokenType,
+		data: buf.String(),
 	}
 }
 
@@ -180,8 +180,8 @@ func (l *lexer) parseLabel(c byte) Token {
 	}
 
 	return Token{
-		typ: labelType,
-		val: buf.String(),
+		typ:  labelType,
+		data: buf.String(),
 	}
 }
 

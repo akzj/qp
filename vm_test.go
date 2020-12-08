@@ -2,9 +2,13 @@ package qp
 
 import (
 	"fmt"
+	"log"
 	"testing"
 )
 
+func init() {
+	log.SetFlags(log.Lshortfile)
+}
 func TestVMMemoryStackTest(t *testing.T) {
 	vm := newVMContext()
 
@@ -47,7 +51,7 @@ func TestVMMemoryStackTest(t *testing.T) {
 		//isolate
 		vm.pushStackFrame(true)
 
-		if vm.getStructObject("a") != nil {
+		if vm.getTypeObject("a") != nil {
 			t.Fatal("isolate failed")
 		}
 

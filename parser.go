@@ -31,11 +31,37 @@ func isOperatorToken(token Token) bool {
 	return token.typ >= addOperatorTokenType && token.typ <= greaterEqualTokenType
 }
 
+type closureCheck struct {
+	vars     map[string]bool
+	closures []string
+}
+
+func newClosureCheck() *closureCheck {
+	return &closureCheck{
+		vars:     map[string]bool{},
+		closures: nil,
+	}
+}
+
+func (c *closureCheck) addVar(label string) {
+	c.vars[label] = true
+}
+func (c *closureCheck) visit(label string) bool {
+	var closure bool
+	if c.vars[label] == false {
+		c.closures = append(c.closures, label)
+		closure = true
+	}
+	c.addVar(label)
+	return closure
+}
+
 type parser struct {
-	history []Token
-	tokens  []Token
-	lexer   *lexer
-	vmCtx   *VMContext
+	history      []Token
+	tokens       []Token
+	lexer        *lexer
+	vmCtx        *VMContext
+	closureCheck []*closureCheck
 }
 
 func newParser(reader io.Reader) *parser {
@@ -147,9 +173,9 @@ Loop:
 		}
 		switch {
 		case token.typ == intTokenType:
-			val, err := strconv.ParseInt(string(token.val), 10, 64)
+			val, err := strconv.ParseInt(string(token.data), 10, 64)
 			if err != nil {
-				fmt.Println("parse int failed", string(token.val))
+				fmt.Println("parse int failed", string(token.data))
 				return nil
 			}
 			expressions = append(expressions, &IntObject{val: val})
@@ -228,7 +254,7 @@ Loop:
 				his.typ == leftParenthesisTokenType ||
 				his.typ == assignTokenType ||
 				his.typ == returnTokenType {
-				label := token.val
+				label := token.data
 				next := p.nextToken(true)
 				//function call
 				if next.typ == leftParenthesisTokenType {
@@ -239,21 +265,23 @@ Loop:
 					}
 					expressions = append(expressions, expression)
 				} else if next.typ == incOperatorTokenType {
+					p.closureCheckVisit(token.data)
 					fmt.Println("incOperatorTokenType", label)
 					expressions = append(expressions, &IncFieldStatement{
 						ctx:   p.vmCtx,
 						label: label,
 					})
 				} else if next.typ == periodTokenType { // label.
-					expression := p.parsePeriodStatement(token.val)
+					p.closureCheckVisit(token.data)
+					expression := p.parsePeriodStatement(token.data)
 					if expression == nil {
 						fmt.Println("parsePeriodStatement failed")
 						return nil
 					}
 					expressions = append(expressions, expression)
 				} else if next.typ == leftBraceTokenType { //eg: User {
-					fmt.Println(token.val, "{")
-					statement := p.parseObjectStructInit(token.val)
+					fmt.Println(token.data, "{")
+					statement := p.parseObjectStructInit(token.data)
 					if statement == nil {
 						fmt.Println("parseObjectStructInit failed")
 						return nil
@@ -261,11 +289,12 @@ Loop:
 					return statement
 				} else {
 					p.putToken(next)
-					fmt.Println("getVarStatement")
+					p.closureCheckVisit(token.data)
 					expressions = append(expressions, &getVarStatement{
 						ctx:   p.vmCtx,
 						label: label,
 					})
+					fmt.Println("getVarStatement", token.data)
 				}
 			} else {
 				p.putToken(token)
@@ -345,7 +374,9 @@ Loop:
 				fmt.Println("error ,expect label", token)
 				return nil
 			}
-			var label = token.val
+			//closure check
+			p.closureCheckAddVar(token.data)
+			var label = token.data
 			token = p.nextToken(true)
 			if token.typ == assignTokenType {
 				fmt.Println(assignTokenType, "begin")
@@ -381,7 +412,7 @@ Loop:
 			p.putToken(token)
 			break Loop
 		case token.typ == labelType:
-			label := token.val
+			label := token.data
 			next := p.nextToken(true)
 			//function call
 			if next.typ == leftParenthesisTokenType {
@@ -393,19 +424,22 @@ Loop:
 				}
 				statements = append(statements, statement)
 			} else if next.typ == incOperatorTokenType {
+				p.closureCheckVisit(token.data)
 				fmt.Println("incOperatorTokenType", label)
 				statements = append(statements, &IncFieldStatement{
 					ctx:   p.vmCtx,
 					label: label,
 				})
 			} else if next.typ == periodTokenType { // label.
-				statement := p.parsePeriodStatement(token.val)
+				p.closureCheckVisit(token.data)
+				statement := p.parsePeriodStatement(token.data)
 				if statement == nil {
 					fmt.Println("parsePeriodStatement failed")
 					return nil
 				}
 				statements = append(statements, statement)
 			} else if next.typ == assignTokenType {
+				p.closureCheckVisit(token.data)
 				fmt.Println("assignTokenType")
 				expression := p.parseExpression()
 				fmt.Println("assignTokenType end")
@@ -419,11 +453,7 @@ Loop:
 					expression: expression,
 				})
 			} else {
-				p.putToken(next)
-				statements = append(statements, &getVarStatement{
-					ctx:   p.vmCtx,
-					label: label,
-				})
+				panic(token)
 			}
 			continue
 		}
@@ -656,17 +686,17 @@ func (p *parser) parseFunctionStatement() *FuncStatement {
 
 	//function name
 	if token := p.nextToken(true); token.typ == labelType {
-		functionStatement.label = token.val
+		functionStatement.label = token.data
 		for {
 			next := p.nextToken(true)
 			fmt.Println("next", next)
-			if next.typ == periodTokenType { //struct object function
-				functionStatement.labels = append(functionStatement.labels, token.val)
+			if next.typ == periodTokenType { //type object function eg:user.get(){}
+				functionStatement.labels = append(functionStatement.labels, token.data)
 				token = p.nextToken(true)
 				continue
 			} else if next.typ == leftParenthesisTokenType {
 				if functionStatement.labels != nil {
-					functionStatement.labels = append(functionStatement.labels, token.val)
+					functionStatement.labels = append(functionStatement.labels, token.data)
 				}
 				break
 			} else {
@@ -675,7 +705,8 @@ func (p *parser) parseFunctionStatement() *FuncStatement {
 			}
 		}
 	} else {
-		functionStatement.label = "lambda"
+		functionStatement.closure = true
+		p.pushClosureCheck()
 	}
 	if functionStatement.labels != nil {
 		fmt.Println("get function label",
@@ -687,6 +718,7 @@ func (p *parser) parseFunctionStatement() *FuncStatement {
 	if functionStatement.labels != nil {
 		functionStatement.parameters = append(functionStatement.parameters, "this")
 	}
+	//parse argument list
 	for {
 		token := p.nextToken(true)
 		if token.typ == rightParenthesisTokenType {
@@ -696,8 +728,9 @@ func (p *parser) parseFunctionStatement() *FuncStatement {
 			//next argument
 			continue
 		} else if token.typ == labelType {
-			functionStatement.parameters = append(functionStatement.parameters, token.val)
-			fmt.Println("find argument", token.val)
+			p.closureCheckAddVar(token.data)
+			functionStatement.parameters = append(functionStatement.parameters, token.data)
+			fmt.Println("find argument", token.data)
 		} else {
 			fmt.Println("unknown argument token", token)
 			return nil
@@ -710,6 +743,10 @@ func (p *parser) parseFunctionStatement() *FuncStatement {
 	}
 	fmt.Println("--parseFunctionStatement end --- ")
 	functionStatement.statements = statement
+	if functionStatement.closure {
+		functionStatement.closureLabel = p.popClosureLabels()
+	}
+
 	return &functionStatement
 }
 
@@ -720,7 +757,7 @@ func (p *parser) parseStructObject() *TypeObject {
 		fmt.Println("expect label follow type")
 		return nil
 	}
-	object.label = token.val
+	object.label = token.data
 	object.vm = p.vmCtx
 	statements := p.parseStatement()
 	if statements == nil {
@@ -764,7 +801,7 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 		}
 		statement.initStatements = append(statement.initStatements, &VarAssignStatement{
 			ctx:        p.vmCtx,
-			label:      token.val,
+			label:      token.data,
 			expression: expression,
 		})
 		//check end
@@ -780,7 +817,7 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 
 // a.b.c = 1 // assign
 // a.b.c()   // function call
-// a.b.c + 1 // get val statement
+// a.b.c + 1 // get data statement
 func (p *parser) parsePeriodStatement(label string) Statement {
 	fmt.Println("parsePeriodStatement", label)
 	var labels = []string{label}
@@ -789,7 +826,7 @@ func (p *parser) parsePeriodStatement(label string) Statement {
 		fmt.Println("expect label ", token)
 		return nil
 	}
-	labels = append(labels, token.val)
+	labels = append(labels, token.data)
 	for {
 		next := p.nextToken(true)
 		if next.typ == periodTokenType {
@@ -833,6 +870,36 @@ func (p *parser) parsePeriodStatement(label string) Statement {
 			}
 		}
 	}
+}
+
+func (p *parser) closureCheckAddVar(data string) {
+	if len(p.closureCheck) != 0 {
+		p.closureCheck[len(p.closureCheck)-1].addVar(data)
+	}
+}
+
+func (p *parser) closureCheckVisit(data string) {
+	for i := len(p.closureCheck) - 1; i >= 0; i-- {
+		closure := p.closureCheck[i]
+		if closure.visit(data) == false {
+			break
+		}else{
+			log.Println("-------------closureCheckVisit",data,"-------------")
+		}
+	}
+}
+
+func (p *parser) pushClosureCheck() {
+	p.closureCheck = append(p.closureCheck, newClosureCheck())
+}
+
+func (p *parser) popClosureLabels() []string {
+	if len(p.closureCheck) != 0 {
+		closureLabel := p.closureCheck[len(p.closureCheck)-1].closures
+		p.closureCheck = p.closureCheck[:len(p.closureCheck)-1]
+		return closureLabel
+	}
+	return nil
 }
 
 func Parse(data string) Statements {

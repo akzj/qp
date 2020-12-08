@@ -134,8 +134,12 @@ func (obj *Object) invoke() (Expression, error) {
 		panic("obj.inner")
 	}
 	fmt.Println("inner", reflect.TypeOf(obj.inner).String())
-	switch obj.inner.(type) {
+	switch inner := obj.inner.(type) {
 	case *FuncStatement:
+		if err := inner.doClosureInit(); err != nil {
+			fmt.Println("function statement do function closure init failed")
+			return nil, err
+		}
 		return obj, nil
 	case Expression:
 		return obj.inner.(Expression), nil
@@ -177,19 +181,25 @@ func (obj *Object) unwrapFuncStatement() *FuncStatement {
 		if object.inner == object {
 			panic("object inner pointer to self ,dead loop")
 		}
-		if object.inner == nil{
+		if object.inner == nil {
 			panic("object.inner nil")
 		}
-		objectInner, ok := object.inner.(*Object)
-		if ok {
-			object = objectInner
-			fmt.Println("retry")
+		switch inner := object.inner.(type) {
+		case *Object:
+			object = inner
 			continue
-		} else if function, ok := object.inner.(*FuncStatement); ok {
-			fmt.Println("get function")
-			return function
-		} else {
-			panic(reflect.ValueOf(object.inner).String())
+		case *FuncStatement:
+			return inner
+		case *ReturnStatement:
+			switch inner2 := inner.returnVal.(type) {
+			case *Object:
+				object = inner2
+				continue
+			default:
+				panic("unknown type" + reflect.TypeOf(inner.returnVal).String())
+			}
+		default:
+			panic("unknown type" + reflect.TypeOf(inner).String())
 		}
 	}
 	return nil

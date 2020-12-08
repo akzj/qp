@@ -103,24 +103,45 @@ func TestNumAddParse(t *testing.T) {
 func TestReturnStatement(t *testing.T) {
 	cases := []struct {
 		exp string
-		val interface{}
+		val int64
 	}{{
 		exp: `
-if 2 < 3{
-	return 1+1
+var global = 1
+var main = func() {
+	var out = 10 
+	var f = func(){
+		var a = 100
+		var b = func(){
+			var c = 1000
+			var d = func(){
+					return a + out + global +c
+				}
+			return d()
+		}
+		return b
+	}
+	var b = f()
+	return b()
 }
-`, val: int64(3),
-	}}
+main()
+`,
+		val: int64(100),
+	},
+	}
 
 	for _, Case := range cases {
 		expression := Parse(Case.exp)
 		if expression == nil {
 			t.Fatal("Parse failed")
 		}
+		fmt.Println("------------------------------------------------")
 		if val, err := expression.invoke(); err != nil {
 			t.Errorf(err.Error())
 		} else {
-			fmt.Println("result", val)
+			switch inner := val.(type) {
+			case *ReturnStatement:
+				fmt.Println("YES !", inner.returnVal.(*IntObject).val)
+			}
 		}
 	}
 }
@@ -509,7 +530,7 @@ func testA(){
 		var b = 100
 		println(b)
 	}
-	//visit no exist val,must error 
+	//visit no exist data,must error 
 	println(b)
 }
 println(a)
@@ -552,6 +573,6 @@ f()
 	}
 	fmt.Println("-------------------------------------------------------------")
 	if _, err := statements.invoke(); err != nil {
-		t.Fatal("test failed",err)
+		t.Fatal("test failed", err)
 	}
 }

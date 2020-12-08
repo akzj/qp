@@ -43,6 +43,10 @@ func (println) invoke(arguments ...Expression) (Expression, error) {
 			case *IntObject:
 				fmt.Println("------>", expression.val)
 				break Loop
+			case *ReturnStatement:
+				//unwrap return val
+				object = expression.returnVal
+				continue
 			default:
 				panic("unknown type" + reflect.TypeOf(object).String())
 			}

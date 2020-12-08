@@ -155,15 +155,15 @@ const getTypeObjectVarStatementType Type = 10004 // getTypeObjectStatement state
 
 type Token struct {
 	typ  Type
-	val  string
+	data string
 	line int
 }
 
 func (t Token) String() string {
-	if t.val == "" {
+	if t.data == "" {
 		return fmt.Sprintf("line:%d type`%s`", t.line, t.typ.String())
 	}
-	return fmt.Sprintf("line:%d type`%s` data `%s`", t.line, t.typ.String(), t.val)
+	return fmt.Sprintf("line:%d type`%s` data `%s`", t.line, t.typ.String(), t.data)
 }
 
 var (

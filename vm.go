@@ -98,7 +98,7 @@ func (ctx *VMContext) popStackFrame() {
 func (ctx *VMContext) addUserFunction(function *FuncStatement) error {
 	log.Println("addUserFunction")
 	if function.labels != nil {
-		structObject := ctx.getStructObject(function.labels[0])
+		structObject := ctx.getTypeObject(function.labels[0])
 		if structObject == nil { //todo fix parse order
 			fmt.Println("no find structObject", function.labels[0])
 			return fmt.Errorf("no find structObject")
@@ -153,12 +153,12 @@ func (ctx *VMContext) addStructObject(object *TypeObject) error {
 	return nil
 }
 
-func (ctx *VMContext) getStructObject(label string) *TypeObject {
+func (ctx *VMContext) getTypeObject(label string) *TypeObject {
 	obj, _ := ctx.structObjects[label]
 	return obj
 }
 
-func (ctx *VMContext) allocStructObject(label string) *TypeObject {
+func (ctx *VMContext) cloneTypeObject(label string) *TypeObject {
 	obj, ok := ctx.structObjects[label]
 	if ok == false {
 		fmt.Println("no find structObject with label", label)
