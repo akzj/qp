@@ -1,0 +1,34 @@
+
+
+type User{
+    var name
+    var id
+}
+
+func User.print(){
+    println(.name)
+    println(.id)
+}
+
+var user = User{
+    name:"akzj",
+    id :1
+}
+
+user.hello = func(){
+    var num = 100
+    println("hello call")
+    var a = func(){
+        println("a call")
+        var b = func(){
+            println("qp support closure! ",num)
+        }
+        return b
+    }
+    return a
+}
+
+user.print()
+var a = user.hello()
+var b = a()
+b()
