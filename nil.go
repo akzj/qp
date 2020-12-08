@@ -9,7 +9,7 @@ func (n NilObject) String() string {
 
 var nilObject = &NilObject{}
 
-func (n *NilObject) invoke() Expression{
+func (n *NilObject) Invoke() Expression{
 	return n
 }
 

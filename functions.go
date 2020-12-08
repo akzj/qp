@@ -18,7 +18,7 @@ var builtInFunctionMap = map[string]Function{
 type println struct {
 }
 
-func (p *println) invoke() Expression {
+func (p *println) Invoke() Expression {
 	return p
 }
 
@@ -28,7 +28,7 @@ func (p *println) getType() Type {
 
 func (println) call(arguments ...Expression) Expression {
 	for _, argument := range arguments {
-		object := argument.invoke()
+		object := argument.Invoke()
 	Loop:
 		for {
 			switch expression := object.(type) {

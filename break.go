@@ -5,7 +5,7 @@ var breakObject = &BreakObject{}
 type BreakObject struct {
 }
 
-func (b BreakObject) invoke() Expression {
+func (b BreakObject) Invoke() Expression {
 	return b
 }
 

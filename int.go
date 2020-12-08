@@ -8,7 +8,7 @@ type IntObject struct {
 	val int64
 }
 
-func (i *IntObject) invoke() Expression {
+func (i *IntObject) Invoke() Expression {
 	return i
 }
 

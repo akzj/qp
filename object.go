@@ -12,13 +12,13 @@ type Object struct {
 	typ     Type
 }
 
-func (obj *Object) invoke() Expression {
+func (obj *Object) Invoke() Expression {
 	switch inner := obj.inner.(type) {
 	case *FuncStatement:
 		inner.doClosureInit()
 		return obj
 	case Expression:
-		return obj.inner.(Expression).invoke()
+		return obj.inner.(Expression).Invoke()
 	default:
 		panic(reflect.TypeOf(obj.inner).String())
 	}

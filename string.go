@@ -15,7 +15,7 @@ func (s *StringObject) String() string {
 	return s.data
 }
 
-func (s *StringObject) invoke() Expression {
+func (s *StringObject) Invoke() Expression {
 	if s.init {
 		return s
 	}
@@ -48,7 +48,7 @@ var StringObjectBuiltInFunctionMap = map[string]*Object{
 type StringObjectClone struct {
 }
 
-func (s StringObjectClone) invoke() Expression {
+func (s StringObjectClone) Invoke() Expression {
 	return s
 }
 
@@ -60,7 +60,7 @@ func (s StringObjectClone) call(arguments ...Expression) Expression {
 	if len(arguments) > 1 {
 		log.Panicln("only one arguments")
 	}
-	expression := arguments[0].invoke()
+	expression := arguments[0].Invoke()
 	for {
 		switch inner := expression.(type) {
 		case *StringObject:
@@ -73,7 +73,7 @@ func (s StringObjectClone) call(arguments ...Expression) Expression {
 
 type stringLowCase struct{}
 
-func (c *stringLowCase) invoke() Expression {
+func (c *stringLowCase) Invoke() Expression {
 	return c
 }
 
@@ -85,7 +85,7 @@ func (stringLowCase) call(arguments ...Expression) Expression {
 	if len(arguments) > 1 {
 		log.Panicln("only one arguments")
 	}
-	expression := arguments[0].invoke()
+	expression := arguments[0].Invoke()
 	for {
 		switch inner := expression.(type) {
 		case *StringObject:

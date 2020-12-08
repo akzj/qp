@@ -4,7 +4,7 @@ type BoolObject struct {
 	val bool
 }
 
-func (b *BoolObject) invoke() Expression {
+func (b *BoolObject) Invoke() Expression {
 	return b
 }
 

@@ -18,12 +18,12 @@ type TypeObject struct {
 	objects map[string]*Object
 }
 
-func (sObj *TypeObject) invoke() Expression {
+func (sObj *TypeObject) Invoke() Expression {
 	if sObj.init {
 		return sObj
 	}
 	for _, statement := range sObj.initStatement {
-		statement.invoke()
+		statement.Invoke()
 	}
 	return sObj
 }

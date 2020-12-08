@@ -5,7 +5,7 @@ import (
 )
 
 type Expression interface {
-	invoke() Expression
+	Invoke() Expression
 	getType() Type
 }
 
@@ -15,10 +15,10 @@ func (Expressions) getType() Type {
 	return expressionType
 }
 
-func (expressions *Expressions) invoke() Expression {
+func (expressions *Expressions) Invoke() Expression {
 	var val Expression
 	for _, expression := range *expressions {
-		val = expression.invoke()
+		val = expression.Invoke()
 		if _, ok := val.(*ReturnStatement); ok {
 			return val
 		}
@@ -65,9 +65,9 @@ type EqualExpression struct {
 	right Expression
 }
 
-func (expression *EqualExpression) invoke() Expression {
-	left := expression.Left.invoke()
-	right := expression.right.invoke()
+func (expression *EqualExpression) Invoke() Expression {
+	left := expression.Left.Invoke()
+	right := expression.right.Invoke()
 	var val bool
 	switch lVal := left.(type) {
 	case *IntObject:
@@ -121,9 +121,9 @@ func (GreaterEqualExpression) getType() Type {
 	return greaterEqualTokenType
 }
 
-func (expression *GreaterExpression) invoke() Expression {
-	left := expression.Left.invoke()
-	right := expression.right.invoke()
+func (expression *GreaterExpression) Invoke() Expression {
+	left := expression.Left.Invoke()
+	right := expression.right.Invoke()
 	switch lVal := left.(type) {
 	case *IntObject:
 		switch rVal := right.(type) {
@@ -140,9 +140,9 @@ func (expression *GreaterExpression) invoke() Expression {
 		reflect.TypeOf(right).String())
 }
 
-func (expression *GreaterEqualExpression) invoke() Expression {
-	left := expression.Left.invoke()
-	right := expression.right.invoke()
+func (expression *GreaterEqualExpression) Invoke() Expression {
+	left := expression.Left.Invoke()
+	right := expression.right.Invoke()
 	switch lVal := left.(type) {
 	case *IntObject:
 		switch rVal := right.(type) {
@@ -159,9 +159,9 @@ func (expression *GreaterEqualExpression) invoke() Expression {
 		reflect.TypeOf(right).String())
 }
 
-func (expression *LessEqualExpression) invoke() Expression {
-	left := expression.Left.invoke()
-	right := expression.right.invoke()
+func (expression *LessEqualExpression) Invoke() Expression {
+	left := expression.Left.Invoke()
+	right := expression.right.Invoke()
 	switch lVal := left.(type) {
 	case *IntObject:
 		switch rVal := right.(type) {
@@ -178,9 +178,9 @@ func (expression *LessEqualExpression) invoke() Expression {
 		reflect.TypeOf(right).String())
 }
 
-func (expression *LessExpression) invoke() Expression {
-	left := expression.Left.invoke()
-	right := expression.right.invoke()
+func (expression *LessExpression) Invoke() Expression {
+	left := expression.Left.Invoke()
+	right := expression.right.Invoke()
 	switch lVal := left.(type) {
 	case *IntObject:
 		switch rVal := right.(type) {
@@ -197,9 +197,9 @@ func (expression *LessExpression) invoke() Expression {
 		reflect.TypeOf(right).String())
 }
 
-func (expression *MulExpression) invoke() Expression {
-	left := expression.Left.invoke()
-	right := expression.right.invoke()
+func (expression *MulExpression) Invoke() Expression {
+	left := expression.Left.Invoke()
+	right := expression.right.Invoke()
 	switch lVal := left.(type) {
 	case *IntObject:
 		switch rVal := right.(type) {
@@ -211,9 +211,9 @@ func (expression *MulExpression) invoke() Expression {
 		reflect.TypeOf(right).String())
 }
 
-func (expression *AddExpression) invoke() Expression {
-	left := expression.Left.invoke()
-	right := expression.right.invoke()
+func (expression *AddExpression) Invoke() Expression {
+	left := expression.Left.Invoke()
+	right := expression.right.Invoke()
 	switch lVal := left.(type) {
 	case *IntObject:
 		switch rVal := right.(type) {

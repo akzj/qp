@@ -686,6 +686,9 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 
 	for {
 		token := p.nextToken(true)
+		if token.typ == commaTokenType{
+			token = p.nextToken(true)
+		}
 		if token.typ != labelType {
 			log.Panic("expect label,error", token)
 			return nil
@@ -694,15 +697,10 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 			log.Panic("expect colon `:` ,error", token)
 			return nil
 		}
-		expression := p.parseExpression()
-		if expression == nil {
-			log.Panic("parse expression failed")
-			return nil
-		}
 		statement.initStatements = append(statement.initStatements, &VarAssignStatement{
 			ctx:        p.vmCtx,
 			label:      token.data,
-			expression: expression,
+			expression: p.parseExpression(),
 		})
 		//check end
 		token = p.nextToken(true)
