@@ -34,7 +34,8 @@ var a =
 a ++
 for
 a//hello world
-`)))
+"hello"
+`+"` multi-line hello\n\nworld`")))
 	if lexer == nil {
 		t.Fatal("lexer nil")
 	}
@@ -86,6 +87,8 @@ func TestLessExpression(t *testing.T) {
 		}
 	}
 }
+
+
 
 func TestNumAddParse(t *testing.T) {
 	parser := newParser(bytes.NewReader([]byte("1*(5+5+5)*2")))
@@ -409,7 +412,7 @@ user.print()
 
 func TestLambdaFunction(t *testing.T) {
 	data := `
-//assign function object to var
+//assign function objects to var
 
 type User{
 }
@@ -422,7 +425,7 @@ user.a = func(){
 
 user.a()
 
-//call lambda function object
+//call lambda function objects
 `
 	statements := Parse(data)
 	if statements == nil {
@@ -459,7 +462,7 @@ println(u.id) // 1
 //call user function
 u.print() //print(u)
 
-// assign function abject to user object
+// assign function abject to user objects
 u.hello = func(){
 	println(222)
 }
@@ -472,7 +475,7 @@ u.incB = func(b){
 	b++
 }
 
-// call function object
+// call function objects
 println(b) //1
 u.incB(b)
 println(b) //2
@@ -566,6 +569,23 @@ a++
 
 f()
 
+`
+	statements := Parse(data)
+	if statements == nil {
+		t.Fatal("Parse failed")
+	}
+	fmt.Println("-------------------------------------------------------------")
+	if _, err := statements.invoke(); err != nil {
+		t.Fatal("test failed", err)
+	}
+}
+
+func TestString(t *testing.T) {
+	data := `
+var a ="Hello World"
+var b = a.clone() // 
+a.to_lower()
+println(a,b)
 `
 	statements := Parse(data)
 	if statements == nil {

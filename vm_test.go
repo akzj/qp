@@ -28,7 +28,7 @@ func TestVMMemoryStackTest(t *testing.T) {
 		objectB1 := vm.allocObject("b")
 		if object := vm.getObject("b"); object != objectB1 {
 			if object == nil {
-				t.Fatal("no find object")
+				t.Fatal("no find objects")
 			}
 			fmt.Println(object)
 			fmt.Println(objectB1)

@@ -78,7 +78,7 @@ func (t Type) String() string {
 	case funcTokenType:
 		return "func"
 	case ObjectType:
-		return "object"
+		return "objects"
 	case mapObjectType:
 		return "map"
 	case arrayObjectType:
@@ -95,63 +95,71 @@ func (t Type) String() string {
 		return "TypeObjectType"
 	case periodTokenType:
 		return "."
-	case getTypeObjectVarStatementType:
-		return "getTypeObjectVarStatementType"
+	case propObjectStatementType:
+		return "propObjectStatementType"
 	case FuncStatementType:
 		return "FuncStatementType"
+	case ErrorTokenType:
+		return "ErrorTokenType"
+	case stringTokenType:
+		return "string"
+	case unknownTokenType:
+		return "unknown"
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
 }
 
+const ErrorTokenType Type = -1
 const EOFTokenType Type = 0
 const unknownTokenType Type = 1
-const commentTokenType Type = 2                  // //
-const incOperatorTokenType Type = 100            // ++
-const addOperatorTokenType Type = 101            // +
-const subOperatorTokenType Type = 102            // -
-const mulOperatorTokenType Type = 103            // *
-const divOperatorTokenType Type = 104            // /
-const lessTokenType Type = 105                   // <
-const greaterTokenType Type = 106                // >
-const lessEqualTokenType Type = 116              // <=
-const greaterEqualTokenType Type = 117           // >=
-const leftParenthesisTokenType Type = 120        // (
-const rightParenthesisTokenType Type = 121       // )
-const leftBraceTokenType Type = 122              // {
-const rightBraceTokenType Type = 123             // }
-const commaTokenType Type = 124                  // ,
-const semicolonTokenType Type = 125              // ;
-const colonTokenType Type = 126                  // :
-const periodTokenType Type = 127                 // .
-const ifTokenType Type = 230                     //if
-const elseTokenType Type = 331                   //else
-const funcTokenType Type = 332                   //func
-const returnTokenType Type = 333                 //return
-const breakTokenType Type = 334                  //break
-const forTokenType Type = 335                    //for
-const elseifTokenType Type = 336                 //else if
-const varTokenType Type = 400                    // var
-const assignTokenType Type = 401                 // =
-const varAssignTokenType Type = 402              // var x =
-const intTokenType Type = 700                    // int
-const typeTokenType Type = 999                   // type
-const mapObjectType Type = 1001                  // map {}
-const arrayObjectType Type = 1002                // array []
-const labelType Type = 5000                      // label
-const statementType Type = 6001                  // statement
-const statementsType Type = 6003                 // statementType
-const expressionType Type = 6002                 // expressionType
-const callFunctionType Type = 6004               // call function
-const nopStatementType Type = 6005               // nop
-const assignStatementType Type = 6006            // =
-const ObjectType Type = 100000                   // object
-const IntObjectType Type = 10000                 //int object
-const BoolObjectType Type = 10001                // bool object
-const TypeObjectType Type = 10002                // type object
-const FuncStatementType Type = 10003             // function object
-const typeObjectInitStatementType Type = 11003   // object init statement
-const getTypeObjectVarStatementType Type = 10004 // getTypeObjectStatement statement
+const commentTokenType Type = 2                // //
+const stringTokenType Type = 3                 // string "" ''
+const incOperatorTokenType Type = 100          // ++
+const addOperatorTokenType Type = 101          // +
+const subOperatorTokenType Type = 102          // -
+const mulOperatorTokenType Type = 103          // *
+const divOperatorTokenType Type = 104          // /
+const lessTokenType Type = 105                 // <
+const greaterTokenType Type = 106              // >
+const lessEqualTokenType Type = 116            // <=
+const greaterEqualTokenType Type = 117         // >=
+const leftParenthesisTokenType Type = 120      // (
+const rightParenthesisTokenType Type = 121     // )
+const leftBraceTokenType Type = 122            // {
+const rightBraceTokenType Type = 123           // }
+const commaTokenType Type = 124                // ,
+const semicolonTokenType Type = 125            // ;
+const colonTokenType Type = 126                // :
+const periodTokenType Type = 127               // .
+const ifTokenType Type = 230                   //if
+const elseTokenType Type = 331                 //else
+const funcTokenType Type = 332                 //func
+const returnTokenType Type = 333               //return
+const breakTokenType Type = 334                //break
+const forTokenType Type = 335                  //for
+const elseifTokenType Type = 336               //else if
+const varTokenType Type = 400                  // var
+const assignTokenType Type = 401               // =
+const varAssignTokenType Type = 402            // var x =
+const intTokenType Type = 700                  // int
+const typeTokenType Type = 999                 // type
+const mapObjectType Type = 1001                // map {}
+const arrayObjectType Type = 1002              // array []
+const labelType Type = 5000                    // label
+const statementType Type = 6001                // statement
+const statementsType Type = 6003               // statementType
+const expressionType Type = 6002               // expressionType
+const callFunctionType Type = 6004             // call function
+const nopStatementType Type = 6005             // nop
+const assignStatementType Type = 6006          // =
+const ObjectType Type = 100000                 // objects
+const IntObjectType Type = 10000               //int objects
+const BoolObjectType Type = 10001              // bool objects
+const TypeObjectType Type = 10002              // type objects
+const FuncStatementType Type = 10003           // function objects
+const typeObjectInitStatementType Type = 11003 // objects init statement
+const propObjectStatementType Type = 10004     // getTypeObjectStatement statement
 
 type Token struct {
 	typ  Type

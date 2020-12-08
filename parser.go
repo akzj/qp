@@ -179,6 +179,14 @@ Loop:
 				return nil
 			}
 			expressions = append(expressions, &IntObject{val: val})
+		case token.typ == stringTokenType:
+			expressions = append(expressions, &StringObject{
+				TypeObject: TypeObject{
+					vm:    p.vmCtx,
+					label: "string",
+				},
+				data: token.data,
+			})
 		case token.typ == leftParenthesisTokenType:
 			opStack = append(opStack, token)
 		case token.typ == rightParenthesisTokenType:
@@ -638,7 +646,7 @@ func (p *parser) parseFunctionCall(labels []string) *FuncCallStatement {
 		statement.label = labels[0]
 	} else {
 		// bind self
-		bindSelf := &getStructObjectStatement{
+		bindSelf := &propObjectStatement{
 			this:      true,
 			vmContext: p.vmCtx,
 			labels:    labels[:len(labels)-1],
@@ -690,7 +698,7 @@ func (p *parser) parseFunctionStatement() *FuncStatement {
 		for {
 			next := p.nextToken(true)
 			fmt.Println("next", next)
-			if next.typ == periodTokenType { //type object function eg:user.get(){}
+			if next.typ == periodTokenType { //type objects function eg:user.get(){}
 				functionStatement.labels = append(functionStatement.labels, token.data)
 				token = p.nextToken(true)
 				continue
@@ -714,7 +722,7 @@ func (p *parser) parseFunctionStatement() *FuncStatement {
 	} else {
 		fmt.Println("get function label", functionStatement.label)
 	}
-	//bind struct object to `this` argument
+	//bind struct objects to `this` argument
 	if functionStatement.labels != nil {
 		functionStatement.parameters = append(functionStatement.parameters, "this")
 	}
@@ -761,7 +769,7 @@ func (p *parser) parseStructObject() *TypeObject {
 	object.vm = p.vmCtx
 	statements := p.parseStatement()
 	if statements == nil {
-		fmt.Println("object struct parseStatement failed")
+		fmt.Println("objects struct parseStatement failed")
 		return nil
 	}
 	object.initStatement = statements
@@ -807,7 +815,7 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 		//check end
 		token = p.nextToken(true)
 		if token.typ == rightBraceTokenType {
-			fmt.Println("struct object init end", label)
+			fmt.Println("struct objects init end", label)
 			break
 		}
 		p.putToken(token)
@@ -839,7 +847,7 @@ func (p *parser) parsePeriodStatement(label string) Statement {
 				fmt.Println("parseFunctionCall failed")
 				return nil
 			}
-			statement.getObject = &getStructObjectStatement{
+			statement.getObject = &propObjectStatement{
 				vmContext: p.vmCtx,
 				labels:    labels,
 			}
@@ -853,7 +861,7 @@ func (p *parser) parsePeriodStatement(label string) Statement {
 			return &AssignStatement{
 				ctx:   p.vmCtx,
 				label: strings.Join(labels, "."),
-				getObject: &getStructObjectStatement{
+				getObject: &propObjectStatement{
 					vmContext: p.vmCtx,
 					labels:    labels,
 				},
@@ -862,9 +870,9 @@ func (p *parser) parsePeriodStatement(label string) Statement {
 		} else {
 			// a.b.c +  // expression
 			// var c = a.b.c //end of statement
-			fmt.Println("getStructObjectStatement", labels)
+			fmt.Println("propObjectStatement", labels)
 			p.putToken(next)
-			return &getStructObjectStatement{
+			return &propObjectStatement{
 				vmContext: p.vmCtx,
 				labels:    labels,
 			}
@@ -883,8 +891,8 @@ func (p *parser) closureCheckVisit(data string) {
 		closure := p.closureCheck[i]
 		if closure.visit(data) == false {
 			break
-		}else{
-			log.Println("-------------closureCheckVisit",data,"-------------")
+		} else {
+			log.Println("-------------closureCheckVisit", data, "-------------")
 		}
 	}
 }

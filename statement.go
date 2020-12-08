@@ -39,7 +39,7 @@ type getVarStatement struct {
 }
 
 //a.b.c.d
-type getStructObjectStatement struct {
+type propObjectStatement struct {
 	this      bool
 	vmContext *VMContext
 	labels    []string
@@ -48,7 +48,7 @@ type getStructObjectStatement struct {
 type FuncCallStatement struct {
 	vm        *VMContext
 	label     string
-	getObject *getStructObjectStatement
+	getObject *propObjectStatement
 	arguments Expressions
 }
 
@@ -56,7 +56,7 @@ type AssignStatement struct {
 	ctx        *VMContext
 	label      string
 	expression Expression
-	getObject  *getStructObjectStatement
+	getObject  *propObjectStatement
 }
 
 type VarAssignStatement struct {
@@ -80,7 +80,7 @@ type NopStatement struct {
 type FuncStatement struct {
 	closure      bool
 	label        string
-	labels       []string // struct object function eg:user.add(){}
+	labels       []string // struct objects function eg:user.add(){}
 	parameters   []string // parameter label
 	closureLabel []string // closure label
 	closureInit  bool
@@ -103,22 +103,22 @@ type StructObjectInitStatement struct {
 	initStatements Statements
 }
 
-func (g *getStructObjectStatement) invoke() (Expression, error) {
-	log.Println("getStructObjectStatement", g.labels)
+func (g *propObjectStatement) invoke() (Expression, error) {
+	log.Println("propObjectStatement", g.labels)
 	object := g.vmContext.getObject(g.labels[0])
 	if object == nil {
 		log.Println("getObject failed", g.labels[0])
 		return nil, fmt.Errorf("getObject failed")
 	}
 	if object.inner == nil {
-		log.Println("object nil", g.labels[0])
-		return nil, fmt.Errorf("object nil")
+		log.Println("objects nil", g.labels[0])
+		return nil, fmt.Errorf("objects nil")
 	}
-	structObj, ok := object.inner.(*TypeObject)
+	structObj, ok := object.inner.(BaseObject)
 	if ok == false {
-		log.Println("object type no struct object,error",
+		log.Println("objects type no struct objects,error",
 			g.labels, reflect.TypeOf(object.inner).String())
-		return nil, fmt.Errorf("object type is no TypeObject")
+		return nil, fmt.Errorf("objects type is no TypeObject")
 	}
 	/*
 	 user.id = 1 // bind 1 to user.id
@@ -134,8 +134,8 @@ func (g *getStructObjectStatement) invoke() (Expression, error) {
 			structObj, ok = obj.inner.(*TypeObject)
 			if ok == false {
 				label := strings.Join(g.labels[:i+1], ".")
-				log.Println("object is no struct object type", label)
-				return nil, fmt.Errorf("object(%s) type is no TypeObject", label)
+				log.Println("objects is no struct objects type", label)
+				return nil, fmt.Errorf("objects(%s) type is no TypeObject", label)
 			}
 		}
 	}
@@ -143,8 +143,8 @@ func (g *getStructObjectStatement) invoke() (Expression, error) {
 	return obj, nil
 }
 
-func (g *getStructObjectStatement) getType() Type {
-	return getTypeObjectVarStatementType
+func (g *propObjectStatement) getType() Type {
+	return propObjectStatementType
 }
 
 func (statement *StructObjectInitStatement) invoke() (Expression, error) {
@@ -153,7 +153,7 @@ func (statement *StructObjectInitStatement) invoke() (Expression, error) {
 	if object == nil {
 		return nil, fmt.Errorf("cloneTypeObject with label `%s` failed", statement.label)
 	}
-	log.Println("object.initStatement", len(object.initStatement))
+	log.Println("objects.initStatement", len(object.initStatement))
 	for _, initStatement := range statement.initStatements {
 		object.initStatement = append(object.initStatement, initStatement)
 	}
@@ -171,7 +171,7 @@ func (statement *StructObjectInitStatement) invoke() (Expression, error) {
 			panic("unknown statement " + reflect.TypeOf(init).String())
 		}
 		if _, err := init.invoke(); err != nil {
-			log.Println("struct object init failed")
+			log.Println("struct objects init failed")
 			return nil, err
 		}
 	}
@@ -183,9 +183,9 @@ func (statement *StructObjectInitStatement) getType() Type {
 }
 
 func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) error {
-	//lambda function no bind this to object
+	//lambda function no bind this to objects
 	if f.closure && len(inArguments) != 0 {
-		statement, ok := inArguments[0].(*getStructObjectStatement)
+		statement, ok := inArguments[0].(*propObjectStatement)
 		if ok && statement.this {
 			inArguments = inArguments[1:]
 		}
@@ -207,7 +207,7 @@ func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) error {
 
 	f.vm.pushStackFrame(true)
 
-	// put closure object to stack
+	// put closure objects to stack
 	for index := range f.closureLabel {
 		label := f.closureLabel[index]
 		object := f.vm.allocObject(label)
@@ -415,10 +415,10 @@ func (f *FuncCallStatement) invoke() (Expression, error) {
 			log.Println("getObject.invoke() failed", err)
 			return nil, err
 		}
-		log.Println("unwrapFuncStatement")
-		function := object.(*Object).unwrapFuncStatement()
+		log.Println("unwrapFunction")
+		function := object.(*Object).unwrapFunction()
 		if function == nil {
-			err = fmt.Errorf("no finction object")
+			err = fmt.Errorf("no finction objects")
 			log.Println(err)
 			return nil, err
 		}

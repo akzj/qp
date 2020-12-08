@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 )
 
 type lexer struct {
@@ -107,6 +108,10 @@ func (l *lexer) peek() Token {
 			token = colonToken
 		case c == '.':
 			token = periodToken
+		case c == '"':
+			token = l.parseString(false)
+		case c == '`':
+			token = l.parseString(true)
 		case c == '/':
 			if ahead, _ := l.ahead(); ahead == '/' { //
 				_, _ = l.get()
@@ -122,6 +127,49 @@ func (l *lexer) peek() Token {
 		token.line = l.line
 		l.token = token
 		return token
+	}
+}
+
+func (l *lexer) parseString(multiline bool) Token {
+	var buffer bytes.Buffer
+	for {
+		c, err := l.get()
+		if err != nil {
+			l.err = err
+			break
+		}
+		if c == '\n' && multiline == false {
+			log.Println("parse string failed", string(c))
+			return Token{
+				typ:  ErrorTokenType,
+				line: l.Line(),
+			}
+		} else {
+			l.line++
+		}
+		if c == '\\' {
+			c, err = l.ahead()
+			if err != nil {
+				l.err = err
+				break
+			}
+			if c == '"' {
+				buffer.WriteByte('"')
+				continue
+			}
+		}
+		if c == '"' && multiline == false {
+			break
+		}
+		if c == '`' && multiline {
+			break
+		}
+		buffer.WriteByte(c)
+	}
+	return Token{
+		typ:  stringTokenType,
+		data: buffer.String(),
+		line: 0,
 	}
 }
 

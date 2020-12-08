@@ -136,7 +136,7 @@ func (ctx *VMContext) getFunction(label string) (Function, error) {
 	}
 
 	if object := ctx.getObject(label); object != nil {
-		if function := object.unwrapFuncStatement(); function != nil {
+		if function := object.unwrapFunction(); function != nil {
 			return function, nil
 		}
 	}
@@ -164,5 +164,5 @@ func (ctx *VMContext) cloneTypeObject(label string) *TypeObject {
 		fmt.Println("no find structObject with label", label)
 		return nil
 	}
-	return obj.clone()
+	return obj.clone().(*TypeObject)
 }
