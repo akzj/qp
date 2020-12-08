@@ -1,7 +1,6 @@
 package qp
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -10,7 +9,6 @@ type IntObject struct {
 }
 
 func (i *IntObject) invoke() (Expression, error) {
-	fmt.Println("IntObject,invoke", i.val)
 	return i, nil
 }
 

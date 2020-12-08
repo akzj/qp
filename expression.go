@@ -1,7 +1,7 @@
 package qp
 
 import (
-	"fmt"
+	"log"
 	"reflect"
 )
 
@@ -17,11 +17,9 @@ func (Expressions) getType() Type {
 }
 
 func (expressions *Expressions) invoke() (Expression, error) {
-	fmt.Println("expressions invoke",len(*expressions))
 	var val Expression
 	var err error
 	for _, expression := range *expressions {
-		fmt.Println("expression:",expression.getType())
 		if val, err = expression.invoke(); err != nil {
 			return nil, err
 		} else if _, ok := val.(*ReturnStatement); ok {
@@ -85,16 +83,14 @@ func (GreaterEqualExpression) getType() Type {
 }
 
 func (expression *GreaterExpression) invoke() (Expression, error) {
-	fmt.Println("GreaterExpression invoke")
 	l, err := expression.Left.invoke()
 	if err != nil {
-		fmt.Println("invoke left failed", err.Error())
-		return nil, err
+		log.Panic("invoke left failed", err.Error())
 	}
 	l, err = l.invoke()
 	r, err := expression.right.invoke()
 	if err != nil {
-		fmt.Println("invoke left failed", err.Error())
+		log.Panic("invoke left failed", err.Error())
 		return nil, err
 	}
 	r, err = r.invoke()
@@ -116,17 +112,14 @@ func (expression *GreaterExpression) invoke() (Expression, error) {
 }
 
 func (expression *GreaterEqualExpression) invoke() (Expression, error) {
-	fmt.Println("GreaterEqualExpression invoke")
 	l, err := expression.Left.invoke()
 	if err != nil {
-		fmt.Println("invoke left failed", err.Error())
-		return nil, err
+		log.Panic("invoke left failed", err.Error())
 	}
 	l, err = l.invoke()
 	r, err := expression.right.invoke()
 	if err != nil {
-		fmt.Println("invoke left failed", err.Error())
-		return nil, err
+		log.Panic("invoke left failed", err.Error())
 	}
 	r, err = r.invoke()
 	var val bool
@@ -147,16 +140,15 @@ func (expression *GreaterEqualExpression) invoke() (Expression, error) {
 }
 
 func (expression *LessEqualExpression) invoke() (Expression, error) {
-	fmt.Println("LessEqualExpression invoke")
 	l, err := expression.Left.invoke()
 	if err != nil {
-		fmt.Println("invoke left failed", err.Error())
+		log.Panic("invoke left failed", err.Error())
 		return nil, err
 	}
 	l, err = l.invoke()
 	r, err := expression.right.invoke()
 	if err != nil {
-		fmt.Println("invoke left failed", err.Error())
+		log.Panic("invoke left failed", err.Error())
 		return nil, err
 	}
 	r, err = r.invoke()
@@ -178,16 +170,14 @@ func (expression *LessEqualExpression) invoke() (Expression, error) {
 }
 
 func (expression *LessExpression) invoke() (Expression, error) {
-	fmt.Println("LessExpression invoke")
 	l, err := expression.Left.invoke()
 	if err != nil {
-		fmt.Println("invoke left failed", err.Error())
-		return nil, err
+		log.Panic("invoke left failed", err.Error())
 	}
 	l, err = l.invoke()
 	r, err := expression.right.invoke()
 	if err != nil {
-		fmt.Println("invoke left failed", err.Error())
+		log.Panic("invoke left failed", err.Error())
 		return nil, err
 	}
 	r, err = r.invoke()
@@ -209,16 +199,15 @@ func (expression *LessExpression) invoke() (Expression, error) {
 }
 
 func (expression *MulExpression) invoke() (Expression, error) {
-	fmt.Println("MulExpression invoke")
 	l, err := expression.Left.invoke()
 	if err != nil {
-		fmt.Println("invoke left failed", err.Error())
+		log.Panic("invoke left failed", err.Error())
 		return nil, err
 	}
 	l, err = l.invoke()
 	r, err := expression.right.invoke()
 	if err != nil {
-		fmt.Println("invoke left failed", err.Error())
+		log.Panic("invoke left failed", err.Error())
 		return nil, err
 	}
 	r, err = r.invoke()
@@ -240,16 +229,15 @@ func (expression *MulExpression) invoke() (Expression, error) {
 }
 
 func (expression *AddExpression) invoke() (Expression, error) {
-	fmt.Println("AddExpression invoke")
 	l, err := expression.Left.invoke()
 	if err != nil {
-		fmt.Println("invoke left failed", err.Error())
+		log.Panic("invoke left failed", err.Error())
 		return nil, err
 	}
 	l, err = l.invoke()
 	r, err := expression.right.invoke()
 	if err != nil {
-		fmt.Println("invoke left failed", err.Error())
+		log.Panic("invoke left failed", err.Error())
 		return nil, err
 	}
 	r, err = r.invoke()

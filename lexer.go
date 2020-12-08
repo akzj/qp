@@ -3,7 +3,6 @@ package qp
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"log"
 )
@@ -78,7 +77,6 @@ func (l *lexer) peek() Token {
 		case c == '{':
 			token = leftBraceToken
 		case c == '}':
-			fmt.Println(c)
 			token = rightBraceToken
 		case c == '<':
 			if ahead, _ := l.ahead(); ahead == '=' {
@@ -139,11 +137,7 @@ func (l *lexer) parseString(multiline bool) Token {
 			break
 		}
 		if c == '\n' && multiline == false {
-			log.Println("parse string failed", string(c))
-			return Token{
-				typ:  ErrorTokenType,
-				line: l.Line(),
-			}
+			log.Panic("parse string failed", string(c))
 		} else {
 			l.line++
 		}

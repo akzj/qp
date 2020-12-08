@@ -2,6 +2,7 @@ package qp
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 )
 
@@ -17,15 +18,10 @@ type println struct {
 }
 
 func (println) invoke(arguments ...Expression) (Expression, error) {
-	fmt.Println("println", len(arguments))
 	for _, argument := range arguments {
 		object, err := argument.invoke()
 		if err != nil {
-			fmt.Println(err.Error())
-			return nil, err
-		}
-		if object == nil {
-			panic(object)
+			log.Panic(err.Error())
 		}
 	Loop:
 		for {
@@ -36,8 +32,7 @@ func (println) invoke(arguments ...Expression) (Expression, error) {
 					return nil, err
 				}
 				if object == nil {
-					fmt.Println("expression", reflect.TypeOf(expression).String())
-					panic(object)
+					log.Panic("expression", reflect.TypeOf(expression).String())
 				}
 				continue
 			case *IntObject:
@@ -46,10 +41,6 @@ func (println) invoke(arguments ...Expression) (Expression, error) {
 			case *StringObject:
 				fmt.Println("------>", expression.data)
 				break Loop
-			case *ReturnStatement:
-				//unwrap return val
-				object = expression.returnVal
-				continue
 			default:
 				panic("unknown type" + reflect.TypeOf(object).String())
 			}

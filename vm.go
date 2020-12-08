@@ -95,34 +95,26 @@ func (ctx *VMContext) popStackFrame() {
 	ctx.mem.popStackFrame()
 }
 
-func (ctx *VMContext) addUserFunction(function *FuncStatement) error {
-	log.Println("addUserFunction")
+func (ctx *VMContext) addUserFunction(function *FuncStatement) {
 	if function.labels != nil {
 		structObject := ctx.getTypeObject(function.labels[0])
 		if structObject == nil { //todo fix parse order
-			fmt.Println("no find structObject", function.labels[0])
-			return fmt.Errorf("no find structObject")
+			log.Panic("no find structObject", function.labels[0])
 		}
-		fmt.Println(function.labels)
 		structObject.addObject(function.labels[1], &Object{
 			inner: function,
 			label: strings.Join(function.labels, "."),
 			typ:   FuncStatementType,
 		})
-		return nil
 	}
 
-	fmt.Println("addUserFunction with label", function.label)
 	if _, ok := builtInFunctionMap[function.label]; ok {
-		fmt.Println("function name conflict with built in function", function.label)
-		return fmt.Errorf("conflict")
+		log.Panic("function name conflict with built in function", function.label)
 	}
 	if _, ok := ctx.functions[function.label]; ok {
-		fmt.Println("function name repeated")
-		return fmt.Errorf("function name repeated")
+		log.Panic("function name repeated")
 	}
 	ctx.functions[function.label] = function
-	return nil
 }
 
 func (ctx *VMContext) getFunction(label string) (Function, error) {
@@ -144,13 +136,11 @@ func (ctx *VMContext) getFunction(label string) (Function, error) {
 	return nil, fmt.Errorf("no find function with label `%s`", label)
 }
 
-func (ctx *VMContext) addStructObject(object *TypeObject) error {
+func (ctx *VMContext) addStructObject(object *TypeObject) {
 	if _, ok := ctx.structObjects[object.label]; ok {
-		fmt.Println("structObject repeated", object.label)
-		return fmt.Errorf("structObject repeated")
+		log.Panic("structObject repeated", object.label)
 	}
 	ctx.structObjects[object.label] = object
-	return nil
 }
 
 func (ctx *VMContext) getTypeObject(label string) *TypeObject {
