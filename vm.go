@@ -132,7 +132,6 @@ func (ctx *VMContext) getFunction(label string) (Function, error) {
 			return function, nil
 		}
 	}
-	fmt.Println("no function ", label)
 	return nil, fmt.Errorf("no find function with label `%s`", label)
 }
 

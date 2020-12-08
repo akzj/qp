@@ -1,6 +1,5 @@
 package qp
 
-
 type BaseObject interface {
 	Expression
 	getObject(label string) *Object
@@ -19,16 +18,14 @@ type TypeObject struct {
 	objects map[string]*Object
 }
 
-func (sObj *TypeObject) invoke() (Expression, error) {
+func (sObj *TypeObject) invoke() Expression {
 	if sObj.init {
-		return sObj, nil
+		return sObj
 	}
 	for _, statement := range sObj.initStatement {
-		if _, err := statement.invoke(); err != nil {
-			return nil, err
-		}
+		statement.invoke()
 	}
-	return sObj, nil
+	return sObj
 }
 
 func (sObj *TypeObject) getType() Type {

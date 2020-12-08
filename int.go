@@ -8,8 +8,8 @@ type IntObject struct {
 	val int64
 }
 
-func (i *IntObject) invoke() (Expression, error) {
-	return i, nil
+func (i *IntObject) invoke() Expression {
+	return i
 }
 
 func (i *IntObject) getType() Type {

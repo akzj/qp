@@ -2,25 +2,21 @@ package qp
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 )
 
 type Object struct {
-	inner   interface{}
+	inner   Expression
 	pointer int
 	label   string
 	typ     Type
 }
 
-func (obj *Object) invoke() (Expression, error) {
+func (obj *Object) invoke() Expression {
 	switch inner := obj.inner.(type) {
 	case *FuncStatement:
-		if err := inner.doClosureInit(); err != nil {
-			log.Println("function statement do function closure init failed")
-			return nil, err
-		}
-		return obj, nil
+		inner.doClosureInit()
+		return obj
 	case Expression:
 		return obj.inner.(Expression).invoke()
 	default:
@@ -40,22 +36,18 @@ func (obj *Object) String() string {
 
 func (obj *Object) initType() {
 	switch obj.inner.(type) {
-	case int64:
+	case *IntObject:
 		obj.typ = IntObjectType
 	}
 }
 
 func (obj *Object) unwrapFunction() Function {
 	var object = obj
-	for object != nil {
-		switch inner := object.inner.(type) {
-		case *FuncStatement:
-			return inner
-		case Function:
-			return inner
-		default:
-			panic("unknown type" + reflect.TypeOf(inner).String())
-		}
+	if object.inner == nil {
+		panic(object.inner)
 	}
-	return nil
+	if function, ok := object.inner.(Function); ok {
+		return function
+	}
+	panic("unknown type" + reflect.TypeOf(object.inner).String())
 }

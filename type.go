@@ -109,6 +109,8 @@ func (t Type) String() string {
 		return "nil"
 	case EqualTokenType:
 		return "=="
+	case getObjectObjectStatementType:
+		return "getObjectObjectStatementType"
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
@@ -166,6 +168,7 @@ const TypeObjectType Type = 10002              // type objects
 const FuncStatementType Type = 10003           // function objects
 const typeObjectInitStatementType Type = 11003 // objects init statement
 const propObjectStatementType Type = 10004     // getTypeObjectStatement statement
+const getObjectObjectStatementType Type = 1005 // getObjectObjectStatement
 
 type Token struct {
 	typ  Type

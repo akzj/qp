@@ -1,12 +1,11 @@
 package qp
 
 import (
-	"log"
 	"reflect"
 )
 
 type Expression interface {
-	invoke() (Expression, error)
+	invoke() Expression
 	getType() Type
 }
 
@@ -16,17 +15,15 @@ func (Expressions) getType() Type {
 	return expressionType
 }
 
-func (expressions *Expressions) invoke() (Expression, error) {
+func (expressions *Expressions) invoke() Expression {
 	var val Expression
-	var err error
 	for _, expression := range *expressions {
-		if val, err = expression.invoke(); err != nil {
-			return nil, err
-		} else if _, ok := val.(*ReturnStatement); ok {
-			return val, nil
+		val = expression.invoke()
+		if _, ok := val.(*ReturnStatement); ok {
+			return val
 		}
 	}
-	return val, err
+	return val
 }
 
 type AddExpression struct {
@@ -68,18 +65,9 @@ type EqualExpression struct {
 	right Expression
 }
 
-func (expression *EqualExpression) invoke() (Expression, error) {
-	left, err := expression.Left.invoke()
-	if err != nil {
-		log.Panic("invoke left failed", err.Error())
-	}
-	left, err = left.invoke()
-	right, err := expression.right.invoke()
-	if err != nil {
-		log.Panic("invoke left failed", err.Error())
-		return nil, err
-	}
-	right, err = right.invoke()
+func (expression *EqualExpression) invoke() Expression {
+	left := expression.Left.invoke()
+	right := expression.right.invoke()
 	var val bool
 	switch lVal := left.(type) {
 	case *IntObject:
@@ -107,7 +95,7 @@ func (expression *EqualExpression) invoke() (Expression, error) {
 		panic(reflect.TypeOf(left).String() + "\n" +
 			reflect.TypeOf(right).String())
 	}
-	return &BoolObject{val: val}, nil
+	return &BoolObject{val: val}
 }
 
 func (EqualExpression) getType() Type {
@@ -133,178 +121,111 @@ func (GreaterEqualExpression) getType() Type {
 	return greaterEqualTokenType
 }
 
-func (expression *GreaterExpression) invoke() (Expression, error) {
-	l, err := expression.Left.invoke()
-	if err != nil {
-		log.Panic("invoke left failed", err.Error())
-	}
-	l, err = l.invoke()
-	r, err := expression.right.invoke()
-	if err != nil {
-		log.Panic("invoke left failed", err.Error())
-		return nil, err
-	}
-	r, err = r.invoke()
-	var val bool
-	switch lVal := l.(type) {
+func (expression *GreaterExpression) invoke() Expression {
+	left := expression.Left.invoke()
+	right := expression.right.invoke()
+	switch lVal := left.(type) {
 	case *IntObject:
-		switch rVal := r.(type) {
+		switch rVal := right.(type) {
 		case *IntObject:
-			val = lVal.val > rVal.val
-		default:
-			panic(reflect.TypeOf(l).String() + "\n" +
-				reflect.TypeOf(r).String())
+			return &BoolObject{val: lVal.val > rVal.val}
 		}
-	default:
-		panic(reflect.TypeOf(l).String() + "\n" +
-			reflect.TypeOf(r).String())
+	case *StringObject:
+		switch rVal := right.(type) {
+		case *StringObject:
+			return &BoolObject{val: lVal.data > rVal.data}
+		}
 	}
-	return &BoolObject{val: val}, nil
+	panic(reflect.TypeOf(left).String() + "\n" +
+		reflect.TypeOf(right).String())
 }
 
-func (expression *GreaterEqualExpression) invoke() (Expression, error) {
-	l, err := expression.Left.invoke()
-	if err != nil {
-		log.Panic("invoke left failed", err.Error())
-	}
-	l, err = l.invoke()
-	r, err := expression.right.invoke()
-	if err != nil {
-		log.Panic("invoke left failed", err.Error())
-	}
-	r, err = r.invoke()
-	var val bool
-	switch lVal := l.(type) {
+func (expression *GreaterEqualExpression) invoke() Expression {
+	left := expression.Left.invoke()
+	right := expression.right.invoke()
+	switch lVal := left.(type) {
 	case *IntObject:
-		switch rVal := r.(type) {
+		switch rVal := right.(type) {
 		case *IntObject:
-			val = lVal.val >= rVal.val
-		default:
-			panic(reflect.TypeOf(l).String() + "\n" +
-				reflect.TypeOf(r).String())
+			return &BoolObject{val: lVal.val >= rVal.val}
 		}
-	default:
-		panic(reflect.TypeOf(l).String() + "\n" +
-			reflect.TypeOf(r).String())
+	case *StringObject:
+		switch rVal := right.(type) {
+		case *StringObject:
+			return &BoolObject{val: lVal.data >= rVal.data}
+		}
 	}
-	return &BoolObject{val: val}, nil
+	panic(reflect.TypeOf(left).String() + "\n" +
+		reflect.TypeOf(right).String())
 }
 
-func (expression *LessEqualExpression) invoke() (Expression, error) {
-	l, err := expression.Left.invoke()
-	if err != nil {
-		log.Panic("invoke left failed", err.Error())
-		return nil, err
-	}
-	l, err = l.invoke()
-	r, err := expression.right.invoke()
-	if err != nil {
-		log.Panic("invoke left failed", err.Error())
-		return nil, err
-	}
-	r, err = r.invoke()
-	var val bool
-	switch lVal := l.(type) {
+func (expression *LessEqualExpression) invoke() Expression {
+	left := expression.Left.invoke()
+	right := expression.right.invoke()
+	switch lVal := left.(type) {
 	case *IntObject:
-		switch rVal := r.(type) {
+		switch rVal := right.(type) {
 		case *IntObject:
-			val = lVal.val <= rVal.val
-		default:
-			panic(reflect.TypeOf(l).String() + "\n" +
-				reflect.TypeOf(r).String())
+			return &BoolObject{val: lVal.val <= rVal.val}
 		}
-	default:
-		panic(reflect.TypeOf(l).String() + "\n" +
-			reflect.TypeOf(r).String())
+	case *StringObject:
+		switch rVal := right.(type) {
+		case *StringObject:
+			return &BoolObject{val: lVal.data <= rVal.data}
+		}
 	}
-	return &BoolObject{val: val}, nil
+	panic(reflect.TypeOf(left).String() + "\n" +
+		reflect.TypeOf(right).String())
 }
 
-func (expression *LessExpression) invoke() (Expression, error) {
-	l, err := expression.Left.invoke()
-	if err != nil {
-		log.Panic("invoke left failed", err.Error())
-	}
-	l, err = l.invoke()
-	r, err := expression.right.invoke()
-	if err != nil {
-		log.Panic("invoke left failed", err.Error())
-		return nil, err
-	}
-	r, err = r.invoke()
-	var val bool
-	switch lVal := l.(type) {
+func (expression *LessExpression) invoke() Expression {
+	left := expression.Left.invoke()
+	right := expression.right.invoke()
+	switch lVal := left.(type) {
 	case *IntObject:
-		switch rVal := r.(type) {
+		switch rVal := right.(type) {
 		case *IntObject:
-			val = lVal.val < rVal.val
-		default:
-			panic(reflect.TypeOf(l).String() + "\n" +
-				reflect.TypeOf(r).String())
+			return &BoolObject{val: lVal.val < rVal.val}
 		}
-	default:
-		panic(reflect.TypeOf(l).String() + "\n" +
-			reflect.TypeOf(r).String())
+	case *StringObject:
+		switch rVal := right.(type) {
+		case *StringObject:
+			return &BoolObject{val: lVal.data < rVal.data}
+		}
 	}
-	return &BoolObject{val: val}, nil
+	panic(reflect.TypeOf(left).String() + "\n" +
+		reflect.TypeOf(right).String())
 }
 
-func (expression *MulExpression) invoke() (Expression, error) {
-	l, err := expression.Left.invoke()
-	if err != nil {
-		log.Panic("invoke left failed", err.Error())
-		return nil, err
-	}
-	l, err = l.invoke()
-	r, err := expression.right.invoke()
-	if err != nil {
-		log.Panic("invoke left failed", err.Error())
-		return nil, err
-	}
-	r, err = r.invoke()
-	var val int64
-	switch lVal := l.(type) {
+func (expression *MulExpression) invoke() Expression {
+	left := expression.Left.invoke()
+	right := expression.right.invoke()
+	switch lVal := left.(type) {
 	case *IntObject:
-		switch rVal := r.(type) {
+		switch rVal := right.(type) {
 		case *IntObject:
-			val = lVal.val * rVal.val
-		default:
-			panic(reflect.TypeOf(l).String() + "\n" +
-				reflect.TypeOf(r).String())
+			return &IntObject{val: lVal.val * rVal.val}
 		}
-	default:
-		panic(reflect.TypeOf(l).String() + "\n" +
-			reflect.TypeOf(r).String())
 	}
-	return &IntObject{val: val}, nil
+	panic(reflect.TypeOf(left).String() + "\n" +
+		reflect.TypeOf(right).String())
 }
 
-func (expression *AddExpression) invoke() (Expression, error) {
-	l, err := expression.Left.invoke()
-	if err != nil {
-		log.Panic("invoke left failed", err.Error())
-		return nil, err
-	}
-	l, err = l.invoke()
-	r, err := expression.right.invoke()
-	if err != nil {
-		log.Panic("invoke left failed", err.Error())
-		return nil, err
-	}
-	r, err = r.invoke()
-	var val int64
-	switch lVal := l.(type) {
+func (expression *AddExpression) invoke() Expression {
+	left := expression.Left.invoke()
+	right := expression.right.invoke()
+	switch lVal := left.(type) {
 	case *IntObject:
-		switch rVal := r.(type) {
+		switch rVal := right.(type) {
 		case *IntObject:
-			val = lVal.val + rVal.val
-		default:
-			panic(reflect.TypeOf(l).String() + "\n" +
-				reflect.TypeOf(r).String())
+			return &IntObject{val: lVal.val + rVal.val}
 		}
-	default:
-		panic(reflect.TypeOf(l).String() + "\n" +
-			reflect.TypeOf(r).String())
+	case *StringObject:
+		switch e := right.(type) {
+		case *StringObject:
+			return &StringObject{data: lVal.data + e.data}
+		}
 	}
-	return &IntObject{val: val}, nil
+	panic(reflect.TypeOf(left).String() + "\n" +
+		reflect.TypeOf(right).String())
 }

@@ -80,9 +80,7 @@ func TestLessExpression(t *testing.T) {
 		if expression == nil {
 			t.Fatal("Parse failed")
 		}
-		if val, err := expression.invoke(); err != nil {
-			t.Errorf(err.Error())
-		} else {
+		if val := expression.invoke(); val != nil {
 			if val.(*BoolObject).val != Case.expect {
 				t.Fatalf("expression parse failed,`%s` "+
 					"result `%+v` expect `%+v`", Case.expStr, val, Case.expect)
@@ -97,9 +95,7 @@ func TestNumAddParse(t *testing.T) {
 	if expression == nil {
 		t.Fatal("Parse failed")
 	}
-	if val, err := expression.invoke(); err != nil {
-		t.Errorf(err.Error())
-	} else {
+	if val := expression.invoke(); val != nil {
 		fmt.Println(val)
 	}
 }
@@ -111,7 +107,8 @@ func TestReturnStatement(t *testing.T) {
 	}{{
 		exp: `
 var global = 1
-var main = func() {
+var main = func(val) {
+	println(val)
 	var out = 10 
 	var f = func(){
 		var a = 100
@@ -127,7 +124,7 @@ var main = func() {
 	var b = f()
 	return b()
 }
-println(main())
+println(main("hello"))
 `,
 		val: int64(100),
 	},
@@ -139,8 +136,8 @@ println(main())
 			t.Fatal("Parse failed")
 		}
 		fmt.Println("------------------------------------------------")
-		if _, err := expression.invoke(); err != nil {
-			t.Errorf(err.Error())
+		if val := expression.invoke(); val != nil {
+			fmt.Println(val)
 		}
 	}
 }
@@ -162,9 +159,7 @@ if 2 > 1{
 		if statements == nil {
 			t.Fatal("Parse failed")
 		}
-		if val, err := statements.invoke(); err != nil {
-			t.Errorf(err.Error())
-		} else {
+		if val := statements.invoke(); val != nil {
 			if val.(*ReturnStatement).returnVal.(*IntObject).val != Case.val {
 				t.Fatalf("no match %+v %+v", val.(*IntObject).val, Case.val)
 			}
@@ -189,9 +184,7 @@ return a+1
 		if expression == nil {
 			t.Fatal("Parse failed")
 		}
-		if val, err := expression.invoke(); err != nil {
-			t.Errorf(err.Error())
-		} else {
+		if val := expression.invoke(); val != nil {
 			fmt.Println("result", val)
 		}
 	}
@@ -223,9 +216,7 @@ if a > 10{
 			t.Fatal("Parse failed")
 		}
 		fmt.Println("-----------------------")
-		if val, err := statements.invoke(); err != nil {
-			t.Errorf(err.Error())
-		} else {
+		if val := statements.invoke(); val != nil {
 			fmt.Println("result", val)
 		}
 	}
@@ -250,9 +241,7 @@ println(a)
 			t.Fatal("Parse failed")
 		}
 		fmt.Println("---------------------------")
-		if _, err := expression.invoke(); err != nil {
-			t.Errorf(err.Error())
-		}
+		expression.invoke()
 	}
 }
 
@@ -266,7 +255,6 @@ var a = 1
 a = 100
 a++
 println(a)
-println(a++)
 println(a+1)
 `, val: int64(3),
 	}}
@@ -276,9 +264,7 @@ println(a+1)
 			t.Fatal("Parse failed")
 		}
 		fmt.Println("-------------")
-		if _, err := expression.invoke(); err != nil {
-			t.Errorf(err.Error())
-		}
+		expression.invoke()
 	}
 }
 
@@ -311,11 +297,7 @@ for var a = 1 ;a < 10; a++{
 			t.Fatal("Parse failed")
 		}
 		fmt.Println("---------------------------")
-		if val, err := expression.invoke(); err != nil {
-			t.Errorf(err.Error())
-		} else {
-			fmt.Println("result", val)
-		}
+		expression.invoke()
 	}
 }
 
@@ -340,9 +322,7 @@ println(c) //100
 		t.Fatal("Parse failed")
 	}
 	fmt.Println("---------------------------")
-	if _, err := expression.invoke(); err != nil {
-		t.Errorf(err.Error())
-	}
+	expression.invoke()
 }
 
 func TestStructObjectDefaultInit(t *testing.T) {
@@ -364,9 +344,7 @@ println(user.id) //
 		t.Fatal("Parse failed")
 	}
 	fmt.Println("---------------------------")
-	if _, err := expression.invoke(); err != nil {
-		t.Errorf(err.Error())
-	}
+	expression.invoke()
 }
 
 func TestStructObject(t *testing.T) {
@@ -401,9 +379,7 @@ user.print()
 		t.Fatal("Parse failed")
 	}
 	fmt.Println("---------------------------")
-	if _, err := expression.invoke(); err != nil {
-		t.Errorf(err.Error())
-	}
+	expression.invoke()
 }
 
 func TestLambdaFunction(t *testing.T) {
@@ -428,9 +404,7 @@ user.a()
 		t.Fatal("Parse failed")
 	}
 	fmt.Println("---------------------------")
-	if _, err := statements.invoke(); err != nil {
-		t.Errorf(err.Error())
-	}
+	statements.invoke()
 }
 
 func TestObject(t *testing.T) {
@@ -453,14 +427,15 @@ var u = user{
 	c:1
 }
 // get field
-println(u.id) // 1
+println(u.id) // 1 
 
 //call user function
+u.id = 100
 u.print() //print(u)
 
 // assign function abject to user objects
 u.hello = func(){
-	println(222)
+	println(u.id+1)
 }
 
 //alloc int field
@@ -475,6 +450,7 @@ u.incB = func(b){
 println(b) //1
 u.incB(b)
 println(b) //2
+u.hello()
 
 `
 	statements := Parse(data)
@@ -482,9 +458,7 @@ println(b) //2
 		t.Fatal("Parse failed")
 	}
 	fmt.Println("-------------------------------------------------------------")
-	if _, err := statements.invoke(); err != nil {
-		t.Errorf(err.Error())
-	}
+	statements.invoke()
 }
 
 func TestStackFrame(t *testing.T) {
@@ -532,9 +506,7 @@ println(a)
 				t.Fatal("Parse failed")
 			}
 			fmt.Println("-------------------------------------------------------------")
-			if _, err := statements.invoke(); err != nil {
-				t.Fatal(err)
-			}
+			statements.invoke()
 		}
 	}
 }
@@ -558,9 +530,7 @@ f()
 		t.Fatal("Parse failed")
 	}
 	fmt.Println("-------------------------------------------------------------")
-	if _, err := statements.invoke(); err != nil {
-		t.Fatal("test failed", err)
-	}
+	statements.invoke()
 }
 
 func TestString(t *testing.T) {
@@ -575,9 +545,7 @@ println(a,b)
 		t.Fatal("Parse failed")
 	}
 	fmt.Println("-------------------------------------------------------------")
-	if _, err := statements.invoke(); err != nil {
-		t.Fatal("test failed", err)
-	}
+	statements.invoke()
 }
 
 func TestNil(t *testing.T) {

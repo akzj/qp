@@ -7,7 +7,8 @@ import (
 )
 
 type Function interface {
-	invoke(arguments ...Expression) (Expression, error)
+	Expression
+	call(arguments ...Expression) Expression
 }
 
 var builtInFunctionMap = map[string]Function{
@@ -17,34 +18,30 @@ var builtInFunctionMap = map[string]Function{
 type println struct {
 }
 
-func (println) invoke(arguments ...Expression) (Expression, error) {
+func (p *println) invoke() Expression {
+	return p
+}
+
+func (p *println) getType() Type {
+	return TypeObjectType
+}
+
+func (println) call(arguments ...Expression) Expression {
 	for _, argument := range arguments {
-		object, err := argument.invoke()
-		if err != nil {
-			log.Panic(err.Error())
-		}
+		object := argument.invoke()
 	Loop:
 		for {
 			switch expression := object.(type) {
-			case *Object:
-				object, err = expression.invoke()
-				if err != nil {
-					return nil, err
-				}
-				if object == nil {
-					log.Panic("expression", reflect.TypeOf(expression).String())
-				}
-				continue
 			case *IntObject,
 				*StringObject,
 				*NilObject:
 				fmt.Print(expression)
 				break Loop
 			default:
-				panic("unknown type" + reflect.TypeOf(object).String())
+				log.Panic("unknown type" + reflect.TypeOf(object).String())
 			}
 		}
 	}
 	fmt.Println()
-	return nil, nil
+	return nil
 }

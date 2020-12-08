@@ -557,10 +557,12 @@ func (p *parser) parseFunctionCall(labels []string) *FuncCallStatement {
 		statement.label = labels[0]
 	} else {
 		// bind self
-		bindSelf := &propObjectStatement{
-			this:      true,
-			vmContext: p.vmCtx,
-			labels:    labels[:len(labels)-1],
+		bindSelf := &getObjectPropStatement{
+			this: true,
+			getObject: &getObjectObjectStatement{
+				vmContext: p.vmCtx,
+				labels:    labels[:len(labels)-1],
+			},
 		}
 		statement.arguments = append(statement.arguments, bindSelf)
 	}
@@ -734,9 +736,11 @@ func (p *parser) parsePeriodStatement(label string) Statement {
 				log.Panic("parseFunctionCall failed")
 				return nil
 			}
-			statement.getObject = &propObjectStatement{
-				vmContext: p.vmCtx,
-				labels:    labels,
+			statement.getObject = &getObjectPropStatement{
+				getObject: &getObjectObjectStatement{
+					vmContext: p.vmCtx,
+					labels:    labels,
+				},
 			}
 			return statement
 		} else if next.typ == assignTokenType { // a.b = 1
@@ -748,7 +752,7 @@ func (p *parser) parsePeriodStatement(label string) Statement {
 			return &AssignStatement{
 				ctx:   p.vmCtx,
 				label: strings.Join(labels, "."),
-				getObject: &propObjectStatement{
+				getObject: &getObjectObjectStatement{
 					vmContext: p.vmCtx,
 					labels:    labels,
 				},
@@ -758,9 +762,10 @@ func (p *parser) parsePeriodStatement(label string) Statement {
 			// a.b.c +  // expression
 			// var c = a.b.c //end of statement
 			p.putToken(next)
-			return &propObjectStatement{
-				vmContext: p.vmCtx,
-				labels:    labels,
+			return &getObjectPropStatement{
+				getObject: &getObjectObjectStatement{
+					vmContext: p.vmCtx,
+					labels:    labels},
 			}
 		}
 	}

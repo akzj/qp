@@ -9,8 +9,8 @@ func (n NilObject) String() string {
 
 var nilObject = &NilObject{}
 
-func (n *NilObject) invoke() (Expression, error) {
-	return n, nil
+func (n *NilObject) invoke() Expression{
+	return n
 }
 
 func (NilObject) getType() Type {

@@ -5,8 +5,8 @@ var breakObject = &BreakObject{}
 type BreakObject struct {
 }
 
-func (b BreakObject) invoke() (Expression, error) {
-	return b, nil
+func (b BreakObject) invoke() Expression {
+	return b
 }
 
 func (b BreakObject) getType() Type {

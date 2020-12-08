@@ -1,7 +1,6 @@
 package qp
 
 import (
-	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -16,12 +15,12 @@ func (s *StringObject) String() string {
 	return s.data
 }
 
-func (s *StringObject) invoke() (Expression, error) {
+func (s *StringObject) invoke() Expression {
 	if s.init {
-		return s, nil
+		return s
 	}
 	s.objects = StringObjectBuiltInFunctionMap
-	return s, nil
+	return s
 }
 
 func (s *StringObject) clone() BaseObject {
@@ -49,63 +48,51 @@ var StringObjectBuiltInFunctionMap = map[string]*Object{
 type StringObjectClone struct {
 }
 
-func (s StringObjectClone) invoke(arguments ...Expression) (Expression, error) {
-	fmt.Println("StringObjectClone")
+func (s StringObjectClone) invoke() Expression {
+	return s
+}
+
+func (s StringObjectClone) getType() Type {
+	return TypeObjectType
+}
+
+func (s StringObjectClone) call(arguments ...Expression) Expression {
 	if len(arguments) > 1 {
-		panic("only one arguments")
+		log.Panicln("only one arguments")
 	}
-	expression, err := arguments[0].invoke()
-	if err != nil {
-		return nil, err
-	}
+	expression := arguments[0].invoke()
 	for {
-		fmt.Println(reflect.TypeOf(expression).String())
 		switch inner := expression.(type) {
 		case *StringObject:
-			return inner.clone(), nil
-		case *Object:
-			expression, err = inner.invoke()
-			if err != nil {
-				log.Println(err)
-				return nil, err
-			}
-		case *ReturnStatement:
-			expression = inner
+			return inner.clone()
 		default:
-			log.Println("type error", reflect.TypeOf(expression).String())
-			return nil, fmt.Errorf("no string type error")
+			log.Panicln("type error", reflect.TypeOf(expression).String())
 		}
 	}
 }
 
 type stringLowCase struct{}
 
-func (stringLowCase) invoke(arguments ...Expression) (Expression, error) {
-	fmt.Println("stringLowCase")
+func (c *stringLowCase) invoke() Expression {
+	return c
+}
+
+func (c stringLowCase) getType() Type {
+	return TypeObjectType
+}
+
+func (stringLowCase) call(arguments ...Expression) Expression {
 	if len(arguments) > 1 {
-		panic("only one arguments")
+		log.Panicln("only one arguments")
 	}
-	expression, err := arguments[0].invoke()
-	if err != nil {
-		return nil, err
-	}
+	expression := arguments[0].invoke()
 	for {
-		fmt.Println(reflect.TypeOf(expression).String())
 		switch inner := expression.(type) {
 		case *StringObject:
 			inner.data = strings.ToLower(inner.data)
-			return inner, nil
-		case *Object:
-			expression, err = inner.invoke()
-			if err != nil {
-				log.Println(err)
-				return nil, err
-			}
-		case *ReturnStatement:
-			expression = inner
+			return inner
 		default:
-			log.Println("type error", reflect.TypeOf(expression).String())
-			return nil, fmt.Errorf("no string type error")
+			log.Panicln("type error", reflect.TypeOf(expression).String())
 		}
 	}
 }
