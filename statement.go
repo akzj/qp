@@ -13,6 +13,7 @@ type Statement interface {
 }
 
 type IfStatement struct {
+	vm               *VMContext
 	check            Expression
 	statement        Statements
 	elseIfStatements []*IfStatement
@@ -84,6 +85,7 @@ type FuncStatement struct {
 }
 
 type ForStatement struct {
+	vm             *VMContext
 	preStatement   Expression
 	checkStatement Expression
 	postStatement  Expression
@@ -287,6 +289,7 @@ func (n *NopStatement) getType() Type {
 }
 
 func (f *ForStatement) invoke() (Expression, error) {
+	f.vm.pushStackFrame(false) //make stack frame
 	val, err := f.preStatement.invoke()
 	if err != nil {
 		fmt.Println("for preStatement.invoke() error", err)
@@ -309,8 +312,10 @@ func (f *ForStatement) invoke() (Expression, error) {
 			return nil, fmt.Errorf("for checkStatement expect BoolObject")
 		}
 		if bObj.val == false {
+			f.vm.popStackFrame() //end of for
 			return nil, nil
 		}
+		f.vm.pushStackFrame(false) //make stack frame for `{` brock
 		for _, statement := range f.statements {
 			val, err := statement.invoke()
 			if err != nil {
@@ -325,6 +330,7 @@ func (f *ForStatement) invoke() (Expression, error) {
 				return val, nil
 			}
 		}
+		f.vm.popStackFrame()
 		if _, err = f.postStatement.invoke(); err != nil {
 			fmt.Println("for postStatement.invoke() error", err)
 			return nil, err
@@ -499,7 +505,9 @@ func (ifStm *IfStatement) invoke() (Expression, error) {
 	}
 	if check.(*BoolObject).val {
 		fmt.Println("true")
+		ifStm.vm.pushStackFrame(false) //make  if brock stack
 		val, err := ifStm.statement.invoke()
+		ifStm.vm.popStackFrame() //release  if brock stack
 		if err != nil {
 			fmt.Println("IfStatement statement error", err.Error())
 			return nil, err
@@ -516,7 +524,9 @@ func (ifStm *IfStatement) invoke() (Expression, error) {
 			}
 			if check2.(*BoolObject).val {
 				fmt.Println("else if true")
+				ifStm.vm.pushStackFrame(false) //make  if brock stack
 				val, err := stm.statement.invoke()
+				ifStm.vm.popStackFrame() //release  if brock stack
 				if err != nil {
 					fmt.Println("IfStatement statement error", err.Error())
 					return nil, err
@@ -528,7 +538,9 @@ func (ifStm *IfStatement) invoke() (Expression, error) {
 		}
 		if ifStm.elseStatement != nil {
 			fmt.Println("else")
+			ifStm.vm.pushStackFrame(false) //make  brock stack
 			val, err := ifStm.elseStatement.invoke()
+			ifStm.vm.popStackFrame() //release  if brock stack
 			if err != nil {
 				fmt.Println(err.Error())
 				return nil, err

@@ -41,7 +41,7 @@ func (println) invoke(arguments ...Expression) (Expression, error) {
 				}
 				continue
 			case *IntObject:
-				fmt.Print("->", expression.val)
+				fmt.Println("------>", expression.val)
 				break Loop
 			default:
 				panic("unknown type" + reflect.TypeOf(object).String())

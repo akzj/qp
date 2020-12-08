@@ -2,6 +2,7 @@ package qp
 
 import (
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -95,6 +96,7 @@ func (ctx *VMContext) popStackFrame() {
 }
 
 func (ctx *VMContext) addUserFunction(function *FuncStatement) error {
+	log.Println("addUserFunction")
 	if function.labels != nil {
 		structObject := ctx.getStructObject(function.labels[0])
 		if structObject == nil { //todo fix parse order

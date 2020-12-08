@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	io "io"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -190,16 +191,23 @@ Loop:
 			opStack = append(opStack, token)
 			//lambda func
 		case token.typ == funcTokenType:
-			expression := p.parseFunctionStatement()
-			if expression == nil {
-				fmt.Println("p.parseFunctionStatement() failed")
-				return nil
+			last := p.historyToken(1)
+			if isOperatorToken(last) ||
+				last.typ == assignTokenType {
+				expression := p.parseFunctionStatement()
+				if expression == nil {
+					fmt.Println("p.parseFunctionStatement() failed")
+					return nil
+				}
+				expressions = append(expressions, &Object{
+					inner: expression,
+					label: "lambda",
+					typ:   FuncStatementType,
+				})
+			} else {
+				p.putToken(token)
+				break Loop
 			}
-			expressions = append(expressions, &Object{
-				inner: expression,
-				label: "lambda",
-				typ:   FuncStatementType,
-			})
 		//function call
 		case token.typ == periodTokenType:
 			//translation to `this.`
@@ -313,6 +321,7 @@ Loop:
 			statements = append(statements, &statement)
 			continue
 		case token.typ == funcTokenType:
+			log.Println("parseFunctionStatement------------------")
 			if functionStatement := p.parseFunctionStatement(); functionStatement == nil {
 				fmt.Println("parseFunctionStatement failed")
 				return nil
@@ -460,7 +469,9 @@ func (p *parser) parseStatement() Statements {
 }
 
 func (p *parser) parseForStatement() *ForStatement {
-	var forStatement ForStatement
+	var forStatement = ForStatement{
+		vm: p.vmCtx,
+	}
 	token := p.nextToken(true)
 	if token.typ == semicolonTokenType {
 		forStatement.preStatement = &NopStatement{}
@@ -477,7 +488,9 @@ func (p *parser) parseForStatement() *ForStatement {
 		forStatement.statements = statements
 		return &forStatement
 	} else {
-		expression := p.parseExpression()
+		//support var= ;
+		p.putToken(token)
+		expression := p.parse()
 		if expression == nil {
 			fmt.Println("parse `for` preStatement failed")
 			return nil
@@ -486,7 +499,6 @@ func (p *parser) parseForStatement() *ForStatement {
 			fmt.Println("expect ; in `for` statement")
 			return nil
 		}
-		p.nextToken(true)
 		forStatement.preStatement = expression
 	}
 	token = p.nextToken(true)
@@ -542,8 +554,7 @@ func (p *parser) parseForStatement() *ForStatement {
 
 func (p *parser) parseIfStatement() *IfStatement {
 	ifStem := IfStatement{
-		elseIfStatements: nil,
-		elseStatement:    nil,
+		vm: p.vmCtx,
 	}
 	if ifStem.check = p.parseExpression(); ifStem.check == nil {
 		fmt.Println("parse checkExpression failed")
@@ -567,10 +578,7 @@ func (p *parser) parseIfStatement() *IfStatement {
 		}
 		//check else or else if
 		if token.typ == elseifTokenType {
-			elseIfStem := IfStatement{
-				elseIfStatements: nil,
-				elseStatement:    nil,
-			}
+			elseIfStem := IfStatement{vm: p.vmCtx}
 			if elseIfStem.check = p.parseExpression(); elseIfStem.check == nil {
 				fmt.Println("parse checkExpression failed")
 				return nil

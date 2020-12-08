@@ -268,13 +268,18 @@ func TestFor(t *testing.T) {
 		val interface{}
 	}{{
 		exp: `
-var a = 1
+
 var b = 1
-for ;a < 10; a++{
+for var a = 1 ;a < 10; a++{
 	println(a,b)
 	if a > 3{
 		return 1
 	}
+	//local var 
+	var a = 100
+	println(a)
+	a = 101
+	println(a)
 }
 
 `, val: int64(3),
@@ -462,3 +467,91 @@ println(b) //2
 	}
 }
 
+func TestStackFrame(t *testing.T) {
+	cases := []struct {
+		data string
+		err  bool
+	}{
+		{
+			data: `
+var a = 1
+func testA(){
+// find label "a" ,runtime error
+	println(a) 
+}
+testA()
+`, err: true,
+		},
+		{
+			data: `
+var a = 1
+func testA(){
+// find label "a" ,runtime error
+	var a = 100
+	println(a)
+}
+println(a)
+testA()
+println(a)
+`,
+			err: false,
+		},
+		{
+			data: `
+var a = 1
+func testA(){
+
+	// println(a) // find label "a" ,runtime error
+	var a = 100
+	println(a)
+	if a > 10{
+		// local var
+		var b = 100
+		println(b)
+	}
+	//visit no exist val,must error 
+	println(b)
+}
+println(a)
+testA()
+println(a)
+`,
+			err: true,
+		},
+	}
+
+	for _, Case := range cases {
+		statements := Parse(Case.data)
+		if statements == nil {
+			t.Fatal("Parse failed")
+		}
+		fmt.Println("-------------------------------------------------------------")
+		if _, err := statements.invoke(); err == nil && Case.err {
+			t.Fatal("test failed")
+		}
+	}
+}
+
+func TestClosure(t *testing.T) {
+	data := `
+
+var a =1
+
+var f = func(){
+	println(a)
+}
+
+a++
+
+f()
+
+`
+	statements := Parse(data)
+	if statements == nil {
+		t.Fatal("Parse failed")
+	}
+	fmt.Println("-------------------------------------------------------------")
+	if _, err := statements.invoke(); err != nil {
+		t.Fatal("test failed",err)
+	}
+}
