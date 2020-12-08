@@ -176,10 +176,7 @@ func (statement *StructObjectInitStatement) getType() Type {
 }
 
 func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) error {
-
-	/*
-		lambda function no bind this to object
-	*/
+	//lambda function no bind this to object
 	if f.label == "lambda" && len(inArguments) != 0 {
 		statement, ok := inArguments[0].(*getStructObjectStatement)
 		if ok && statement.this {
@@ -190,41 +187,40 @@ func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) error {
 		fmt.Println("argument size no match", len(f.parameters), len(inArguments))
 		return fmt.Errorf("argument size no match")
 	}
-
-	for index, expression := range inArguments {
-		label := f.parameters[index]
-		fmt.Println(expression.getType(), label)
-		val, err := expression.invoke()
+	var results []Expression
+	for _, expression := range inArguments {
+		result, err := expression.invoke()
 		if err != nil {
-			fmt.Println("invoke argument failed", err)
+			fmt.Println("argument invoke() failed", err)
 			return err
 		}
-		if val == nil {
-			fmt.Println("invoke argument return nil error")
-			return fmt.Errorf("invoke argument return nil error")
-		}
+		results = append(results, result)
+	}
+	//make stack for this function
+	f.vm.pushStackFrame(true)
+	for index, result := range results {
+		label := f.parameters[index]
 		object := f.vm.allocObject(label)
 		if object == nil {
 			panic("allocObject nil")
 		}
-		switch obj := val.(type) {
+		switch obj := result.(type) {
 		case *Object:
 			if obj == nil {
 				panic("obj nil")
 			}
 			object.inner = obj.inner
 		default:
-			object.inner = val
+			object.inner = result
 		}
 		fmt.Println("---------bind argument-----",
-			label, reflect.ValueOf(val).String())
+			label, reflect.ValueOf(result).String())
 	}
 	return nil
 }
 
 func (f *FuncStatement) invoke(arguments ...Expression) (Expression, error) {
 	//argument stack
-	f.vm.pushStackFrame()
 
 	//pop argument stack
 	defer f.vm.popStackFrame()

@@ -20,15 +20,15 @@ func TestVMMemoryStackTest(t *testing.T) {
 		objectB := vm.allocObject("b")
 
 		//
-		vm.pushStackFrame()
+		vm.pushStackFrame(false)
 		objectB1 := vm.allocObject("b")
 		if object := vm.getObject("b"); object != objectB1 {
-			if object == nil{
+			if object == nil {
 				t.Fatal("no find object")
 			}
 			fmt.Println(object)
 			fmt.Println(objectB1)
-			t.Fatalf("pushStackFrame failed %s %s",object.String(),objectB1.String())
+			t.Fatalf("pushStackFrame failed %s %s", object.String(), objectB1.String())
 		}
 
 		//
@@ -38,6 +38,22 @@ func TestVMMemoryStackTest(t *testing.T) {
 		}
 		if vm.getObject("b") != objectB {
 			t.Fatal("popStackFrame failed")
+		}
+	})
+
+	t.Run("stackFrameIsolate", func(t *testing.T) {
+		a := vm.allocObject("a")
+
+		//isolate
+		vm.pushStackFrame(true)
+
+		if vm.getStructObject("a") != nil {
+			t.Fatal("isolate failed")
+		}
+
+		vm.popStackFrame()
+		if vm.getObject("a") != a {
+			t.Fatal("isolate failed")
 		}
 	})
 }

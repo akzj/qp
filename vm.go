@@ -5,22 +5,28 @@ import (
 	"strings"
 )
 
+type stackFrame struct {
+	stack        []*Object
+	stackPointer int
+	isolate      bool
+}
+
 type memory struct {
-	objects      []*Object
-	stackPointer []int
+	stack       []*Object
+	stackFrames []stackFrame
 }
 
 func (m *memory) alloc(label string) *Object {
 	var obj = new(Object)
-	m.objects = append(m.objects, obj)
-	obj.pointer = len(m.objects) - 1
+	m.stack = append(m.stack, obj)
+	obj.pointer = len(m.stack) - 1
 	obj.label = label
 	return obj
 }
 
 func (m *memory) getObject(label string) *Object {
-	for index := len(m.objects) - 1; index >= 0; index-- {
-		object := m.objects[index]
+	for index := len(m.stack) - 1; index >= 0; index-- {
+		object := m.stack[index]
 		if object.label == label {
 			return object
 		}
@@ -28,16 +34,34 @@ func (m *memory) getObject(label string) *Object {
 	return nil
 }
 
-func (m *memory) pushStackFrame() {
-	m.stackPointer = append(m.stackPointer, len(m.objects))
-}
-func (m *memory) popStackFrame() {
-	if len(m.stackPointer) == 0 {
-		panic("stack empty")
+func (m *memory) pushStackFrame(isolate bool) {
+	m.stackFrames = append(m.stackFrames, stackFrame{
+		stack:        m.stack,
+		stackPointer: len(m.stack),
+		isolate:      isolate,
+	})
+	if isolate {
+		m.stack = make([]*Object, 0, 32)
 	}
-	pointer := m.stackPointer[len(m.stackPointer)-1]
-	m.stackPointer = m.stackPointer[:len(m.stackPointer)-1]
-	m.objects = m.objects[:pointer]
+}
+
+func (m *memory) popStackFrame() {
+	if len(m.stackFrames) == 0 {
+		panic("stackFrames empty")
+	}
+	frame := m.stackFrames[len(m.stackFrames)-1]
+	m.stackFrames = m.stackFrames[:len(m.stackFrames)-1]
+	var toGc []*Object
+	if frame.isolate == false {
+		toGc = m.stack[frame.stackPointer:]
+		m.stack = m.stack[:frame.stackPointer]
+	} else {
+		toGc = m.stack
+		m.stack = frame.stack
+	}
+	for i := range toGc {
+		toGc[i] = nil
+	}
 }
 
 type VMContext struct {
@@ -62,8 +86,8 @@ func (ctx *VMContext) getObject(label string) *Object {
 	return ctx.mem.getObject(label)
 }
 
-func (ctx *VMContext) pushStackFrame() {
-	ctx.mem.pushStackFrame()
+func (ctx *VMContext) pushStackFrame(isolate bool) {
+	ctx.mem.pushStackFrame(isolate)
 }
 
 func (ctx *VMContext) popStackFrame() {
