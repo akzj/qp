@@ -1,6 +1,7 @@
 package qp
 
 import (
+	"log"
 	"reflect"
 )
 
@@ -27,6 +28,10 @@ func (expressions *Expressions) Invoke() Expression {
 }
 
 type AddExpression struct {
+	Left  Expression
+	right Expression
+}
+type SubExpression struct {
 	Left  Expression
 	right Expression
 }
@@ -139,10 +144,10 @@ func (expression LessEqualExpression) getType() Type {
 func (GreaterExpression) getType() Type {
 	return greaterTokenType
 }
+
 func (GreaterEqualExpression) getType() Type {
 	return greaterEqualTokenType
 }
-
 func (expression *GreaterExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
@@ -246,6 +251,25 @@ func (expression *MulExpression) Invoke() Expression {
 		reflect.TypeOf(right).String())
 }
 
+func (s *SubExpression) Invoke() Expression {
+	left := s.Left.Invoke()
+	right := s.right.Invoke()
+	switch lVal := left.(type) {
+	case *IntObject:
+		switch rVal := right.(type) {
+		case *IntObject:
+			val := *lVal - *rVal
+			return (*IntObject)(&val)
+		}
+	}
+	panic(reflect.TypeOf(left).String() + "\n" +
+		reflect.TypeOf(right).String())
+}
+
+func (s *SubExpression) getType() Type {
+	panic("implement me")
+}
+
 func (expression *AddExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
@@ -254,6 +278,7 @@ func (expression *AddExpression) Invoke() Expression {
 		switch rVal := right.(type) {
 		case *IntObject:
 			val := *lVal + *rVal
+			log.Println("+",*lVal,*rVal)
 			return (*IntObject)(&val)
 		}
 	case *StringObject:

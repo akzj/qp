@@ -107,6 +107,8 @@ func (l *lexer) peek() Token {
 			} else {
 				log.Panicf("unknown token`%s`", string(c))
 			}
+		case c == '-':
+			token = subOperatorToken
 		case c == '=':
 			token = assignToken
 			if c, _ = l.ahead(); c == '=' {
@@ -135,7 +137,7 @@ func (l *lexer) peek() Token {
 				}
 			}
 		default:
-			token = unknownToken
+			log.Panicln(string(c),l.line)
 		}
 		token.line = l.line
 		l.token = token

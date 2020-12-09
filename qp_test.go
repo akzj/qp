@@ -648,3 +648,40 @@ println(a)
 `
 	Parse(data).Invoke()
 }
+
+func fib(val int) int {
+	if val < 2 {
+		return val
+	}
+	 var a = fib(val-2)
+	 var b =  fib(val-1)
+	 return a+b
+}
+
+func TestFib(t *testing.T) {
+	fmt.Println(fib(100))
+}
+
+//todo fix
+func TestFibonacci(t *testing.T) {
+
+	data := `
+
+func fib(val){
+	if val < 2 {
+		return val
+	}
+	var a =  fib(val-1)
+	return a
+}
+
+println(fib(350000))
+
+`
+	if statement := Parse(data); statement == nil {
+		panic("parse failed")
+	} else {
+		statement.Invoke()
+	}
+
+}

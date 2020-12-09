@@ -73,6 +73,12 @@ func newParser(reader io.Reader) *parser {
 func makeExpression(opToken Token, expressions *[]Expression) Expression {
 	var expression Expression
 	switch opToken.typ {
+	case subOperatorTokenType:
+		expression = &SubExpression{
+			Left:  (*expressions)[len(*expressions)-2],
+			right: (*expressions)[len(*expressions)-1],
+		}
+		*expressions = (*expressions)[:len(*expressions)-2]
 	case addOperatorTokenType:
 		expression = &AddExpression{
 			Left:  (*expressions)[len(*expressions)-2],
@@ -517,7 +523,7 @@ func (p *parser) parseForStatement() *ForStatement {
 		p.putToken(token)
 		expression := p.parse()
 		if next := p.nextToken(true); next.typ != leftBraceTokenType {
-			log.Panicf("expect { in `for` post expression get `%s`",next)
+			log.Panicf("expect { in `for` post expression get `%s`", next)
 		} else {
 			p.putToken(next)
 		}

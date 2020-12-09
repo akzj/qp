@@ -189,7 +189,7 @@ func (g *getObjectObjectStatement) Invoke() Expression {
 	structObj, ok := object.inner.(BaseObject)
 	if ok == false {
 		log.Panic("objects type no struct objects,error",
-		g.labels, reflect.TypeOf(object.inner).String())
+			g.labels, reflect.TypeOf(object.inner).String())
 	}
 	/*
 	 user.id = 1 // bind 1 to user.id
@@ -275,7 +275,8 @@ func (f *FuncStatement) call(arguments ...Expression) Expression {
 	defer f.vm.popStackFrame()
 	f.prepareArgumentBind(arguments)
 	for _, statement := range f.statements {
-		if ret, ok := statement.Invoke().(*ReturnStatement); ok {
+		result := statement.Invoke()
+		if ret, ok := result.(*ReturnStatement); ok {
 			return ret.returnVal
 		}
 	}
@@ -422,7 +423,11 @@ func (f *FuncCallStatement) Invoke() Expression {
 	for _, argument := range f.arguments {
 		arguments = append(arguments, argument.Invoke())
 	}
-	return function.call(arguments...)
+	result := function.call(arguments...)
+	if ret, ok := result.(*ReturnStatement); ok {
+		return ret.returnVal
+	}
+	return result
 }
 
 func (f *FuncCallStatement) getType() Type {
@@ -432,7 +437,7 @@ func (f *FuncCallStatement) getType() Type {
 func (f *getVarStatement) Invoke() Expression {
 	object := f.ctx.getObject(f.label)
 	if object == nil {
-		log.Panicf("getObject faild `%s`",f.label)
+		log.Panicf("getObject faild `%s`", f.label)
 	}
 	if object.inner == nil {
 		object.inner = nilObject

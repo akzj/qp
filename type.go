@@ -103,8 +103,6 @@ func (t Type) String() string {
 		return "ErrorTokenType"
 	case stringTokenType:
 		return "string"
-	case unknownTokenType:
-		return "unknown"
 	case nilTokenType:
 		return "nil"
 	case EqualTokenType:
@@ -130,7 +128,6 @@ func (t Type) String() string {
 
 const ErrorTokenType Type = -1
 const EOFTokenType Type = 0
-const unknownTokenType Type = 1
 const commentTokenType Type = 2                // //
 const stringTokenType Type = 3                 // string "" ''
 const nilTokenType Type = 4                    // null
@@ -203,7 +200,6 @@ func (t Token) String() string {
 
 var (
 	emptyToken            = Token{typ: EOFTokenType}
-	unknownToken          = Token{typ: unknownTokenType}
 	addOperatorToken      = Token{typ: addOperatorTokenType}
 	mulOperatorToken      = Token{typ: mulOperatorTokenType}
 	leftParenthesisToken  = Token{typ: leftParenthesisTokenType}
@@ -224,6 +220,7 @@ var (
 	leftBracketToken      = Token{typ: leftBracketTokenType}
 	rightBracketToken     = Token{typ: rightBracketTokenType}
 	NoEqualToken          = Token{typ: NoEqualTokenType}
+	subOperatorToken      = Token{typ: subOperatorTokenType}
 )
 
 var Keywords = []string{
