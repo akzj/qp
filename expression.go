@@ -1,7 +1,6 @@
 package qp
 
 import (
-	"log"
 	"reflect"
 )
 
@@ -278,7 +277,6 @@ func (expression *AddExpression) Invoke() Expression {
 		switch rVal := right.(type) {
 		case *IntObject:
 			val := *lVal + *rVal
-			log.Println("+",*lVal,*rVal)
 			return (*IntObject)(&val)
 		}
 	case *StringObject:

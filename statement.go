@@ -488,18 +488,10 @@ func (expression *VarAssignStatement) getType() Type {
 }
 
 func (r *ReturnStatement) Invoke() Expression {
-	//log.Println("ReturnStatement Invoke")
 	if r.returnVal != nil {
 		return r
 	}
-	val := r.express.Invoke()
-	switch inner := val.(type) {
-	case *ReturnStatement:
-		return inner
-	default:
-		r.returnVal = val
-	}
-	return r
+	return &ReturnStatement{returnVal: r.express.Invoke()}
 }
 
 func (ReturnStatement) getType() Type {

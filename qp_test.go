@@ -649,20 +649,29 @@ println(a)
 	Parse(data).Invoke()
 }
 
+/*
+832040
+--- PASS: TestFib (0.01s)
+*/
 func fib(val int) int {
 	if val < 2 {
 		return val
 	}
-	 var a = fib(val-2)
-	 var b =  fib(val-1)
-	 return a+b
+	var a = fib(val - 2)
+	var b = fib(val - 1)
+	return a + b
 }
 
 func TestFib(t *testing.T) {
-	fmt.Println(fib(100))
+	fmt.Println(fib(25))
 }
 
 //todo fix
+/*
+5702887
+--- PASS: TestFibonacci (12.52s)
+PASS
+*/
 func TestFibonacci(t *testing.T) {
 
 	data := `
@@ -671,11 +680,10 @@ func fib(val){
 	if val < 2 {
 		return val
 	}
-	var a =  fib(val-1)
-	return a
+	return fib(val-2) +fib(val-1)
 }
 
-println(fib(350000))
+println(fib(25))
 
 `
 	if statement := Parse(data); statement == nil {
