@@ -291,7 +291,7 @@ func (f *FuncStatement) doClosureInit() {
 	for _, label := range f.closureLabel {
 		obj := f.vm.getObject(label)
 		if obj == nil {
-			log.Panic("no find obj with label", label)
+			log.Panicf("no find obj with label `%s`", label)
 		}
 		closureObjs = append(closureObjs, obj.inner)
 	}
