@@ -81,7 +81,7 @@ func TestLessExpression(t *testing.T) {
 			t.Fatal("Parse failed")
 		}
 		if val := expression.Invoke(); val != nil {
-			if val.(*BoolObject).val != Case.expect {
+			if bool(*(val.(*BoolObject))) != Case.expect {
 				t.Fatalf("expression parse failed,`%s` "+
 					"result `%+v` expect `%+v`", Case.expStr, val, Case.expect)
 			}
@@ -160,8 +160,8 @@ if 2 > 1{
 			t.Fatal("Parse failed")
 		}
 		if val := statements.Invoke(); val != nil {
-			if val.(*ReturnStatement).returnVal.(*IntObject).val != Case.val {
-				t.Fatalf("no match %+v %+v", val.(*IntObject).val, Case.val)
+			if int64(*val.(*ReturnStatement).returnVal.(*IntObject)) != Case.val {
+				t.Fatalf("no match %+v %+v", int64(*val.(*IntObject)), Case.val)
 			}
 		}
 	}

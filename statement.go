@@ -203,7 +203,7 @@ func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) error {
 	// put closure objects to stack
 	for index := range f.closureLabel {
 		//object :=
-			f.vm.allocObject(f.closureLabel[index]).inner = f.closureObjs[index]
+		f.vm.allocObject(f.closureLabel[index]).inner = f.closureObjs[index]
 		/*switch closureObj := f.closureObjs[index].(type) {
 		case *Object:
 			object.inner = closureObj.inner
@@ -295,7 +295,7 @@ func (f *ForStatement) Invoke() Expression {
 		if ok == false {
 			log.Panic("for checkStatement expect BoolObject")
 		}
-		if bObj.val == false {
+		if *bObj == false {
 			f.vm.popStackFrame() //end of for
 			return nil
 		}
@@ -326,7 +326,7 @@ func (statement *IncFieldStatement) Invoke() Expression {
 	innerObject := object.Invoke()
 	switch obj := innerObject.(type) {
 	case *IntObject:
-		obj.val++
+		*obj++
 	default:
 		panic("unknown type " + reflect.TypeOf(innerObject).String())
 	}
@@ -448,7 +448,7 @@ func (ifStm *IfStatement) Invoke() Expression {
 	if _, ok := check.(*BoolObject); ok == false {
 		log.Panic("if statement check require boolObject")
 	}
-	if check.(*BoolObject).val {
+	if *check.(*BoolObject) {
 		ifStm.vm.pushStackFrame(false) //make  if brock stack
 		val := ifStm.statement.Invoke()
 		ifStm.vm.popStackFrame() //release  if brock stack
@@ -459,7 +459,7 @@ func (ifStm *IfStatement) Invoke() Expression {
 			if _, ok := elseIf.(*BoolObject); ok == false {
 				log.Panicln("else if require bool result")
 			}
-			if elseIf.(*BoolObject).val {
+			if *elseIf.(*BoolObject) {
 				ifStm.vm.pushStackFrame(false) //make  if brock stack
 				val := stm.statement.Invoke()
 				ifStm.vm.popStackFrame() //release  if brock stack

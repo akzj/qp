@@ -73,7 +73,7 @@ func (expression *EqualExpression) Invoke() Expression {
 	case *IntObject:
 		switch rVal := right.(type) {
 		case *IntObject:
-			val = lVal.val == rVal.val
+			val = *lVal == *rVal
 		default:
 			val = false
 		}
@@ -95,7 +95,7 @@ func (expression *EqualExpression) Invoke() Expression {
 		panic(reflect.TypeOf(left).String() + "\n" +
 			reflect.TypeOf(right).String())
 	}
-	return &BoolObject{val: val}
+	return (*BoolObject)(&val)
 }
 
 func (EqualExpression) getType() Type {
@@ -124,16 +124,19 @@ func (GreaterEqualExpression) getType() Type {
 func (expression *GreaterExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
+	var val = false
 	switch lVal := left.(type) {
 	case *IntObject:
 		switch rVal := right.(type) {
 		case *IntObject:
-			return &BoolObject{val: lVal.val > rVal.val}
+			val = *lVal > *rVal
+			return (*BoolObject)(&val)
 		}
 	case *StringObject:
 		switch rVal := right.(type) {
 		case *StringObject:
-			return &BoolObject{val: lVal.data > rVal.data}
+			val = lVal.data > rVal.data
+			return (*BoolObject)(&val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
@@ -143,16 +146,19 @@ func (expression *GreaterExpression) Invoke() Expression {
 func (expression *GreaterEqualExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
+	var val = false
 	switch lVal := left.(type) {
 	case *IntObject:
 		switch rVal := right.(type) {
 		case *IntObject:
-			return &BoolObject{val: lVal.val >= rVal.val}
+			val = *lVal >= *rVal
+			return (*BoolObject)(&val)
 		}
 	case *StringObject:
 		switch rVal := right.(type) {
 		case *StringObject:
-			return &BoolObject{val: lVal.data >= rVal.data}
+			val = lVal.data >= rVal.data
+			return (*BoolObject)(&val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
@@ -162,16 +168,19 @@ func (expression *GreaterEqualExpression) Invoke() Expression {
 func (expression *LessEqualExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
+	var val = false
 	switch lVal := left.(type) {
 	case *IntObject:
 		switch rVal := right.(type) {
 		case *IntObject:
-			return &BoolObject{val: lVal.val <= rVal.val}
+			val = *lVal <= *rVal
+			return (*BoolObject)(&val)
 		}
 	case *StringObject:
 		switch rVal := right.(type) {
 		case *StringObject:
-			return &BoolObject{val: lVal.data <= rVal.data}
+			val = lVal.data <= rVal.data
+			return (*BoolObject)(&val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
@@ -181,16 +190,19 @@ func (expression *LessEqualExpression) Invoke() Expression {
 func (expression *LessExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
+	var val = false
 	switch lVal := left.(type) {
 	case *IntObject:
 		switch rVal := right.(type) {
 		case *IntObject:
-			return &BoolObject{val: lVal.val < rVal.val}
+			val = *lVal < *rVal
+			return (*BoolObject)(&val)
 		}
 	case *StringObject:
 		switch rVal := right.(type) {
 		case *StringObject:
-			return &BoolObject{val: lVal.data < rVal.data}
+			val = lVal.data < rVal.data
+			return (*BoolObject)(&val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
@@ -204,7 +216,8 @@ func (expression *MulExpression) Invoke() Expression {
 	case *IntObject:
 		switch rVal := right.(type) {
 		case *IntObject:
-			return &IntObject{val: lVal.val * rVal.val}
+			var val = (*lVal) * (*rVal)
+			return (*IntObject)(&val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
@@ -218,7 +231,8 @@ func (expression *AddExpression) Invoke() Expression {
 	case *IntObject:
 		switch rVal := right.(type) {
 		case *IntObject:
-			return &IntObject{val: lVal.val + rVal.val}
+			val := *lVal + *rVal
+			return (*IntObject)(&val)
 		}
 	case *StringObject:
 		switch e := right.(type) {

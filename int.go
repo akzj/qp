@@ -4,9 +4,7 @@ import (
 	"strconv"
 )
 
-type IntObject struct {
-	val int64
-}
+type IntObject int64
 
 func (i *IntObject) Invoke() Expression {
 	return i
@@ -17,5 +15,5 @@ func (i *IntObject) getType() Type {
 }
 
 func (i *IntObject) String() string {
-	return strconv.FormatInt(i.val, 10)
+	return strconv.FormatInt(int64(*i), 10)
 }

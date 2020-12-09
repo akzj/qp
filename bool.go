@@ -1,7 +1,14 @@
 package qp
 
-type BoolObject struct {
-	val bool
+type BoolObject bool
+
+var trueExpression = BoolObject(true)
+
+func (b *BoolObject) String() string {
+	if *b {
+		return "true"
+	}
+	return "false"
 }
 
 func (b *BoolObject) Invoke() Expression {

@@ -181,7 +181,7 @@ Loop:
 			if err != nil {
 				log.Panic("parse int failed", string(token.data))
 			}
-			expressions = append(expressions, &IntObject{val: val})
+			expressions = append(expressions, (*IntObject)(&val))
 		case token.typ == stringTokenType:
 			expressions = append(expressions, &StringObject{
 				TypeObject: TypeObject{
@@ -456,7 +456,7 @@ func (p *parser) parseForStatement() *ForStatement {
 	} else if token.typ == leftBraceTokenType {
 		forStatement.preStatement = &NopStatement{}
 		forStatement.postStatement = &NopStatement{}
-		forStatement.checkStatement = &BoolObject{val: true}
+		forStatement.checkStatement = &trueExpression
 		statements := p.parseStatement()
 		forStatement.statements = statements
 		return &forStatement
@@ -473,7 +473,7 @@ func (p *parser) parseForStatement() *ForStatement {
 	token = p.nextToken(true)
 	//check expression
 	if token.typ == semicolonTokenType {
-		forStatement.checkStatement = &BoolObject{val: true}
+		forStatement.checkStatement = &trueExpression
 	} else {
 		p.putToken(token)
 		expression := p.parseExpression()
@@ -686,7 +686,7 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 
 	for {
 		token := p.nextToken(true)
-		if token.typ == commaTokenType{
+		if token.typ == commaTokenType {
 			token = p.nextToken(true)
 		}
 		if token.typ != labelType {
