@@ -115,6 +115,8 @@ func (t Type) String() string {
 		return "["
 	case rightBracketTokenType:
 		return "]"
+	case funcCallQueueStatementType:
+		return "funcCallQueueStatementType"
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
@@ -175,6 +177,7 @@ const FuncStatementType Type = 10003           // function objects
 const typeObjectInitStatementType Type = 11003 // objects init statement
 const propObjectStatementType Type = 10004     // getTypeObjectStatement statement
 const getObjectObjectStatementType Type = 1005 // getObjectObjectStatement
+const funcCallQueueStatementType Type = 10006  // FuncCallQueueStatement
 
 type Token struct {
 	typ  Type

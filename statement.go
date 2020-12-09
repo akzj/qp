@@ -48,10 +48,15 @@ type getObjectObjectStatement struct {
 	labels    []string
 }
 
+type FuncCallQueueStatement struct {
+	statement []*FuncCallStatement
+}
+
 type FuncCallStatement struct {
 	vm        *VMContext
 	label     string
 	getObject *getObjectPropStatement
+	function  Function
 	arguments Expressions
 }
 
@@ -92,7 +97,41 @@ type FuncStatement struct {
 	closureObjs  []Expression
 }
 
+func (f *FuncCallQueueStatement) Invoke() Expression {
+	var function Function
+	for index, call := range f.statement {
+
+		//prepare closure for function object
+		if index == 0 {
+			if call.function != nil {
+				if statement, ok := call.function.(*FuncStatement); ok {
+					statement.doClosureInit()
+				}
+			}
+		} else {
+			call.function = function
+		}
+		expression := call.Invoke()
+		if index != len(f.statement)-1 {
+			var ok bool
+			function, ok = expression.(Function)
+			if ok == false {
+				log.Panic("statement no callable object",
+					reflect.TypeOf(expression).String())
+			}
+			continue
+		}
+		return expression
+	}
+	return nil
+}
+
+func (f *FuncCallQueueStatement) getType() Type {
+	return funcCallQueueStatementType
+}
+
 func (f *FuncStatement) Invoke() Expression {
+	f.doClosureInit()
 	return f
 }
 
@@ -247,6 +286,7 @@ func (f *FuncStatement) doClosureInit() {
 	if f.closureInit {
 		return
 	}
+	f.closureInit = true
 	var closureObjs []Expression
 	for _, label := range f.closureLabel {
 		obj := f.vm.getObject(label)
@@ -351,10 +391,12 @@ func (Statements) getType() Type {
 func (f *FuncCallStatement) Invoke() Expression {
 	var function Function
 	var arguments Expressions
-	if f.getObject != nil {
+	if f.function != nil {
+		function = f.function
+	} else if f.getObject != nil {
 		var object = f.getObject.Invoke()
 		if object == nil {
-			log.Panic("no find function",f.label)
+			log.Panic("no find function", f.label)
 		}
 		//lambda function can't bind this to first argument
 		if funcStatement, ok := object.(*FuncStatement); ok {

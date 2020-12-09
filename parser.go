@@ -232,16 +232,10 @@ Loop:
 			if isOperatorToken(last) || //1 + func(){}()
 				last.typ == assignTokenType || //var a = func(){}
 				last.typ == leftBracketTokenType || //var  = [func(){}]
-				last.typ == commaTokenType { //var  = [1,func(){}]
+				last.typ == commaTokenType || //var  = [1,func(){}]
+				last.typ == returnTokenType { //return func(){}
 				expression := p.parseFunctionStatement()
-				if expression == nil {
-					log.Panic("p.parseFunctionStatement() failed")
-				}
-				expressions = append(expressions, &Object{
-					inner: expression,
-					label: "lambda",
-					typ:   FuncStatementType,
-				})
+				expressions = append(expressions, expression)
 			} else {
 				p.putToken(token)
 				break Loop
@@ -331,8 +325,12 @@ Loop:
 			statements = append(statements, &statement)
 			continue
 		case token.typ == funcTokenType:
-			functionStatement := p.parseFunctionStatement()
-			p.vmCtx.addUserFunction(functionStatement)
+			statement := p.parseFunctionStatement()
+			if function, ok := statement.(*FuncStatement); ok {
+				p.vmCtx.addUserFunction(function)
+			} else {
+				statements = append(statements, statement)
+			}
 		case token.typ == typeTokenType:
 			p.vmCtx.addStructObject(p.parseStructObject())
 		case token.typ == varTokenType:
@@ -598,7 +596,7 @@ func (p *parser) parseFunctionCall(labels []string) *FuncCallStatement {
 	return &statement
 }
 
-func (p *parser) parseFunctionStatement() *FuncStatement {
+func (p *parser) parseFunctionStatement() Statement {
 	var functionStatement FuncStatement
 	functionStatement.vm = p.vmCtx
 
@@ -644,15 +642,39 @@ func (p *parser) parseFunctionStatement() *FuncStatement {
 			log.Panic("unknown argument token", token)
 		}
 	}
-	statement := p.parseStatement()
-	if statement == nil {
-		log.Panic("parseForStatement for function failed")
-	}
-	functionStatement.statements = statement
+	functionStatement.statements = p.parseStatement()
 	if functionStatement.closure {
 		functionStatement.closureLabel = p.popClosureLabels()
 	}
+	/*
+		func(){
+			return func(){
+				return func(){
+					return func(){
+						println(1)
+					}
+				}
+			}
+		}()()()()
+	*/
 
+	token := p.nextToken(true)
+	if token.typ == leftParenthesisTokenType {
+		var funcCallQueueStatement FuncCallQueueStatement
+		for {
+			expression := p.parseFunctionCall([]string{"lambda"})
+			expression.function = &functionStatement
+			funcCallQueueStatement.statement = append(funcCallQueueStatement.statement, expression)
+			token = p.nextToken(true)
+			if token.typ != leftParenthesisTokenType {
+				p.putToken(token)
+				break
+			}
+		}
+		return &funcCallQueueStatement
+	} else {
+		p.putToken(token)
+	}
 	return &functionStatement
 }
 

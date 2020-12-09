@@ -572,6 +572,24 @@ var a = a.get(1)
 a()
 
 `
+	Parse(data).Invoke()
+}
 
+func TestFunctionCallC(t *testing.T) {
+	data := `
+println(0)
+func(){
+	println(1)
+	return func(){
+			println(2)
+			return func(){
+				println(3)
+				return func(){
+					println(4)
+			}
+		}
+	}
+}()()()()
+`
 	Parse(data).Invoke()
 }

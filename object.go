@@ -13,10 +13,7 @@ type Object struct {
 }
 
 func (obj *Object) Invoke() Expression {
-	switch inner := obj.inner.(type) {
-	case *FuncStatement:
-		inner.doClosureInit()
-		return obj
+	switch obj.inner.(type) {
 	case Expression:
 		return obj.inner.(Expression).Invoke()
 	default:
