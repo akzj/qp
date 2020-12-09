@@ -1,7 +1,6 @@
 package qp
 
 import (
-	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -111,6 +110,30 @@ type StructObjectInitStatement struct {
 	initStatements Statements
 }
 
+type makeArrayStatement struct {
+	vm             *VMContext
+	initStatements Statements
+}
+
+func (m *makeArrayStatement) Invoke() Expression {
+	var array = &Array{
+		TypeObject: TypeObject{
+			vm:      m.vm,
+			label:   "array",
+			init:    true,
+			objects: arrayBuiltInFunctions,
+		},
+	}
+	for _, statement := range m.initStatements {
+		array.data = append(array.data, statement.Invoke())
+	}
+	return array
+}
+
+func (m *makeArrayStatement) getType() Type {
+	return arrayObjectType
+}
+
 func (g *getObjectPropStatement) Invoke() Expression {
 	return g.getObject.Invoke().(*Object).inner
 }
@@ -181,22 +204,9 @@ func (statement *StructObjectInitStatement) getType() Type {
 	return typeObjectInitStatementType
 }
 
-func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) error {
-	//lambda function no bind this to objects
-	if f.closure && len(inArguments) != 0 {
-		statement, ok := inArguments[0].(*getObjectPropStatement)
-		if ok && statement.this {
-			inArguments = inArguments[1:]
-		}
-	}
+func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) {
 	if len(f.parameters) != len(inArguments) {
-		log.Println("argument size no match", len(f.parameters), len(inArguments))
-		return fmt.Errorf("argument size no match")
-	}
-
-	var results []Expression
-	for _, expression := range inArguments {
-		results = append(results, expression.Invoke())
+		log.Panic("argument size no match ", len(f.parameters), len(inArguments))
 	}
 
 	f.vm.pushStackFrame(true)
@@ -213,17 +223,14 @@ func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) error {
 	}
 
 	//make stack for this function
-	for index, result := range results {
+	for index, result := range inArguments {
 		f.vm.allocObject(f.parameters[index]).inner = result
 	}
-	return nil
 }
 
 func (f *FuncStatement) call(arguments ...Expression) Expression {
 	defer f.vm.popStackFrame()
-	if err := f.prepareArgumentBind(arguments); err != nil {
-		return nil
-	}
+	f.prepareArgumentBind(arguments)
 	for _, statement := range f.statements {
 		if ret, ok := statement.Invoke().(*ReturnStatement); ok {
 			return ret.returnVal
@@ -342,17 +349,34 @@ func (Statements) getType() Type {
 }
 
 func (f *FuncCallStatement) Invoke() Expression {
+	var function Function
+	var arguments Expressions
 	if f.getObject != nil {
 		var object = f.getObject.Invoke()
-		return object.(Function).call(f.arguments...)
-	} else {
-		function, err := f.vm.getFunction(f.label)
-		if err == nil {
-			return function.call(f.arguments...)
+		if object == nil {
+			log.Panic("no find function",f.label)
 		}
-		log.Panic("getFunction failed", f.label, err)
-		return nil
+		//lambda function can't bind this to first argument
+		if funcStatement, ok := object.(*FuncStatement); ok {
+			if funcStatement.closure && len(f.arguments) != 0 {
+				statement, ok := f.arguments[0].(*getObjectPropStatement)
+				if ok && statement.this {
+					f.arguments = f.arguments[1:]
+				}
+			}
+		}
+		function = object.(Function)
+	} else {
+		var err error
+		function, err = f.vm.getFunction(f.label)
+		if err != nil {
+			log.Panic("no find function", f.label, err)
+		}
 	}
+	for _, argument := range f.arguments {
+		arguments = append(arguments, argument.Invoke())
+	}
+	return function.call(arguments...)
 }
 
 func (f *FuncCallStatement) getType() Type {

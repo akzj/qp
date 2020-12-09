@@ -11,9 +11,7 @@ type Function interface {
 	call(arguments ...Expression) Expression
 }
 
-var builtInFunctionMap = map[string]Function{
-	"println": &println{},
-}
+
 
 type println struct {
 }
@@ -28,17 +26,16 @@ func (p *println) getType() Type {
 
 func (println) call(arguments ...Expression) Expression {
 	for _, argument := range arguments {
-		object := argument.Invoke()
 	Loop:
 		for {
-			switch expression := object.(type) {
+			switch expression := argument.(type) {
 			case *IntObject,
 				*StringObject,
 				*NilObject:
 				fmt.Print(expression)
 				break Loop
 			default:
-				log.Panic("unknown type" + reflect.TypeOf(object).String())
+				log.Panic("unknown type" + reflect.TypeOf(argument).String())
 			}
 		}
 	}

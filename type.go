@@ -111,6 +111,10 @@ func (t Type) String() string {
 		return "=="
 	case getObjectObjectStatementType:
 		return "getObjectObjectStatementType"
+	case leftBracketTokenType:
+		return "["
+	case rightBracketTokenType:
+		return "]"
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
@@ -140,6 +144,8 @@ const commaTokenType Type = 124                // ,
 const semicolonTokenType Type = 125            // ;
 const colonTokenType Type = 126                // :
 const periodTokenType Type = 127               // .
+const leftBracketTokenType Type = 128          // [
+const rightBracketTokenType Type = 129         // ]
 const ifTokenType Type = 230                   // if
 const elseTokenType Type = 331                 // else
 const funcTokenType Type = 332                 // func
@@ -203,6 +209,8 @@ var (
 	colonToken            = Token{typ: colonTokenType}
 	periodToken           = Token{typ: periodTokenType}
 	equalToken            = Token{typ: EqualTokenType}
+	leftBracketToken      = Token{typ: leftBracketTokenType}
+	rightBracketToken     = Token{typ: rightBracketTokenType}
 )
 
 var Keywords = []string{

@@ -108,7 +108,7 @@ func (ctx *VMContext) addUserFunction(function *FuncStatement) {
 		})
 	}
 
-	if _, ok := builtInFunctionMap[function.label]; ok {
+	if _, ok := builtInFunctions[function.label]; ok {
 		log.Panic("function name conflict with built in function", function.label)
 	}
 	if _, ok := ctx.functions[function.label]; ok {
@@ -118,7 +118,7 @@ func (ctx *VMContext) addUserFunction(function *FuncStatement) {
 }
 
 func (ctx *VMContext) getFunction(label string) (Function, error) {
-	function, ok := builtInFunctionMap[label]
+	function, ok := builtInFunctions[label]
 	if ok {
 		return function, nil
 	}

@@ -78,6 +78,10 @@ func (l *lexer) peek() Token {
 			token = leftBraceToken
 		case c == '}':
 			token = rightBraceToken
+		case c == '[':
+			token = leftBracketToken
+		case c == ']':
+			token = rightBracketToken
 		case c == '<':
 			if ahead, _ := l.ahead(); ahead == '=' {
 				_, _ = l.get()

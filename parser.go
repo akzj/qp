@@ -229,8 +229,10 @@ Loop:
 			//lambda func
 		case token.typ == funcTokenType:
 			last := p.historyToken(1)
-			if isOperatorToken(last) ||
-				last.typ == assignTokenType {
+			if isOperatorToken(last) || //1 + func(){}()
+				last.typ == assignTokenType || //var a = func(){}
+				last.typ == leftBracketTokenType || //var  = [func(){}]
+				last.typ == commaTokenType { //var  = [1,func(){}]
 				expression := p.parseFunctionStatement()
 				if expression == nil {
 					log.Panic("p.parseFunctionStatement() failed")
@@ -252,6 +254,9 @@ Loop:
 				log.Panic("parsePeriodStatement failed")
 			}
 			expressions = append(expressions, expression)
+			// []
+		case token.typ == leftBracketTokenType:
+			expressions = append(expressions, p.parseArrayInit())
 		case token.typ == labelType:
 			his := p.historyToken(1)
 			if isOperatorToken(his) ||
@@ -795,6 +800,27 @@ func (p *parser) popClosureLabels() []string {
 		return closureLabel
 	}
 	return nil
+}
+
+// var a = []
+func (p *parser) parseArrayInit() *makeArrayStatement {
+	var statement = &makeArrayStatement{
+		vm:             p.vmCtx,
+		initStatements: nil,
+	}
+	for {
+		token := p.nextToken(true)
+		if token.typ == rightBracketTokenType {
+			return statement
+		} else if token.typ == commaTokenType {
+			statement.initStatements = append(statement.initStatements,
+				p.parseExpression())
+		} else {
+			p.putToken(token)
+			statement.initStatements = append(statement.initStatements,
+				p.parseExpression())
+		}
+	}
 }
 
 func Parse(data string) Statements {

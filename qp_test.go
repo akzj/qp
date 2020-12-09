@@ -552,10 +552,26 @@ func TestNil(t *testing.T) {
 	data := `
 var a
 if a == nil{
-	println("a is nil",1000)
+	println("is nil",1000,a)
 }else{
 	println(a)
 }
 `
+	Parse(data).Invoke()
+}
+
+func TestArray(t *testing.T) {
+	data := `
+
+var a = [1,func(){
+	println("function object")
+}]
+a.append(2)
+println(a.get(0))
+var a = a.get(1)
+a()
+
+`
+
 	Parse(data).Invoke()
 }
