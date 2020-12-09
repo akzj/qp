@@ -180,7 +180,7 @@ func (g *getObjectPropStatement) Invoke() Expression {
 func (g *getObjectObjectStatement) Invoke() Expression {
 	object := g.vmContext.getObject(g.labels[0])
 	if object == nil {
-		log.Panic("getObject failed", g.labels[0])
+		log.Panicf("getObject failed `%s`", g.labels[0])
 	}
 	structObj, ok := object.inner.(BaseObject)
 	if ok == false {
@@ -311,7 +311,7 @@ func (expression *AssignStatement) Invoke() Expression {
 	} else {
 		object := expression.ctx.getObject(expression.label)
 		if object == nil {
-			log.Panic("AssignStatement getObject failed", expression.label)
+			log.Panicf("AssignStatement getObject failed `%s`", expression.label)
 		}
 		object.inner = inner
 	}
@@ -427,8 +427,11 @@ func (f *FuncCallStatement) getType() Type {
 
 func (f *getVarStatement) Invoke() Expression {
 	object := f.ctx.getObject(f.label)
-	if object == nil {
-		log.Panicln("no find Object with label", f.label)
+	if object == nil{
+		log.Panicf("get val failed `%s`",f.label)
+	}
+	if object.inner == nil {
+		object.inner = nilObject
 	}
 	return object.Invoke()
 }

@@ -422,9 +422,10 @@ func user.print(){
 }
 
 // alloc field u
+
+var ccc = 1
 var u = user{
-//init field
-	c:1
+	c:ccc
 }
 // get field
 println(u.id) // 1 
@@ -597,5 +598,48 @@ func(){
 	}
 }()()()()
 `
+	Parse(data).Invoke()
+}
+
+func TestList(t *testing.T) {
+	data := `
+type Item {
+}
+
+type List {
+}
+
+
+func List.insert(val){
+    var item =Item{}
+	item.value = val
+    if this.head == nil {
+        this.head = item
+    }else{
+        item.next = this.head
+        this.head = item
+    }
+}
+
+
+var list = List{}
+
+list.insert(1)
+list.insert(2)
+list.insert(3)
+list.insert(4)
+list.insert(5)
+
+for var head =list.head ;;{
+println(head.value)
+
+if head.next == nil{
+	break
+}
+ head = head.next
+}
+
+`
+
 	Parse(data).Invoke()
 }

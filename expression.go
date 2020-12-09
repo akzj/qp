@@ -91,6 +91,13 @@ func (expression *EqualExpression) Invoke() Expression {
 		default:
 			val = false
 		}
+	case *TypeObject:
+		switch right.(type) {
+		case *NilObject:
+			val = false
+		default:
+			val = false
+		}
 	default:
 		panic(reflect.TypeOf(left).String() + "\n" +
 			reflect.TypeOf(right).String())

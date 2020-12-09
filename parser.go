@@ -244,9 +244,6 @@ Loop:
 		case token.typ == periodTokenType:
 			//translation to `this.`
 			expression := p.parsePeriodStatement("this")
-			if expression == nil {
-				log.Panic("parsePeriodStatement failed")
-			}
 			expressions = append(expressions, expression)
 			// []
 		case token.typ == leftBracketTokenType:
@@ -259,7 +256,9 @@ Loop:
 				his.typ == ifTokenType ||
 				his.typ == elseifTokenType ||
 				his.typ == leftParenthesisTokenType ||
+				his.typ == leftBraceTokenType ||
 				his.typ == assignTokenType ||
+				his.typ == colonTokenType ||
 				his.typ == returnTokenType {
 				label := token.data
 				next := p.nextToken(true)
@@ -310,6 +309,9 @@ Loop:
 		if token.typ == commentTokenType {
 			continue
 		}
+		if token.typ == EOFTokenType {
+			break
+		}
 		switch {
 		case token.typ == ifTokenType:
 			expression := p.parseIfStatement()
@@ -332,7 +334,7 @@ Loop:
 				statements = append(statements, statement)
 			}
 		case token.typ == typeTokenType:
-			p.vmCtx.addStructObject(p.parseStructObject())
+			p.vmCtx.addStructObject(p.parseTypeObject())
 		case token.typ == varTokenType:
 			token = p.nextToken(true)
 			if token.typ != labelType {
@@ -374,6 +376,10 @@ Loop:
 		case token.typ == commaTokenType: // end of expression
 			p.putToken(token)
 			break Loop
+		case token.typ == periodTokenType:
+			statements = append(statements, p.parsePeriodStatement("this"))
+		case token.typ == breakTokenType:
+			statements = append(statements, breakObject)
 		case token.typ == labelType:
 			label := token.data
 			next := p.nextToken(true)
@@ -391,6 +397,8 @@ Loop:
 					ctx:   p.vmCtx,
 					label: label,
 				})
+			} else if next.typ == leftBraceTokenType { //eg: User {
+				statements = append(statements, p.parseObjectStructInit(token.data))
 			} else if next.typ == periodTokenType { // label.
 				p.closureCheckVisit(token.data)
 				statement := p.parsePeriodStatement(token.data)
@@ -400,6 +408,7 @@ Loop:
 				}
 				statements = append(statements, statement)
 			} else if next.typ == assignTokenType {
+				log.Println(token)
 				p.closureCheckVisit(token.data)
 				expression := p.parseExpression()
 				statements = append(statements, &AssignStatement{
@@ -410,7 +419,8 @@ Loop:
 			} else {
 				panic(token)
 			}
-			continue
+		default:
+			panic("unknown token" + token.String())
 		}
 	}
 	return statements
@@ -455,7 +465,6 @@ func (p *parser) parseForStatement() *ForStatement {
 	token := p.nextToken(true)
 	if token.typ == semicolonTokenType {
 		forStatement.preStatement = &NopStatement{}
-		log.Panic("semicolonTokenType")
 	} else if token.typ == leftBraceTokenType {
 		forStatement.preStatement = &NopStatement{}
 		forStatement.postStatement = &NopStatement{}
@@ -678,7 +687,7 @@ func (p *parser) parseFunctionStatement() Statement {
 	return &functionStatement
 }
 
-func (p *parser) parseStructObject() *TypeObject {
+func (p *parser) parseTypeObject() *TypeObject {
 	var object = &TypeObject{}
 	token := p.nextToken(true)
 	if token.typ != labelType {
@@ -713,16 +722,11 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 
 	for {
 		token := p.nextToken(true)
-		if token.typ == commaTokenType {
-			token = p.nextToken(true)
-		}
 		if token.typ != labelType {
 			log.Panic("expect label,error", token)
-			return nil
 		}
-		if next := p.nextToken(true); next.typ != colonTokenType {
-			log.Panic("expect colon `:` ,error", token)
-			return nil
+		if token = p.nextToken(true); token.typ != colonTokenType {
+			log.Panic("expect colon `:` ,error ", token)
 		}
 		statement.initStatements = append(statement.initStatements, &VarAssignStatement{
 			ctx:        p.vmCtx,
@@ -733,6 +737,8 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 		token = p.nextToken(true)
 		if token.typ == rightBraceTokenType {
 			break
+		} else if token.typ == commaTokenType {
+			continue
 		}
 		p.putToken(token)
 	}
@@ -753,6 +759,10 @@ func (p *parser) parsePeriodStatement(label string) Statement {
 		next := p.nextToken(true)
 		if next.typ == periodTokenType {
 			token = p.nextToken(true)
+			if token.typ != labelType {
+				log.Panic("expect label ", token)
+			}
+			labels = append(labels, token.data)
 			continue
 			// a.b.c(1) //function call
 		} else if next.typ == leftParenthesisTokenType {

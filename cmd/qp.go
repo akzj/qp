@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"qp"
+	"github.com/akzj/qp"
 )
 
 func main() {
