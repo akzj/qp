@@ -117,6 +117,12 @@ func (t Type) String() string {
 		return "]"
 	case funcCallQueueStatementType:
 		return "funcCallQueueStatementType"
+	case falseTokenType:
+		return "false"
+	case TrueTokenType:
+		return "true"
+	case NoEqualTokenType:
+		return "!="
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
@@ -128,6 +134,8 @@ const unknownTokenType Type = 1
 const commentTokenType Type = 2                // //
 const stringTokenType Type = 3                 // string "" ''
 const nilTokenType Type = 4                    // null
+const TrueTokenType Type = 5                   // true
+const falseTokenType Type = 6                  // false
 const incOperatorTokenType Type = 100          // ++
 const addOperatorTokenType Type = 101          // +
 const subOperatorTokenType Type = 102          // -
@@ -138,6 +146,7 @@ const greaterTokenType Type = 106              // >
 const lessEqualTokenType Type = 116            // <=
 const greaterEqualTokenType Type = 117         // >=
 const EqualTokenType Type = 118                // ==
+const NoEqualTokenType Type = 119              // !=
 const leftParenthesisTokenType Type = 120      // (
 const rightParenthesisTokenType Type = 121     // )
 const leftBraceTokenType Type = 122            // {
@@ -214,10 +223,11 @@ var (
 	equalToken            = Token{typ: EqualTokenType}
 	leftBracketToken      = Token{typ: leftBracketTokenType}
 	rightBracketToken     = Token{typ: rightBracketTokenType}
+	NoEqualToken          = Token{typ: NoEqualTokenType}
 )
 
 var Keywords = []string{
-	"if", "else", "func", "return", "break", "for", "var", "type", "nil",
+	"if", "else", "func", "return", "break", "for", "var", "type", "nil", "true", "false",
 }
 
 var keywordTokenType = map[string]Type{
@@ -230,4 +240,6 @@ var keywordTokenType = map[string]Type{
 	"var":    varTokenType,
 	"type":   typeTokenType,
 	"nil":    nilTokenType,
+	"true":   TrueTokenType,
+	"false":  falseTokenType,
 }

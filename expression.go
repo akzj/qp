@@ -65,6 +65,24 @@ type EqualExpression struct {
 	right Expression
 }
 
+type NoEqualExpression struct {
+	Left  Expression
+	right Expression
+}
+
+func (n *NoEqualExpression) Invoke() Expression {
+	equal := EqualExpression{
+		Left:  n.Left,
+		right: n.right,
+	}
+	val := !*equal.Invoke().(*BoolObject)
+	return &val
+}
+
+func (n *NoEqualExpression) getType() Type {
+	panic("implement me")
+}
+
 func (expression *EqualExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
@@ -74,28 +92,25 @@ func (expression *EqualExpression) Invoke() Expression {
 		switch rVal := right.(type) {
 		case *IntObject:
 			val = *lVal == *rVal
-		default:
-			val = false
 		}
 	case *StringObject:
 		switch e := right.(type) {
 		case *StringObject:
 			val = lVal.data == e.data
-		default:
-			val = false
 		}
 	case *NilObject:
 		switch right.(type) {
 		case *NilObject:
 			val = true
-		default:
-			val = false
+		}
+	case *BoolObject:
+		switch rr := right.(type) {
+		case *BoolObject:
+			val = *lVal == *rr
 		}
 	case *TypeObject:
 		switch right.(type) {
 		case *NilObject:
-			val = false
-		default:
 			val = false
 		}
 	default:

@@ -602,6 +602,7 @@ func(){
 }
 
 func TestList(t *testing.T) {
+
 	data := `
 type Item {
 }
@@ -609,6 +610,9 @@ type Item {
 type List {
 }
 
+if 1 != 0 {
+	println("!= done")
+}
 
 func List.insert(val){
     var item =Item{}
@@ -630,16 +634,17 @@ list.insert(3)
 list.insert(4)
 list.insert(5)
 
-for var head =list.head ;;{
-println(head.value)
+for var head =list.head ;head != nil; head = head.next{
+	println(head.value)
+}
 
-if head.next == nil{
-	break
-}
- head = head.next
-}
+println(list.no)
+
+var a = list.no
+println(a)
+a = 1
+println(a)
 
 `
-
 	Parse(data).Invoke()
 }

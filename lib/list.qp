@@ -1,24 +1,18 @@
 
-type Item {
-    var value
-    var next
-}
+type Item {}
 
-type List {
-    var Head
-}
-
+type List {}
 
 func List.insert(val){
-    var item =Item{
-        value:val
-    }
-    if .head == nil{
-        .head = item
+    var item =Item{}
+    item.value = val
+    if this.head == nil{
+        this.head = item
     }else{
-        item.next = .head
-        .head = item
+        item.next = this.head
+        this.head = item
     }
+    println(this.head.value)
 }
 
 

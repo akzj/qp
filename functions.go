@@ -25,7 +25,7 @@ func (p *println) getType() Type {
 func (println) call(arguments ...Expression) Expression {
 	for _, argument := range arguments {
 		if stringer, ok := argument.(fmt.Stringer); ok {
-			fmt.Println(stringer)
+			fmt.Print(stringer)
 		}else{
 			log.Println("unknown type"+reflect.TypeOf(argument).String())
 		}

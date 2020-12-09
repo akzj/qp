@@ -27,7 +27,7 @@ func precedenceGE(first, second Type) bool {
 }
 
 func isOperatorToken(token Token) bool {
-	return token.typ >= addOperatorTokenType && token.typ <= EqualTokenType
+	return token.typ >= addOperatorTokenType && token.typ <= NoEqualTokenType
 }
 
 type closureCheck struct {
@@ -115,6 +115,12 @@ func makeExpression(opToken Token, expressions *[]Expression) Expression {
 			right: (*expressions)[len(*expressions)-1],
 		}
 		*expressions = (*expressions)[:len(*expressions)-2]
+	case NoEqualTokenType:
+		expression = &NoEqualExpression{
+			Left:  (*expressions)[len(*expressions)-2],
+			right: (*expressions)[len(*expressions)-1],
+		}
+		*expressions = (*expressions)[:len(*expressions)-2]
 	default:
 		panic(opToken)
 	}
@@ -194,6 +200,10 @@ Loop:
 			expressions = append(expressions, nilObject)
 		case token.typ == leftParenthesisTokenType:
 			opStack = append(opStack, token)
+		case token.typ == TrueTokenType:
+			expressions = append(expressions, &trueObject)
+		case token.typ == falseTokenType:
+			expressions = append(expressions, &falseObject)
 		case token.typ == rightParenthesisTokenType:
 			var find = false
 			for _, opCode := range opStack {
@@ -380,6 +390,10 @@ Loop:
 			statements = append(statements, p.parsePeriodStatement("this"))
 		case token.typ == breakTokenType:
 			statements = append(statements, breakObject)
+		case token.typ == TrueTokenType:
+			statements = append(statements, &trueObject)
+		case token.typ == falseTokenType:
+			statements = append(statements, &falseObject)
 		case token.typ == labelType:
 			label := token.data
 			next := p.nextToken(true)
@@ -408,7 +422,6 @@ Loop:
 				}
 				statements = append(statements, statement)
 			} else if next.typ == assignTokenType {
-				log.Println(token)
 				p.closureCheckVisit(token.data)
 				expression := p.parseExpression()
 				statements = append(statements, &AssignStatement{
@@ -468,7 +481,7 @@ func (p *parser) parseForStatement() *ForStatement {
 	} else if token.typ == leftBraceTokenType {
 		forStatement.preStatement = &NopStatement{}
 		forStatement.postStatement = &NopStatement{}
-		forStatement.checkStatement = &trueExpression
+		forStatement.checkStatement = &trueObject
 		statements := p.parseStatement()
 		forStatement.statements = statements
 		return &forStatement
@@ -485,7 +498,7 @@ func (p *parser) parseForStatement() *ForStatement {
 	token = p.nextToken(true)
 	//check expression
 	if token.typ == semicolonTokenType {
-		forStatement.checkStatement = &trueExpression
+		forStatement.checkStatement = &trueObject
 	} else {
 		p.putToken(token)
 		expression := p.parseExpression()
@@ -502,9 +515,9 @@ func (p *parser) parseForStatement() *ForStatement {
 		p.putToken(token)
 	} else {
 		p.putToken(token)
-		expression := p.parseExpression()
+		expression := p.parse()
 		if next := p.nextToken(true); next.typ != leftBraceTokenType {
-			log.Panic("expect { in `for` post expression")
+			log.Panicf("expect { in `for` post expression get `%s`",next)
 		} else {
 			p.putToken(next)
 		}

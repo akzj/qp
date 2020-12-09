@@ -100,6 +100,13 @@ func (l *lexer) peek() Token {
 			token = mulOperatorToken
 		case '0' <= c && c <= '9':
 			token = l.parseNumToken(c)
+		case c == '!':
+			if c, _ = l.ahead(); c == '=' {
+				_, _ = l.get()
+				token = NoEqualToken
+			} else {
+				log.Panicf("unknown token`%s`", string(c))
+			}
 		case c == '=':
 			token = assignToken
 			if c, _ = l.ahead(); c == '=' {

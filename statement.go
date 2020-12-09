@@ -174,7 +174,11 @@ func (m *makeArrayStatement) getType() Type {
 }
 
 func (g *getObjectPropStatement) Invoke() Expression {
-	return g.getObject.Invoke().(*Object).inner
+	obj := g.getObject.Invoke()
+	if obj == nilObject {
+		return obj
+	}
+	return obj.(*Object).inner
 }
 
 func (g *getObjectObjectStatement) Invoke() Expression {
@@ -185,7 +189,7 @@ func (g *getObjectObjectStatement) Invoke() Expression {
 	structObj, ok := object.inner.(BaseObject)
 	if ok == false {
 		log.Panic("objects type no struct objects,error",
-			g.labels, reflect.TypeOf(object.inner).String())
+		g.labels, reflect.TypeOf(object.inner).String())
 	}
 	/*
 	 user.id = 1 // bind 1 to user.id
@@ -427,8 +431,8 @@ func (f *FuncCallStatement) getType() Type {
 
 func (f *getVarStatement) Invoke() Expression {
 	object := f.ctx.getObject(f.label)
-	if object == nil{
-		log.Panicf("get val failed `%s`",f.label)
+	if object == nil {
+		log.Panicf("getObject faild `%s`",f.label)
 	}
 	if object.inner == nil {
 		object.inner = nilObject
@@ -507,6 +511,8 @@ func (statements Statements) Invoke() Expression {
 		val = statement.Invoke()
 		if _, ok := val.(*ReturnStatement); ok {
 			return val
+		} else if _, ok := val.(*BreakObject); ok {
+			return breakObject
 		}
 	}
 	return val

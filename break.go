@@ -5,10 +5,10 @@ var breakObject = &BreakObject{}
 type BreakObject struct {
 }
 
-func (b BreakObject) Invoke() Expression {
+func (b *BreakObject) Invoke() Expression {
 	return b
 }
 
-func (b BreakObject) getType() Type {
+func (b *BreakObject) getType() Type {
 	return breakTokenType
 }
