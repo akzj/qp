@@ -1,14 +1,54 @@
 package qp
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
 type Array struct {
-	TypeObject
-	data []Expression
+	data   []Expression
+	object map[string]*Object
 }
 
-type appendArray struct {
+func (a *Array) String() string {
+	return fmt.Sprintf("%+v", a.data)
 }
+
+func (a *Array) Invoke() Expression {
+	return a
+}
+
+func (a *Array) getType() Type {
+	return arrayObjectType
+}
+
+func (a *Array) getObject(label string) *Object {
+	return arrayBuiltInFunctions[label]
+}
+
+func (a *Array) allocObject(label string) *Object {
+	if obj := a.getObject(label); obj != nil {
+		return obj
+	}
+	if a.object == nil {
+		a.object = map[string]*Object{}
+	}
+	obj := &Object{
+		inner: nilObject,
+		label: label,
+		typ:   nilType,
+	}
+	a.object[label] = obj
+	return obj
+}
+
+func (a *Array) clone() BaseObject {
+	var data = make([]Expression, len(a.data))
+	copy(data, a.data)
+	return &Array{data: data}
+}
+
+type appendArray struct{}
 
 func (a *appendArray) Invoke() Expression {
 	return a

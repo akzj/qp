@@ -14,5 +14,5 @@ func (n NilObject) Invoke() Expression {
 }
 
 func (NilObject) getType() Type {
-	return nilTokenType
+	return nilType
 }

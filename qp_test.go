@@ -722,9 +722,15 @@ println("")
 }
 
 func TestSlice(t *testing.T) {
-	var ints []int
-	for i := 0; i <100; i++ {
-		ints = append(ints,i)
-	}
-	fmt.Println(ints[10:10])
+	data := `
+
+var arr = []
+for var i = 0; i < 100;i ++{
+	arr.append(i)
+}
+
+println(arr)
+`
+
+	Parse(data).Invoke()
 }

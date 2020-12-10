@@ -103,7 +103,7 @@ func (t Type) String() string {
 		return "ErrorTokenType"
 	case stringTokenType:
 		return "string"
-	case nilTokenType:
+	case nilType:
 		return "nil"
 	case EqualTokenType:
 		return "=="
@@ -136,7 +136,7 @@ const ErrorTokenType Type = -1
 const EOFTokenType Type = 0
 const commentTokenType Type = 2                // //
 const stringTokenType Type = 3                 // string "" ''
-const nilTokenType Type = 4                    // null
+const nilType Type = 4                         // null
 const TrueTokenType Type = 5                   // true
 const falseTokenType Type = 6                  // false
 const incOperatorTokenType Type = 100          // ++
@@ -245,7 +245,7 @@ var keywordTokenType = map[string]Type{
 	"for":    forTokenType,
 	"var":    varTokenType,
 	"type":   typeTokenType,
-	"nil":    nilTokenType,
+	"nil":    nilType,
 	"true":   TrueTokenType,
 	"false":  falseTokenType,
 }

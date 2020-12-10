@@ -157,14 +157,7 @@ type makeArrayStatement struct {
 }
 
 func (m *makeArrayStatement) Invoke() Expression {
-	var array = &Array{
-		TypeObject: TypeObject{
-			vm:      m.vm,
-			label:   "array",
-			init:    true,
-			objects: arrayBuiltInFunctions,
-		},
-	}
+	var array = &Array{}
 	for _, statement := range m.initStatements {
 		array.data = append(array.data, statement.Invoke())
 	}

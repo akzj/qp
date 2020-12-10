@@ -196,7 +196,7 @@ Loop:
 			expressions = append(expressions, (Int)(val))
 		case token.typ == stringTokenType:
 			expressions = append(expressions, String(token.data))
-		case token.typ == nilTokenType:
+		case token.typ == nilType:
 			expressions = append(expressions, nilObject)
 		case token.typ == leftParenthesisTokenType:
 			opStack = append(opStack, token)

@@ -4,7 +4,6 @@ type BaseObject interface {
 	Expression
 	getObject(label string) *Object
 	allocObject(label string) *Object
-	addObject(k string, v *Object)
 	clone() BaseObject
 }
 
