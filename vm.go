@@ -9,12 +9,13 @@ import (
 type stackFrame struct {
 	stackTopPointer    int
 	stackBottomPointer int
-	isolate            bool
+	stackGCPointer     int
 }
 
 type memory struct {
 	stackTopPointer    int
 	stackBottomPointer int
+	stackGCPointer     int
 	stackSize          int
 	stack              []Object
 	stackFrames        []stackFrame
@@ -31,20 +32,20 @@ func newMemory() *memory {
 }
 
 func (m *memory) alloc(label string) *Object {
-	if m.stackSize == m.stackTopPointer-1 {
+	if m.stackSize-1 <= m.stackTopPointer {
 		newStack := make([]Object, m.stackSize*2)
 		copy(newStack, m.stack[:m.stackTopPointer])
 		m.stack = newStack
 		m.stackSize = m.stackSize * 2
 	}
-	m.stackTopPointer++
 	object := &m.stack[m.stackTopPointer]
 	object.label = label
+	m.stackTopPointer++
 	return object
 }
 
 func (m *memory) getObject(label string) *Object {
-	for index := m.stackTopPointer; index >= m.stackBottomPointer+1; index-- {
+	for index := m.stackTopPointer - 1; index >= m.stackBottomPointer; index-- {
 		if m.stack[index].label == label {
 			return &m.stack[index]
 		}
@@ -56,10 +57,10 @@ func (m *memory) pushStackFrame(isolate bool) {
 	m.stackFrames = append(m.stackFrames, stackFrame{
 		stackTopPointer:    m.stackTopPointer,
 		stackBottomPointer: m.stackBottomPointer,
-		isolate:            isolate,
+		stackGCPointer:     m.stackGCPointer,
 	})
+	m.stackGCPointer = m.stackTopPointer
 	if isolate {
-		//move bottom to top
 		m.stackBottomPointer = m.stackTopPointer
 	}
 }
@@ -68,14 +69,15 @@ func (m *memory) popStackFrame() {
 	if len(m.stackFrames) == 0 {
 		panic("stackFrames empty")
 	}
+	toGc := m.stack[m.stackGCPointer:m.stackTopPointer]
 	frame := m.stackFrames[len(m.stackFrames)-1]
 	m.stackFrames = m.stackFrames[:len(m.stackFrames)-1]
 	m.stackTopPointer = frame.stackTopPointer
 	m.stackBottomPointer = frame.stackBottomPointer
-	/*toGc := m.stack[frame.stackBottomPointer:frame.stackTopPointer]
+	m.stackGCPointer = frame.stackGCPointer
 	for i := range toGc {
 		toGc[i].inner = nil
-	}*/
+	}
 }
 
 type VMContext struct {

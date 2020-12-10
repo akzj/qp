@@ -687,7 +687,10 @@ func fib(val){
 	if val < 2 {
 		return val
 	}
-	return fib(val-2) +fib(val-1)
+var l = fib(val-2) 
+var r = fib(val-1)
+	 var res = l+r
+	return res
 }
 
 println("num|result|take time")
@@ -705,4 +708,12 @@ println("")
 		statement.Invoke()
 	}
 
+}
+
+func TestSlice(t *testing.T) {
+	var ints []int
+	for i := 0; i <100; i++ {
+		ints = append(ints,i)
+	}
+	fmt.Println(ints[10:10])
 }
