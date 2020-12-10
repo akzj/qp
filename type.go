@@ -121,6 +121,12 @@ func (t Type) String() string {
 		return "true"
 	case NoEqualTokenType:
 		return "!="
+	case DurationObjectType:
+		return "DurationObjectType"
+	case timeObjectType:
+		return "timeObjectType"
+	case builtInFunctionType:
+		return "builtInFunction"
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
@@ -184,6 +190,9 @@ const typeObjectInitStatementType Type = 11003 // objects init statement
 const propObjectStatementType Type = 10004     // getTypeObjectStatement statement
 const getObjectObjectStatementType Type = 1005 // getObjectObjectStatement
 const funcCallQueueStatementType Type = 10006  // FuncCallQueueStatement
+const DurationObjectType Type = 10007          //DurationObjectType
+const timeObjectType Type = 10008              //DurationObjectType
+const builtInFunctionType = 10009              // built in function
 
 type Token struct {
 	typ  Type

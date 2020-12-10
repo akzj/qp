@@ -2,6 +2,7 @@ package qp
 
 import (
 	"reflect"
+	"time"
 )
 
 type Expression interface {
@@ -259,6 +260,12 @@ func (s *SubExpression) Invoke() Expression {
 		case *IntObject:
 			val := *lVal - *rVal
 			return (*IntObject)(&val)
+		}
+	case TimeObject:
+		switch rVal := right.(type) {
+		case TimeObject:
+			val := time.Time(lVal).Sub(time.Time(rVal))
+			return DurationObject(val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +

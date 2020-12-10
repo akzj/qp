@@ -601,6 +601,14 @@ func(){
 	Parse(data).Invoke()
 }
 
+func TestBuiltInFunctionNow(t *testing.T) {
+	data := `
+var res = now()
+println(now()-res)
+`
+	Parse(data).Invoke()
+}
+
 func TestList(t *testing.T) {
 
 	data := `
@@ -673,7 +681,6 @@ func TestFib(t *testing.T) {
 PASS
 */
 func TestFibonacci(t *testing.T) {
-
 	data := `
 
 func fib(val){
@@ -683,9 +690,15 @@ func fib(val){
 	return fib(val-2) +fib(val-1)
 }
 
-println(fib(25))
-
+println("num|result|take time")
+println("---|------|---------")
+for var num = 20; num < 30; num++ {
+	var begin = now()
+	println(num,"|",fib(num),"|",now() - begin)
+}
+println("")
 `
+
 	if statement := Parse(data); statement == nil {
 		panic("parse failed")
 	} else {

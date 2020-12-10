@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"time"
 )
 
 type Function interface {
@@ -11,25 +12,42 @@ type Function interface {
 	call(arguments ...Expression) Expression
 }
 
-type println struct {
-}
+type printlnFunc struct{}
 
-func (p *println) Invoke() Expression {
+func (p printlnFunc) Invoke() Expression {
 	return p
 }
 
-func (p *println) getType() Type {
-	return TypeObjectType
+func (printlnFunc) getType() Type {
+	return builtInFunctionType
 }
 
-func (println) call(arguments ...Expression) Expression {
-	for _, argument := range arguments {
+func (printlnFunc) call(arguments ...Expression) Expression {
+	for index, argument := range arguments {
 		if stringer, ok := argument.(fmt.Stringer); ok {
 			fmt.Print(stringer)
-		}else{
-			log.Println("unknown type"+reflect.TypeOf(argument).String())
+		} else {
+			log.Panicf("unknown type `%s`", reflect.TypeOf(argument).String())
+		}
+		if index != len(arguments) -1{
+			fmt.Print(" ")
 		}
 	}
 	fmt.Println()
 	return nil
+}
+
+type NowFunc struct {
+}
+
+func (n NowFunc) Invoke() Expression {
+	return n
+}
+
+func (n NowFunc) getType() Type {
+	return builtInFunctionType
+}
+
+func (n NowFunc) call(arguments ...Expression) Expression {
+	return TimeObject(time.Now())
 }

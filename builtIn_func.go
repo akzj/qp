@@ -2,16 +2,17 @@ package qp
 
 var (
 	builtInFunctions = map[string]Function{
-		"println": &println{},
+		"println": printlnFunc{},
+		"now":         NowFunc{},
 	}
 	arrayBuiltInFunctions = map[string]*Object{
 		"append": &Object{
 			inner: &appendArray{},
 			label: "append",
 		},
-		"get":&Object{
-			inner:   &getArray{},
-			label:   "get",
+		"get": &Object{
+			inner: &getArray{},
+			label: "get",
 		},
 	}
 	stringBuiltInFunctions = map[string]*Object{

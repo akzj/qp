@@ -193,7 +193,7 @@ func (g *getObjectObjectStatement) Invoke() Expression {
 	}
 	/*
 	 user.id = 1 // bind 1 to user.id
-	 println(user.id)// visit user.id
+	 printlnFunc(user.id)// visit user.id
 	*/
 	var obj = object
 	for i := 1; i < len(g.labels); i++ {
@@ -417,7 +417,7 @@ func (f *FuncCallStatement) Invoke() Expression {
 		var err error
 		function, err = f.vm.getFunction(f.label)
 		if err != nil {
-			log.Panic("no find function", f.label, err)
+			log.Panicf("no find function with label`%s`", f.label)
 		}
 	}
 	for _, argument := range f.arguments {

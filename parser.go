@@ -679,7 +679,7 @@ func (p *parser) parseFunctionStatement() Statement {
 			return func(){
 				return func(){
 					return func(){
-						println(1)
+						printlnFunc(1)
 					}
 				}
 			}
