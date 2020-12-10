@@ -63,8 +63,8 @@ func (t Type) String() string {
 		return "="
 	case varAssignTokenType:
 		return "var ="
-	case IntObjectType:
-		return "IntObject"
+	case IntType:
+		return "Int"
 	case commaTokenType:
 		return ","
 	case incOperatorTokenType:
@@ -182,8 +182,8 @@ const callFunctionType Type = 6004             // call function
 const nopStatementType Type = 6005             // nop
 const assignStatementType Type = 6006          // =
 const ObjectType Type = 100000                 // objects
-const IntObjectType Type = 10000               // int objects
-const BoolObjectType Type = 10001              // bool objects
+const IntType Type = 10000                     // int
+const BoolObjectType Type = 10001              // bool
 const TypeObjectType Type = 10002              // type objects
 const FuncStatementType Type = 10003           // function objects
 const typeObjectInitStatementType Type = 11003 // objects init statement

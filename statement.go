@@ -82,6 +82,8 @@ type IncFieldStatement struct {
 type BreakStatement struct {
 }
 
+var nopStatement = NopStatement{}
+
 type NopStatement struct {
 }
 
@@ -229,11 +231,11 @@ func (statement *StructObjectInitStatement) Invoke() Expression {
 	}
 	for _, init := range object.initStatement {
 		switch s := init.(type) {
-		case *VarAssignStatement:
+		case VarAssignStatement:
 			s.object = object
-		case *VarStatement:
+		case VarStatement:
 			s.object = object
-		case *NopStatement:
+		case NopStatement:
 			continue
 		default:
 			panic("unknown statement " + reflect.TypeOf(init).String())
@@ -276,7 +278,7 @@ func (f *FuncStatement) call(arguments ...Expression) Expression {
 	f.prepareArgumentBind(arguments)
 	for _, statement := range f.statements {
 		result := statement.Invoke()
-		if ret, ok := result.(*ReturnStatement); ok {
+		if ret, ok := result.(ReturnStatement); ok {
 			return ret.returnVal
 		}
 	}
@@ -327,11 +329,11 @@ func (expression *AssignStatement) getType() Type {
 	return assignStatementType
 }
 
-func (n *NopStatement) Invoke() Expression {
-	return n
+func (NopStatement) Invoke() Expression {
+	return nopStatement
 }
 
-func (n *NopStatement) getType() Type {
+func (n NopStatement) getType() Type {
 	return nopStatementType
 }
 
@@ -343,11 +345,11 @@ func (f *ForStatement) Invoke() Expression {
 
 	for ; ; {
 		val := f.checkStatement.Invoke()
-		bObj, ok := val.(*BoolObject)
+		bObj, ok := val.(Bool)
 		if ok == false {
-			log.Panic("for checkStatement expect BoolObject")
+			log.Panic("for checkStatement expect Bool")
 		}
-		if *bObj == false {
+		if bObj == false {
 			f.vm.popStackFrame() //end of for
 			return nil
 		}
@@ -357,7 +359,7 @@ func (f *ForStatement) Invoke() Expression {
 			if val == breakObject {
 				return nil
 			}
-			if _, ok := val.(*ReturnStatement); ok {
+			if _, ok := val.(ReturnStatement); ok {
 				return val
 			}
 		}
@@ -370,18 +372,12 @@ func (f *ForStatement) getType() Type {
 	return forTokenType
 }
 
-func (statement *IncFieldStatement) Invoke() Expression {
+func (statement IncFieldStatement) Invoke() Expression {
 	object := statement.ctx.getObject(statement.label)
 	if object == nil {
 		log.Panic("no find Object with label ", statement.label)
 	}
-	innerObject := object.Invoke()
-	switch obj := innerObject.(type) {
-	case *IntObject:
-		*obj++
-	default:
-		panic("unknown type " + reflect.TypeOf(innerObject).String())
-	}
+	object.inner = Int(int(object.inner.(Int)) + 1)
 	return nil
 }
 
@@ -424,7 +420,7 @@ func (f *FuncCallStatement) Invoke() Expression {
 		arguments = append(arguments, argument.Invoke())
 	}
 	result := function.call(arguments...)
-	if ret, ok := result.(*ReturnStatement); ok {
+	if ret, ok := result.(ReturnStatement); ok {
 		return ret.returnVal
 	}
 	return result
@@ -449,7 +445,7 @@ func (f *getVarStatement) getType() Type {
 	return labelType
 }
 
-func (v *VarStatement) Invoke() Expression {
+func (v VarStatement) Invoke() Expression {
 	if v.object != nil {
 		v.object.allocObject(v.label).inner = nilObject
 	} else {
@@ -462,7 +458,7 @@ func (v VarStatement) getType() Type {
 	return varTokenType
 }
 
-func (expression *VarAssignStatement) Invoke() Expression {
+func (expression VarAssignStatement) Invoke() Expression {
 	obj := expression.expression.Invoke()
 	var object *Object
 	if expression.object != nil {
@@ -483,15 +479,15 @@ func (expression *VarAssignStatement) Invoke() Expression {
 	return nil
 }
 
-func (expression *VarAssignStatement) getType() Type {
+func (expression VarAssignStatement) getType() Type {
 	return varAssignTokenType
 }
 
-func (r *ReturnStatement) Invoke() Expression {
+func (r ReturnStatement) Invoke() Expression {
 	if r.returnVal != nil {
 		return r
 	}
-	return &ReturnStatement{returnVal: r.express.Invoke()}
+	return ReturnStatement{returnVal: r.express.Invoke()}
 }
 
 func (ReturnStatement) getType() Type {
@@ -506,7 +502,7 @@ func (statements Statements) Invoke() Expression {
 	var val Expression
 	for _, statement := range statements {
 		val = statement.Invoke()
-		if _, ok := val.(*ReturnStatement); ok {
+		if _, ok := val.(ReturnStatement); ok {
 			return val
 		} else if _, ok := val.(*BreakObject); ok {
 			return breakObject
@@ -517,10 +513,10 @@ func (statements Statements) Invoke() Expression {
 
 func (ifStm *IfStatement) Invoke() Expression {
 	check := ifStm.check.Invoke()
-	if _, ok := check.(*BoolObject); ok == false {
+	if _, ok := check.(Bool); ok == false {
 		log.Panic("if statement check require boolObject")
 	}
-	if *check.(*BoolObject) {
+	if check.(Bool) {
 		ifStm.vm.pushStackFrame(false) //make  if brock stack
 		val := ifStm.statement.Invoke()
 		ifStm.vm.popStackFrame() //release  if brock stack
@@ -528,10 +524,10 @@ func (ifStm *IfStatement) Invoke() Expression {
 	} else {
 		for _, stm := range ifStm.elseIfStatements {
 			elseIf := stm.check.Invoke()
-			if _, ok := elseIf.(*BoolObject); ok == false {
+			if _, ok := elseIf.(Bool); ok == false {
 				log.Panicln("else if require bool result")
 			}
-			if *elseIf.(*BoolObject) {
+			if elseIf.(Bool) {
 				ifStm.vm.pushStackFrame(false) //make  if brock stack
 				val := stm.statement.Invoke()
 				ifStm.vm.popStackFrame() //release  if brock stack

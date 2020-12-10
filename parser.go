@@ -74,55 +74,55 @@ func makeExpression(opToken Token, expressions *[]Expression) Expression {
 	var expression Expression
 	switch opToken.typ {
 	case subOperatorTokenType:
-		expression = &SubExpression{
+		expression = SubExpression{
 			Left:  (*expressions)[len(*expressions)-2],
 			right: (*expressions)[len(*expressions)-1],
 		}
 		*expressions = (*expressions)[:len(*expressions)-2]
 	case addOperatorTokenType:
-		expression = &AddExpression{
+		expression = AddExpression{
 			Left:  (*expressions)[len(*expressions)-2],
 			right: (*expressions)[len(*expressions)-1],
 		}
 		*expressions = (*expressions)[:len(*expressions)-2]
 	case mulOperatorTokenType:
-		expression = &MulExpression{
+		expression = MulExpression{
 			Left:  (*expressions)[len(*expressions)-2],
 			right: (*expressions)[len(*expressions)-1],
 		}
 		*expressions = (*expressions)[:len(*expressions)-2]
 	case lessTokenType:
-		expression = &LessExpression{
+		expression = LessExpression{
 			Left:  (*expressions)[len(*expressions)-2],
 			right: (*expressions)[len(*expressions)-1],
 		}
 		*expressions = (*expressions)[:len(*expressions)-2]
 	case lessEqualTokenType:
-		expression = &LessEqualExpression{
+		expression = LessEqualExpression{
 			Left:  (*expressions)[len(*expressions)-2],
 			right: (*expressions)[len(*expressions)-1],
 		}
 		*expressions = (*expressions)[:len(*expressions)-2]
 	case greaterTokenType:
-		expression = &GreaterExpression{
+		expression = GreaterExpression{
 			Left:  (*expressions)[len(*expressions)-2],
 			right: (*expressions)[len(*expressions)-1],
 		}
 		*expressions = (*expressions)[:len(*expressions)-2]
 	case greaterEqualTokenType:
-		expression = &GreaterEqualExpression{
+		expression = GreaterEqualExpression{
 			Left:  (*expressions)[len(*expressions)-2],
 			right: (*expressions)[len(*expressions)-1],
 		}
 		*expressions = (*expressions)[:len(*expressions)-2]
 	case EqualTokenType:
-		expression = &EqualExpression{
+		expression = EqualExpression{
 			Left:  (*expressions)[len(*expressions)-2],
 			right: (*expressions)[len(*expressions)-1],
 		}
 		*expressions = (*expressions)[:len(*expressions)-2]
 	case NoEqualTokenType:
-		expression = &NoEqualExpression{
+		expression = NoEqualExpression{
 			Left:  (*expressions)[len(*expressions)-2],
 			right: (*expressions)[len(*expressions)-1],
 		}
@@ -193,15 +193,9 @@ Loop:
 			if err != nil {
 				log.Panic("parse int failed", string(token.data))
 			}
-			expressions = append(expressions, (*IntObject)(&val))
+			expressions = append(expressions, (Int)(val))
 		case token.typ == stringTokenType:
-			expressions = append(expressions, &StringObject{
-				TypeObject: TypeObject{
-					vm:    p.vmCtx,
-					label: "string",
-				},
-				data: token.data,
-			})
+			expressions = append(expressions, String(token.data))
 		case token.typ == nilTokenType:
 			expressions = append(expressions, nilObject)
 		case token.typ == leftParenthesisTokenType:
@@ -315,7 +309,7 @@ Loop:
 
 func (p *parser) parse() Statements {
 	var statements Statements
-	statements = append(statements, &NopStatement{})
+	statements = append(statements, nopStatement)
 Loop:
 	for {
 		token := p.nextToken(true)
@@ -367,14 +361,14 @@ Loop:
 					log.Panic("parse assign expression failed")
 					return nil
 				}
-				statements = append(statements, &VarAssignStatement{
+				statements = append(statements, VarAssignStatement{
 					ctx:        p.vmCtx,
 					label:      label,
 					expression: expression,
 				})
 			} else {
 				p.putToken(token)
-				statements = append(statements, &VarStatement{
+				statements = append(statements, VarStatement{
 					ctx:   p.vmCtx,
 					label: label,
 				})
@@ -456,7 +450,7 @@ func (p *parser) parseStatement() Statements {
 	leftBrace = append(leftBrace, token)
 	//check empty statement
 	if token = p.nextToken(true); token.typ == rightParenthesisTokenType {
-		statements = append(statements, &NopStatement{})
+		statements = append(statements, nopStatement)
 		return statements
 	}
 	p.putToken(token)
@@ -483,10 +477,10 @@ func (p *parser) parseForStatement() *ForStatement {
 	}
 	token := p.nextToken(true)
 	if token.typ == semicolonTokenType {
-		forStatement.preStatement = &NopStatement{}
+		forStatement.preStatement = nopStatement
 	} else if token.typ == leftBraceTokenType {
-		forStatement.preStatement = &NopStatement{}
-		forStatement.postStatement = &NopStatement{}
+		forStatement.preStatement = nopStatement
+		forStatement.postStatement = nopStatement
 		forStatement.checkStatement = &trueObject
 		statements := p.parseStatement()
 		forStatement.statements = statements
@@ -517,7 +511,7 @@ func (p *parser) parseForStatement() *ForStatement {
 	token = p.nextToken(true)
 	//post expression
 	if token.typ == leftBraceTokenType {
-		forStatement.postStatement = &NopStatement{}
+		forStatement.postStatement = nopStatement
 		p.putToken(token)
 	} else {
 		p.putToken(token)
@@ -733,7 +727,7 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 	leftBrace = append(leftBrace, 1)
 	//check empty statement
 	if token := p.nextToken(true); token.typ == rightBraceTokenType {
-		statement.initStatements = append(statement.initStatements, &NopStatement{})
+		statement.initStatements = append(statement.initStatements, nopStatement)
 		return &statement
 	} else {
 		p.putToken(token)
@@ -747,7 +741,7 @@ func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement 
 		if token = p.nextToken(true); token.typ != colonTokenType {
 			log.Panic("expect colon `:` ,error ", token)
 		}
-		statement.initStatements = append(statement.initStatements, &VarAssignStatement{
+		statement.initStatements = append(statement.initStatements, VarAssignStatement{
 			ctx:        p.vmCtx,
 			label:      token.data,
 			expression: p.parseExpression(),

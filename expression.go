@@ -16,26 +16,15 @@ func (Expressions) getType() Type {
 	return expressionType
 }
 
-func (expressions *Expressions) Invoke() Expression {
-	var val Expression
-	for _, expression := range *expressions {
-		val = expression.Invoke()
-		if _, ok := val.(*ReturnStatement); ok {
-			return val
-		}
-	}
-	return val
-}
-
 type AddExpression struct {
 	Left  Expression
 	right Expression
 }
+
 type SubExpression struct {
 	Left  Expression
 	right Expression
 }
-
 type MulExpression struct {
 	Left  Expression
 	right Expression
@@ -75,54 +64,70 @@ type NoEqualExpression struct {
 	right Expression
 }
 
-func (n *NoEqualExpression) Invoke() Expression {
+func (expressions Expressions) Invoke() Expression {
+	var val Expression
+	for _, expression := range expressions {
+		val = expression.Invoke()
+		if _, ok := val.(ReturnStatement); ok {
+			return val
+		}
+	}
+	return val
+}
+
+func (n NoEqualExpression) Invoke() Expression {
 	equal := EqualExpression{
 		Left:  n.Left,
 		right: n.right,
 	}
-	val := !*equal.Invoke().(*BoolObject)
-	return &val
+	val := !equal.Invoke().(Bool)
+	return val
 }
 
-func (n *NoEqualExpression) getType() Type {
-	panic("implement me")
+func (n NoEqualExpression) getType() Type {
+	return NoEqualTokenType
 }
 
-func (expression *EqualExpression) Invoke() Expression {
+func (expression EqualExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	var val bool
 	switch lVal := left.(type) {
-	case *IntObject:
+	case Int:
 		switch rVal := right.(type) {
-		case *IntObject:
-			val = *lVal == *rVal
+		case Int:
+			val = lVal == rVal
 		}
-	case *StringObject:
+	case String:
 		switch e := right.(type) {
-		case *StringObject:
-			val = lVal.data == e.data
+		case String:
+			val = lVal == e
 		}
-	case *NilObject:
+	case NilObject:
 		switch right.(type) {
-		case *NilObject:
+		case NilObject:
 			val = true
 		}
-	case *BoolObject:
-		switch rr := right.(type) {
-		case *BoolObject:
-			val = *lVal == *rr
+	case Bool:
+		switch rVal := right.(type) {
+		case Bool:
+			val = lVal == rVal
 		}
 	case *TypeObject:
 		switch right.(type) {
-		case *NilObject:
+		case NilObject:
+			val = false
+		}
+	case *FuncStatement:
+		switch right.(type) {
+		case NilObject:
 			val = false
 		}
 	default:
 		panic(reflect.TypeOf(left).String() + "\n" +
 			reflect.TypeOf(right).String())
 	}
-	return (*BoolObject)(&val)
+	return Bool(val)
 }
 
 func (EqualExpression) getType() Type {
@@ -148,118 +153,118 @@ func (GreaterExpression) getType() Type {
 func (GreaterEqualExpression) getType() Type {
 	return greaterEqualTokenType
 }
-func (expression *GreaterExpression) Invoke() Expression {
+func (expression GreaterExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	var val = false
 	switch lVal := left.(type) {
-	case *IntObject:
+	case Int:
 		switch rVal := right.(type) {
-		case *IntObject:
-			val = *lVal > *rVal
-			return (*BoolObject)(&val)
+		case Int:
+			val = lVal > rVal
+			return (Bool)(val)
 		}
-	case *StringObject:
+	case String:
 		switch rVal := right.(type) {
-		case *StringObject:
-			val = lVal.data > rVal.data
-			return (*BoolObject)(&val)
+		case String:
+			val = lVal > rVal
+			return Bool(val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
 		reflect.TypeOf(right).String())
 }
 
-func (expression *GreaterEqualExpression) Invoke() Expression {
+func (expression GreaterEqualExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	var val = false
 	switch lVal := left.(type) {
-	case *IntObject:
+	case Int:
 		switch rVal := right.(type) {
-		case *IntObject:
-			val = *lVal >= *rVal
-			return (*BoolObject)(&val)
+		case Int:
+			val = lVal >= rVal
+			return (Bool)(val)
 		}
-	case *StringObject:
+	case String:
 		switch rVal := right.(type) {
-		case *StringObject:
-			val = lVal.data >= rVal.data
-			return (*BoolObject)(&val)
+		case String:
+			val = lVal >= rVal
+			return (Bool)(val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
 		reflect.TypeOf(right).String())
 }
 
-func (expression *LessEqualExpression) Invoke() Expression {
+func (expression LessEqualExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	var val = false
 	switch lVal := left.(type) {
-	case *IntObject:
+	case Int:
 		switch rVal := right.(type) {
-		case *IntObject:
-			val = *lVal <= *rVal
-			return (*BoolObject)(&val)
+		case Int:
+			val = lVal <= rVal
+			return (Bool)(val)
 		}
-	case *StringObject:
+	case String:
 		switch rVal := right.(type) {
-		case *StringObject:
-			val = lVal.data <= rVal.data
-			return (*BoolObject)(&val)
+		case String:
+			val = lVal <= rVal
+			return (Bool)(val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
 		reflect.TypeOf(right).String())
 }
 
-func (expression *LessExpression) Invoke() Expression {
+func (expression LessExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	var val = false
 	switch lVal := left.(type) {
-	case *IntObject:
+	case Int:
 		switch rVal := right.(type) {
-		case *IntObject:
-			val = *lVal < *rVal
-			return (*BoolObject)(&val)
+		case Int:
+			val = lVal < rVal
+			return (Bool)(val)
 		}
-	case *StringObject:
+	case String:
 		switch rVal := right.(type) {
-		case *StringObject:
-			val = lVal.data < rVal.data
-			return (*BoolObject)(&val)
+		case String:
+			val = lVal < rVal
+			return (Bool)(val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
 		reflect.TypeOf(right).String())
 }
 
-func (expression *MulExpression) Invoke() Expression {
+func (expression MulExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	switch lVal := left.(type) {
-	case *IntObject:
+	case Int:
 		switch rVal := right.(type) {
-		case *IntObject:
-			var val = (*lVal) * (*rVal)
-			return (*IntObject)(&val)
+		case Int:
+			var val = (lVal) * (rVal)
+			return (Int)(val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
 		reflect.TypeOf(right).String())
 }
 
-func (s *SubExpression) Invoke() Expression {
+func (s SubExpression) Invoke() Expression {
 	left := s.Left.Invoke()
 	right := s.right.Invoke()
 	switch lVal := left.(type) {
-	case *IntObject:
+	case Int:
 		switch rVal := right.(type) {
-		case *IntObject:
-			val := *lVal - *rVal
-			return (*IntObject)(&val)
+		case Int:
+			val := lVal - rVal
+			return (Int)(val)
 		}
 	case TimeObject:
 		switch rVal := right.(type) {
@@ -272,25 +277,17 @@ func (s *SubExpression) Invoke() Expression {
 		reflect.TypeOf(right).String())
 }
 
-func (s *SubExpression) getType() Type {
-	panic("implement me")
+func (s SubExpression) getType() Type {
+	return subOperatorTokenType
 }
 
-func (expression *AddExpression) Invoke() Expression {
+func (expression AddExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
-	switch lVal := left.(type) {
-	case *IntObject:
-		switch rVal := right.(type) {
-		case *IntObject:
-			val := *lVal + *rVal
-			return (*IntObject)(&val)
-		}
-	case *StringObject:
-		switch e := right.(type) {
-		case *StringObject:
-			return &StringObject{data: lVal.data + e.data}
-		}
+	if left.getType() == IntType && right.getType() == IntType {
+		return left.(Int) + right.(Int)
+	} else if left.getType() == stringTokenType && right.getType() == stringTokenType {
+		return left.(String) + right.(String)
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
 		reflect.TypeOf(right).String())

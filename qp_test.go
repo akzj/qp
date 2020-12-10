@@ -81,7 +81,7 @@ func TestLessExpression(t *testing.T) {
 			t.Fatal("Parse failed")
 		}
 		if val := expression.Invoke(); val != nil {
-			if bool(*(val.(*BoolObject))) != Case.expect {
+			if bool((val.(Bool))) != Case.expect {
 				t.Fatalf("expression parse failed,`%s` "+
 					"result `%+v` expect `%+v`", Case.expStr, val, Case.expect)
 			}
@@ -112,13 +112,20 @@ var main = func(val) {
 	var out = 10 
 	var f = func(){
 		var a = 100
+		println("jjs")
 		var b = func(){
+			println(val)
 			var c = 1000
 			var d = func(){
+					println(val)
 					return a + out + global +c
 				}
 			return d()
 		}
+		println("jjsss")
+		if b != nil{
+			println("b != nil")
+			}
 		return b
 	}
 	var b = f()
@@ -160,8 +167,8 @@ if 2 > 1{
 			t.Fatal("Parse failed")
 		}
 		if val := statements.Invoke(); val != nil {
-			if int64(*val.(*ReturnStatement).returnVal.(*IntObject)) != Case.val {
-				t.Fatalf("no match %+v %+v", int64(*val.(*IntObject)), Case.val)
+			if int64(val.(ReturnStatement).returnVal.(Int)) != Case.val {
+				t.Fatalf("no match %+v %+v", int64(val.(Int)), Case.val)
 			}
 		}
 	}
@@ -232,6 +239,10 @@ var a = 1
 println(a)
 a++
 println(a)
+
+var b = func(){
+}
+b()
 `, val: int64(3),
 	}}
 
@@ -328,7 +339,7 @@ println(c) //100
 func TestStructObjectDefaultInit(t *testing.T) {
 	data := `
 type User {
-	//define user member with default IntObject 1
+	//define user member with default Int 1
 	var id = 66666
 	//define user member with default nil
 	var id2
@@ -350,7 +361,7 @@ println(user.id) //
 func TestStructObject(t *testing.T) {
 	data := `
 type User {
-	//define user member with default IntObject 1
+	//define user member with default Int 1
 	var id = 66666
 	//define user member with default nil
 	var id2
@@ -410,7 +421,7 @@ user.a()
 func TestObject(t *testing.T) {
 	data := `
 type user {
-	//define user member with default IntObject 1
+	//define user member with default Int 1
 	var id = 1
 	//define user member with default nil
 	var id2
@@ -695,7 +706,7 @@ var r = fib(val-1)
 
 println("num|result|take time")
 println("---|------|---------")
-for var num = 20; num < 30; num++ {
+for var num = 20; num < 36; num++ {
 	var begin = now()
 	println(num,"|",fib(num),"|",now() - begin)
 }

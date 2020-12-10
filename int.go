@@ -4,16 +4,16 @@ import (
 	"strconv"
 )
 
-type IntObject int64
+type Int int64
 
-func (i *IntObject) Invoke() Expression {
+func (i Int) Invoke() Expression {
 	return i
 }
 
-func (i *IntObject) getType() Type {
-	return IntObjectType
+func (Int) getType() Type {
+	return IntType
 }
 
-func (i *IntObject) String() string {
-	return strconv.FormatInt(int64(*i), 10)
+func (i Int) String() string {
+	return strconv.FormatInt(int64(i), 10)
 }

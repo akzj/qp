@@ -29,15 +29,15 @@ func (a *appendArray) call(arguments ...Expression) Expression {
 type getArray struct {
 }
 
-func (g *getArray) Invoke() Expression {
+func (g getArray) Invoke() Expression {
 	return g
 }
 
-func (g *getArray) getType() Type {
+func (getArray) getType() Type {
 	return FuncStatementType
 }
 
-func (g *getArray) call(arguments ...Expression) Expression {
+func (getArray) call(arguments ...Expression) Expression {
 	if len(arguments) != 2 {
 		log.Panic("array get() arguments error")
 	}
@@ -45,12 +45,12 @@ func (g *getArray) call(arguments ...Expression) Expression {
 	if ok == false {
 		log.Panic("object not array type")
 	}
-	i, ok := arguments[1].(*IntObject)
+	i, ok := arguments[1].(Int)
 	if ok == false {
 		log.Panic("is not array arguments error")
 	}
-	if len(array.data) <= int(*i) {
+	if len(array.data) <= int(i) {
 		log.Panic("index out of range")
 	}
-	return array.data[*i]
+	return array.data[i]
 }

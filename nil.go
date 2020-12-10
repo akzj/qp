@@ -3,13 +3,13 @@ package qp
 type NilObject struct {
 }
 
-var nilObject = &NilObject{}
+var nilObject = NilObject{}
 
-func (n NilObject) String() string {
+func (NilObject) String() string {
 	return "nil"
 }
 
-func (n *NilObject) Invoke() Expression{
+func (n NilObject) Invoke() Expression {
 	return n
 }
 

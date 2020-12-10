@@ -33,8 +33,8 @@ func (obj *Object) String() string {
 
 func (obj *Object) initType() {
 	switch obj.inner.(type) {
-	case *IntObject:
-		obj.typ = IntObjectType
+	case *Int:
+		obj.typ = IntType
 	}
 }
 

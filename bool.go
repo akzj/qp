@@ -1,21 +1,21 @@
 package qp
 
-type BoolObject bool
+type Bool bool
 
-var trueObject = BoolObject(true)
-var falseObject = BoolObject(false)
+var trueObject = Bool(true)
+var falseObject = Bool(false)
 
-func (b *BoolObject) String() string {
-	if *b {
+func (b Bool) String() string {
+	if b {
 		return "true"
 	}
 	return "false"
 }
 
-func (b *BoolObject) Invoke() Expression {
+func (b Bool) Invoke() Expression {
 	return b
 }
 
-func (b *BoolObject) getType() Type {
+func (b Bool) getType() Type {
 	return BoolObjectType
 }
