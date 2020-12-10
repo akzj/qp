@@ -55,22 +55,43 @@ func (c *closureCheck) visit(label string) bool {
 	return closure
 }
 
+const (
+	GlobalStatus   = 0
+	IfStatus       = 1
+	ElseStatus     = 2
+	ForStatus      = 3
+	FunctionStatus = 4
+)
+
 type parser struct {
 	history      []Token
 	tokens       []Token
 	lexer        *lexer
 	vmCtx        *VMContext
 	closureCheck []*closureCheck
+	status       []int
 }
 
 func newParser(reader io.Reader) *parser {
 	return &parser{
-		lexer: newLexer(reader),
-		vmCtx: newVMContext(),
+		lexer:  newLexer(reader),
+		vmCtx:  newVMContext(),
+		status: []int{GlobalStatus},
 	}
 }
 
-func makeExpression(opToken Token, expressions *[]Expression) Expression {
+func (p *parser) checkInStatus(status int) bool {
+	for i := len(p.status) - 1; i >= 0; i-- {
+		if p.status[i] == status {
+			return true
+		} else if p.status[i] == FunctionStatus {
+			break
+		}
+	}
+	return false
+}
+
+func makeExpression(opToken Token, expressions *Expressions) Expression {
 	var expression Expression
 	switch opToken.typ {
 	case subOperatorTokenType:
@@ -170,7 +191,7 @@ func (p *parser) putToken(token Token) {
 
 func (p *parser) parseExpression() Expression {
 	var opStack []Token
-	var expressions []Expression
+	var expressions Expressions
 	doMakeExpression := func() {
 		for len(opStack) != 0 {
 			express := makeExpression(opStack[len(opStack)-1], &expressions)
@@ -304,7 +325,7 @@ Loop:
 		}
 	}
 	doMakeExpression()
-	return (*Expressions)(&expressions)
+	return expressions
 }
 
 func (p *parser) parse() Statements {
@@ -389,6 +410,9 @@ Loop:
 		case token.typ == periodTokenType:
 			statements = append(statements, p.parsePeriodStatement("this"))
 		case token.typ == breakTokenType:
+			if p.checkInStatus(ForStatus) == false {
+				log.Panicf("break no in `for` block error line:%d", token.line)
+			}
 			statements = append(statements, breakObject)
 		case token.typ == TrueTokenType:
 			statements = append(statements, &trueObject)
@@ -471,7 +495,15 @@ func (p *parser) parseStatement() Statements {
 	return statements
 }
 
+func (p parser) getStatus() int {
+	return p.status[len(p.status)-1]
+}
+
 func (p *parser) parseForStatement() *ForStatement {
+	p.status = append(p.status, ForStatus)
+	defer func() {
+		p.status = p.status[:len(p.status)-1]
+	}()
 	var forStatement = ForStatement{
 		vm: p.vmCtx,
 	}
@@ -479,6 +511,7 @@ func (p *parser) parseForStatement() *ForStatement {
 	if token.typ == semicolonTokenType {
 		forStatement.preStatement = nopStatement
 	} else if token.typ == leftBraceTokenType {
+		p.putToken(token)
 		forStatement.preStatement = nopStatement
 		forStatement.postStatement = nopStatement
 		forStatement.checkStatement = &trueObject
@@ -529,11 +562,24 @@ func (p *parser) parseForStatement() *ForStatement {
 	return &forStatement
 }
 
+func (p *parser) parseBoolExpression() Expression {
+	var expressions = p.parseExpression().(Expressions)
+	if len(expressions) != 1 {
+		log.Panic("parse bool expression failed")
+	}
+	if lessTokenType <= expressions[0].getType() &&
+		expressions[0].getType() <= NoEqualTokenType {
+		return expressions
+	}
+	log.Panic("parseBoolExpression failed")
+	return nil
+}
+
 func (p *parser) parseIfStatement() *IfStatement {
 	ifStem := IfStatement{
 		vm: p.vmCtx,
 	}
-	if ifStem.check = p.parseExpression(); ifStem.check == nil {
+	if ifStem.check = p.parseBoolExpression(); ifStem.check == nil {
 		log.Panic("parse checkExpression failed")
 		return nil
 	}

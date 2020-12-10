@@ -12,6 +12,18 @@ type Function interface {
 	call(arguments ...Expression) Expression
 }
 
+type BuiltInFunctionBase struct {
+}
+
+func (b BuiltInFunctionBase) Invoke() Expression {
+	return b
+}
+
+func (b BuiltInFunctionBase) getType() Type {
+	return builtInFunctionType
+}
+
+
 type printlnFunc struct{}
 
 func (p printlnFunc) Invoke() Expression {
@@ -29,7 +41,7 @@ func (printlnFunc) call(arguments ...Expression) Expression {
 		} else {
 			log.Panicf("unknown type `%s`", reflect.TypeOf(argument).String())
 		}
-		if index != len(arguments) -1{
+		if index != len(arguments)-1 {
 			fmt.Print(" ")
 		}
 	}

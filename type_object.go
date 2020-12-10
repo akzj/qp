@@ -48,8 +48,8 @@ func (sObj *TypeObject) allocObject(label string) *Object {
 		return object
 	} else {
 		object = &Object{
-			inner:   nilObject,
-			label:   label,
+			inner: nilObject,
+			label: label,
 		}
 		sObj.objects[label] = object
 	}

@@ -48,17 +48,21 @@ func (a *Array) clone() BaseObject {
 	return &Array{data: data}
 }
 
-type appendArray struct{}
 
-func (a *appendArray) Invoke() Expression {
-	return a
+
+type appendArray struct {
+	BuiltInFunctionBase
 }
 
-func (a *appendArray) getType() Type {
-	return FuncStatementType
+type getArraySize struct {
+	BuiltInFunctionBase
 }
 
-func (a *appendArray) call(arguments ...Expression) Expression {
+type getArray struct {
+	BuiltInFunctionBase
+}
+
+func (appendArray) call(arguments ...Expression) Expression {
 	array := arguments[0].(*Array)
 	for _, exp := range arguments[1:] {
 		array.data = append(array.data, exp.Invoke())
@@ -66,15 +70,8 @@ func (a *appendArray) call(arguments ...Expression) Expression {
 	return array
 }
 
-type getArray struct {
-}
-
-func (g getArray) Invoke() Expression {
-	return g
-}
-
-func (getArray) getType() Type {
-	return FuncStatementType
+func (getArraySize) call(arguments ...Expression) Expression {
+	return Int(len(arguments[0].(*Array).data))
 }
 
 func (getArray) call(arguments ...Expression) Expression {

@@ -3,7 +3,7 @@ package qp
 var (
 	builtInFunctions = map[string]Function{
 		"println": printlnFunc{},
-		"now":         NowFunc{},
+		"now":     NowFunc{},
 	}
 	arrayBuiltInFunctions = map[string]*Object{
 		"append": &Object{
@@ -13,6 +13,10 @@ var (
 		"get": &Object{
 			inner: &getArray{},
 			label: "get",
+		},
+		"size": {
+			inner: getArraySize{},
+			label: "size",
 		},
 	}
 	stringBuiltInFunctions = map[string]*Object{

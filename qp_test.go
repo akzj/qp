@@ -50,6 +50,20 @@ var a = nil
 	}
 }
 
+func TestParseBoolExpression(t *testing.T) {
+	data := `
+if (1 > (1+2)) == false{
+	for {
+		if 0 == 0{
+			 var a = func(){return 0}() == 0
+		}
+		break
+	}
+}
+`
+	Parse(data).Invoke()
+}
+
 func TestLessExpression(t *testing.T) {
 
 	cases := []struct {
@@ -706,7 +720,7 @@ var r = fib(val-1)
 
 println("num|result|take time")
 println("---|------|---------")
-for var num = 20; num < 36; num++ {
+for var num = 20; num < 30; num++ {
 	var begin = now()
 	println(num,"|",fib(num),"|",now() - begin)
 }
@@ -721,7 +735,7 @@ println("")
 
 }
 
-func TestSlice(t *testing.T) {
+func TestPrintlnArray(t *testing.T) {
 	data := `
 
 var arr = []
@@ -729,8 +743,8 @@ for var i = 0; i < 100;i ++{
 	arr.append(i)
 }
 
-println(arr)
+println(arr.size())
+println(arr.get(10))
 `
-
 	Parse(data).Invoke()
 }
