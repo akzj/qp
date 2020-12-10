@@ -7,29 +7,46 @@ import (
 )
 
 type stackFrame struct {
-	stack        []*Object
-	stackPointer int
-	isolate      bool
+	stackTopPointer    int
+	stackBottomPointer int
+	isolate            bool
 }
 
 type memory struct {
-	stack       []*Object
-	stackFrames []stackFrame
+	stackTopPointer    int
+	stackBottomPointer int
+	stackSize          int
+	stack              []Object
+	stackFrames        []stackFrame
+}
+
+func newMemory() *memory {
+	return &memory{
+		stackTopPointer:    0,
+		stackBottomPointer: 0,
+		stackSize:          1024,
+		stack:              make([]Object, 1024),
+		stackFrames:        make([]stackFrame, 0, 1024),
+	}
 }
 
 func (m *memory) alloc(label string) *Object {
-	var obj = new(Object)
-	m.stack = append(m.stack, obj)
-	obj.pointer = len(m.stack) - 1
-	obj.label = label
-	return obj
+	if m.stackSize == m.stackTopPointer-1 {
+		newStack := make([]Object, m.stackSize*2)
+		copy(newStack, m.stack[:m.stackTopPointer])
+		m.stack = newStack
+		m.stackSize = m.stackSize * 2
+	}
+	m.stackTopPointer++
+	object := &m.stack[m.stackTopPointer]
+	object.label = label
+	return object
 }
 
 func (m *memory) getObject(label string) *Object {
-	for index := len(m.stack) - 1; index >= 0; index-- {
-		object := m.stack[index]
-		if object.label == label {
-			return object
+	for index := m.stackTopPointer; index >= m.stackBottomPointer+1; index-- {
+		if m.stack[index].label == label {
+			return &m.stack[index]
 		}
 	}
 	return nil
@@ -37,12 +54,13 @@ func (m *memory) getObject(label string) *Object {
 
 func (m *memory) pushStackFrame(isolate bool) {
 	m.stackFrames = append(m.stackFrames, stackFrame{
-		stack:        m.stack,
-		stackPointer: len(m.stack),
-		isolate:      isolate,
+		stackTopPointer:    m.stackTopPointer,
+		stackBottomPointer: m.stackBottomPointer,
+		isolate:            isolate,
 	})
 	if isolate {
-		m.stack = make([]*Object, 0, 32)
+		//move bottom to top
+		m.stackBottomPointer = m.stackTopPointer
 	}
 }
 
@@ -52,17 +70,12 @@ func (m *memory) popStackFrame() {
 	}
 	frame := m.stackFrames[len(m.stackFrames)-1]
 	m.stackFrames = m.stackFrames[:len(m.stackFrames)-1]
-	var toGc []*Object
-	if frame.isolate == false {
-		toGc = m.stack[frame.stackPointer:]
-		m.stack = m.stack[:frame.stackPointer]
-	} else {
-		toGc = m.stack
-		m.stack = frame.stack
-	}
+	m.stackTopPointer = frame.stackTopPointer
+	m.stackBottomPointer = frame.stackBottomPointer
+	/*toGc := m.stack[frame.stackBottomPointer:frame.stackTopPointer]
 	for i := range toGc {
-		toGc[i] = nil
-	}
+		toGc[i].inner = nil
+	}*/
 }
 
 type VMContext struct {
@@ -73,7 +86,7 @@ type VMContext struct {
 
 func newVMContext() *VMContext {
 	return &VMContext{
-		mem:           &memory{},
+		mem:           newMemory(),
 		structObjects: map[string]*TypeObject{},
 		functions:     map[string]Function{},
 	}
