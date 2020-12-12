@@ -15,6 +15,10 @@ type Function interface {
 type BuiltInFunctionBase struct {
 }
 
+func (b BuiltInFunctionBase) String() string {
+	panic("implement me")
+}
+
 func (b BuiltInFunctionBase) Invoke() Expression {
 	return b
 }
@@ -25,6 +29,10 @@ func (b BuiltInFunctionBase) getType() Type {
 
 
 type printlnFunc struct{}
+
+func (p printlnFunc) String() string {
+	panic("implement me")
+}
 
 func (p printlnFunc) Invoke() Expression {
 	return p
@@ -50,6 +58,10 @@ func (printlnFunc) call(arguments ...Expression) Expression {
 }
 
 type NowFunc struct {
+}
+
+func (n NowFunc) String() string {
+	panic("implement me")
 }
 
 func (n NowFunc) Invoke() Expression {

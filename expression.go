@@ -1,6 +1,7 @@
 package qp
 
 import (
+	"fmt"
 	"reflect"
 	"time"
 )
@@ -8,9 +9,30 @@ import (
 type Expression interface {
 	Invoke() Expression
 	getType() Type
+	fmt.Stringer
 }
 
 type Expressions []Expression
+
+func (expressions Expressions) String() string {
+	panic("implement me")
+}
+
+type ParenthesisExpression struct {
+	exp Expression
+}
+
+func (p ParenthesisExpression) Invoke() Expression {
+	return p.exp.Invoke()
+}
+
+func (p ParenthesisExpression) getType() Type {
+	return leftParenthesisType
+}
+
+func (p ParenthesisExpression) String() string {
+	return "(" + p.exp.String() + ")"
+}
 
 func (Expressions) getType() Type {
 	return expressionType
@@ -21,17 +43,114 @@ type AddExpression struct {
 	right Expression
 }
 
+func (expression AddExpression) String() string {
+	panic("implement me")
+}
+
 type SubExpression struct {
 	Left  Expression
 	right Expression
 }
+
+func (s SubExpression) String() string {
+	panic("implement me")
+}
+
+type BinaryBoolExpression struct {
+	opType Type
+	Left   Expression
+	right  Expression
+}
+
+func (b BinaryBoolExpression) String() string {
+	return "(" + b.Left.String() +
+		b.opType.String() +
+		b.right.String() + ")"
+}
+
+func (b BinaryBoolExpression) Invoke() Expression {
+	var left = b.Left.Invoke()
+	var right = b.right.Invoke()
+	switch lVal := left.(type) {
+	case Int:
+		switch rVal := right.(type) {
+		case Int:
+			switch b.opType {
+			case addType:
+				return lVal + rVal
+			case subType:
+				return lVal - rVal
+			case mulOpType:
+				return lVal * rVal
+			case divOpType:
+				return lVal / rVal
+			case lessTokenType:
+				return Bool(lVal < rVal)
+			case greaterType:
+				return Bool(lVal > rVal)
+			case EqualType:
+				return Bool(lVal == rVal)
+			}
+		default:
+			panic("no support type" + reflect.TypeOf(lVal).String() + "\n" + reflect.TypeOf(lVal).String())
+		}
+	case Bool:
+		switch rVal := right.(type) {
+		case Bool:
+			switch b.opType {
+			case EqualType:
+				return Bool(lVal == rVal)
+			case NoEqualTokenType:
+				return !Bool(lVal == rVal)
+			}
+		}
+	case TimeObject:
+		switch rVal := right.(type) {
+		case TimeObject:
+			switch b.opType {
+			case subType:
+				return DurationObject(time.Time(lVal).Sub(time.Time(rVal)))
+			}
+		}
+	default:
+		panic("no support type" + reflect.TypeOf(lVal).String() + "\n" + reflect.TypeOf(b.right).String())
+	}
+	panic("no support type\n" + reflect.TypeOf(left).String() + "\n" + reflect.TypeOf(right).String() + "\n" + b.opType.String())
+}
+
+func (b BinaryBoolExpression) getType() Type {
+	panic("implement me")
+}
+
+type BinaryOpExpression struct {
+	opType Type
+	Left   Expression
+	right  Expression
+}
+
+func (b BinaryOpExpression) String() string {
+	panic("implement me")
+}
+
+func (b BinaryOpExpression) Invoke() Expression {
+	panic("implement me")
+}
+
+func (b BinaryOpExpression) getType() Type {
+	panic("implement me")
+}
+
 type MulExpression struct {
 	Left  Expression
 	right Expression
 }
 
+func (expression MulExpression) String() string {
+	panic("implement me")
+}
+
 func (MulExpression) getType() Type {
-	return mulOperatorTokenType
+	return mulOpType
 }
 
 type LessExpression struct {
@@ -39,9 +158,17 @@ type LessExpression struct {
 	right Expression
 }
 
+func (expression LessExpression) String() string {
+	panic("implement me")
+}
+
 type LessEqualExpression struct {
 	Left  Expression
 	right Expression
+}
+
+func (expression LessEqualExpression) String() string {
+	panic("implement me")
 }
 
 type GreaterExpression struct {
@@ -49,9 +176,17 @@ type GreaterExpression struct {
 	right Expression
 }
 
+func (expression GreaterExpression) String() string {
+	panic("implement me")
+}
+
 type GreaterEqualExpression struct {
 	Left  Expression
 	right Expression
+}
+
+func (expression GreaterEqualExpression) String() string {
+	panic("implement me")
 }
 
 type EqualExpression struct {
@@ -59,9 +194,46 @@ type EqualExpression struct {
 	right Expression
 }
 
+func (expression EqualExpression) String() string {
+	panic("implement me")
+}
+
 type NoEqualExpression struct {
 	Left  Expression
 	right Expression
+}
+
+func (n NoEqualExpression) String() string {
+	panic("implement me")
+}
+
+type SelectorStatement struct {
+	IDs []string
+	vm  *VMContext
+}
+
+type NoStatement struct {
+	exp Expression
+}
+
+func (n NoStatement) String() string {
+	panic("implement me")
+}
+
+func (n NoStatement) Invoke() Expression {
+	return !n.exp.Invoke().(Bool)
+}
+
+func (n NoStatement) getType() Type {
+	return NoType
+}
+
+func (s SelectorStatement) Invoke() Expression {
+	panic("implement me")
+}
+
+func (s SelectorStatement) getType() Type {
+	panic("implement me")
 }
 
 func (expressions Expressions) Invoke() Expression {
@@ -131,7 +303,7 @@ func (expression EqualExpression) Invoke() Expression {
 }
 
 func (EqualExpression) getType() Type {
-	return EqualTokenType
+	return EqualType
 }
 
 func (LessExpression) getType() Type {
@@ -139,19 +311,19 @@ func (LessExpression) getType() Type {
 }
 
 func (AddExpression) getType() Type {
-	return addOperatorTokenType
+	return addType
 }
 
 func (expression LessEqualExpression) getType() Type {
-	return lessEqualTokenType
+	return lessEqualType
 }
 
 func (GreaterExpression) getType() Type {
-	return greaterTokenType
+	return greaterType
 }
 
 func (GreaterEqualExpression) getType() Type {
-	return greaterEqualTokenType
+	return greaterEqualType
 }
 func (expression GreaterExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
@@ -278,7 +450,7 @@ func (s SubExpression) Invoke() Expression {
 }
 
 func (s SubExpression) getType() Type {
-	return subOperatorTokenType
+	return subType
 }
 
 func (expression AddExpression) Invoke() Expression {
@@ -286,7 +458,7 @@ func (expression AddExpression) Invoke() Expression {
 	right := expression.right.Invoke()
 	if left.getType() == IntType && right.getType() == IntType {
 		return left.(Int) + right.(Int)
-	} else if left.getType() == stringTokenType && right.getType() == stringTokenType {
+	} else if left.getType() == stringType && right.getType() == stringType {
 		return left.(String) + right.(String)
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +

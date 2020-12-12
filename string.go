@@ -33,10 +33,14 @@ func (s String) clone() BaseObject {
 }
 
 func (s String) getType() Type {
-	return stringTokenType
+	return stringType
 }
 
 type StringObjectClone struct {
+}
+
+func (s StringObjectClone) String() string {
+	panic("implement me")
 }
 
 func (s StringObjectClone) Invoke() Expression {
@@ -64,7 +68,11 @@ func (s StringObjectClone) call(arguments ...Expression) Expression {
 
 type stringLowCase struct{}
 
-func (c *stringLowCase) Invoke() Expression {
+func (c stringLowCase) String() string {
+	panic("implement me")
+}
+
+func (c stringLowCase) Invoke() Expression {
 	return c
 }
 

@@ -57,6 +57,7 @@ if (1 > (1+2)) == false{
 		if 0 == 0{
 			 var a = func(){return 0}() == 0
 		}
+		println("hello")
 		break
 	}
 }
@@ -727,7 +728,7 @@ for var num = 20; num < 30; num++ {
 println("")
 `
 
-	if statement := Parse(data); statement == nil {
+	if statement := NewParse2(data).Parse(); statement == nil {
 		panic("parse failed")
 	} else {
 		statement.Invoke()

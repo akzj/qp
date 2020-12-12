@@ -9,73 +9,73 @@ type Type int
 
 func (t Type) String() string {
 	switch t {
-	case addOperatorTokenType:
+	case addType:
 		return "+"
-	case divOperatorTokenType:
+	case divOpType:
 		return "/"
-	case subOperatorTokenType:
+	case subType:
 		return "-"
-	case mulOperatorTokenType:
+	case mulOpType:
 		return "*"
-	case intTokenType:
+	case intType:
 		return "int"
-	case leftParenthesisTokenType:
+	case leftParenthesisType:
 		return "("
-	case rightParenthesisTokenType:
+	case rightParenthesisType:
 		return ")"
-	case ifTokenType:
+	case ifType:
 		return "if"
-	case elseifTokenType:
+	case elseifType:
 		return "else if"
-	case elseTokenType:
+	case elseType:
 		return "else"
-	case forTokenType:
+	case forType:
 		return "for"
-	case breakTokenType:
+	case breakType:
 		return "break"
-	case returnTokenType:
+	case returnType:
 		return "return"
-	case leftBraceTokenType:
+	case leftBraceType:
 		return "{"
-	case rightBraceTokenType:
+	case rightBraceType:
 		return "}"
 	case lessTokenType:
 		return "<"
-	case lessEqualTokenType:
+	case lessEqualType:
 		return "<="
-	case greaterTokenType:
+	case greaterType:
 		return ">"
-	case greaterEqualTokenType:
+	case greaterEqualType:
 		return ">="
-	case EOFTokenType:
+	case EOFType:
 		return "EOF"
-	case labelType:
-		return "label"
+	case IDType:
+		return "ID"
 	case statementType:
 		return "statement"
 	case statementsType:
 		return "statements"
 	case expressionType:
 		return "expression"
-	case varTokenType:
+	case varType:
 		return "var"
-	case assignTokenType:
+	case assignType:
 		return "="
 	case varAssignTokenType:
 		return "var ="
 	case IntType:
 		return "Int"
-	case commaTokenType:
+	case commaType:
 		return ","
 	case incOperatorTokenType:
 		return "++"
 	case callFunctionType:
 		return "call"
-	case semicolonTokenType:
+	case semicolonType:
 		return ";"
 	case assignStatementType:
 		return "assignStatement"
-	case funcTokenType:
+	case funcType:
 		return "func"
 	case ObjectType:
 		return "objects"
@@ -85,7 +85,7 @@ func (t Type) String() string {
 		return "Array"
 	case commentTokenType:
 		return "comment"
-	case typeTokenType:
+	case typeType:
 		return "type"
 	case nopStatementType:
 		return "nop"
@@ -93,7 +93,7 @@ func (t Type) String() string {
 		return "typeObjectInitStatementType"
 	case TypeObjectType:
 		return "TypeObjectType"
-	case periodTokenType:
+	case periodType:
 		return "."
 	case propObjectStatementType:
 		return "propObjectStatementType"
@@ -101,11 +101,11 @@ func (t Type) String() string {
 		return "FuncStatementType"
 	case ErrorTokenType:
 		return "ErrorTokenType"
-	case stringTokenType:
+	case stringType:
 		return "string"
 	case nilType:
 		return "nil"
-	case EqualTokenType:
+	case EqualType:
 		return "=="
 	case getObjectObjectStatementType:
 		return "getObjectObjectStatementType"
@@ -115,9 +115,9 @@ func (t Type) String() string {
 		return "]"
 	case funcCallQueueStatementType:
 		return "funcCallQueueStatementType"
-	case falseTokenType:
+	case falseType:
 		return "false"
-	case TrueTokenType:
+	case TrueType:
 		return "true"
 	case NoEqualTokenType:
 		return "!="
@@ -127,54 +127,66 @@ func (t Type) String() string {
 		return "timeObjectType"
 	case builtInFunctionType:
 		return "builtInFunction"
+	case NewLineType:
+		return `\n`
+	case NoType:
+		return "!"
+	case orType:
+		return "||"
+	case AndType:
+		return "&&"
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
 }
 
 const ErrorTokenType Type = -1
-const EOFTokenType Type = 0
+const EOFType Type = 0
 const commentTokenType Type = 2                // //
-const stringTokenType Type = 3                 // string "" ''
+const stringType Type = 3                      // string "" ''
 const nilType Type = 4                         // null
-const TrueTokenType Type = 5                   // true
-const falseTokenType Type = 6                  // false
+const TrueType Type = 5                        // true
+const falseType Type = 6                       // false
+const NewLineType Type = 7                     // \n
+const NoType Type = 8                          // !
+const orType Type = 9                          // ||
+const AndType Type = 10                        // &&
 const incOperatorTokenType Type = 100          // ++
-const addOperatorTokenType Type = 101          // +
-const subOperatorTokenType Type = 102          // -
-const mulOperatorTokenType Type = 103          // *
-const divOperatorTokenType Type = 104          // /
+const addType Type = 101                       // +
+const subType Type = 102                       // -
+const mulOpType Type = 103                     // *
+const divOpType Type = 104                     // /
 const lessTokenType Type = 105                 // <
-const greaterTokenType Type = 106              // >
-const lessEqualTokenType Type = 116            // <=
-const greaterEqualTokenType Type = 117         // >=
-const EqualTokenType Type = 118                // ==
+const greaterType Type = 106                   // >
+const lessEqualType Type = 116                 // <=
+const greaterEqualType Type = 117              // >=
+const EqualType Type = 118                     // ==
 const NoEqualTokenType Type = 119              // !=
-const leftParenthesisTokenType Type = 120      // (
-const rightParenthesisTokenType Type = 121     // )
-const leftBraceTokenType Type = 122            // {
-const rightBraceTokenType Type = 123           // }
-const commaTokenType Type = 124                // ,
-const semicolonTokenType Type = 125            // ;
+const leftParenthesisType Type = 120           // (
+const rightParenthesisType Type = 121          // )
+const leftBraceType Type = 122                 // {
+const rightBraceType Type = 123                // }
+const commaType Type = 124                     // ,
+const semicolonType Type = 125                 // ;
 const colonTokenType Type = 126                // :
-const periodTokenType Type = 127               // .
+const periodType Type = 127                    // .
 const leftBracketTokenType Type = 128          // [
 const rightBracketTokenType Type = 129         // ]
-const ifTokenType Type = 230                   // if
-const elseTokenType Type = 331                 // else
-const funcTokenType Type = 332                 // func
-const returnTokenType Type = 333               // return
-const breakTokenType Type = 334                // break
-const forTokenType Type = 335                  // for
-const elseifTokenType Type = 336               // else if
-const varTokenType Type = 400                  // var
-const assignTokenType Type = 401               // =
+const ifType Type = 230                        // if
+const elseType Type = 331                      // else
+const funcType Type = 332                      // func
+const returnType Type = 333                    // return
+const breakType Type = 334                     // break
+const forType Type = 335                       // for
+const elseifType Type = 336                    // else if
+const varType Type = 400                       // var
+const assignType Type = 401                    // =
 const varAssignTokenType Type = 402            // var x =
-const intTokenType Type = 700                  // int
-const typeTokenType Type = 999                 // type
+const intType Type = 700                       // int
+const typeType Type = 999                      // type
 const mapObjectType Type = 1001                // map {}
 const arrayObjectType Type = 1002              // array []
-const labelType Type = 5000                    // label
+const IDType Type = 5000                       // label
 const statementType Type = 6001                // statement
 const statementsType Type = 6003               // statementType
 const expressionType Type = 6002               // expressionType
@@ -196,40 +208,42 @@ const builtInFunctionType = 10009              // built in function
 
 type Token struct {
 	typ  Type
-	data string
+	val  string
 	line int
 }
 
 func (t Token) String() string {
-	if t.data == "" {
+	if t.val == "" {
 		return fmt.Sprintf("line:%d type`%s`", t.line, t.typ.String())
 	}
-	return fmt.Sprintf("line:%d type`%s` data `%s`", t.line, t.typ.String(), t.data)
+	return fmt.Sprintf("line:%d type`%s` val `%s`", t.line, t.typ.String(), t.val)
 }
 
 var (
-	emptyToken            = Token{typ: EOFTokenType}
-	addOperatorToken      = Token{typ: addOperatorTokenType}
-	mulOperatorToken      = Token{typ: mulOperatorTokenType}
-	leftParenthesisToken  = Token{typ: leftParenthesisTokenType}
-	rightParenthesisToken = Token{typ: rightParenthesisTokenType}
-	leftBraceToken        = Token{typ: leftBraceTokenType}
-	rightBraceToken       = Token{typ: rightBraceTokenType}
+	emptyToken            = Token{typ: EOFType}
+	addOperatorToken      = Token{typ: addType}
+	mulOperatorToken      = Token{typ: mulOpType}
+	leftParenthesisToken  = Token{typ: leftParenthesisType}
+	rightParenthesisToken = Token{typ: rightParenthesisType}
+	leftBraceToken        = Token{typ: leftBraceType}
+	rightBraceToken       = Token{typ: rightBraceType}
 	lessToken             = Token{typ: lessTokenType}
-	lessEqualToken        = Token{typ: lessEqualTokenType}
-	greaterToken          = Token{typ: greaterTokenType}
-	greaterEqualToken     = Token{typ: greaterEqualTokenType}
-	assignToken           = Token{typ: assignTokenType}
-	commaToken            = Token{typ: commaTokenType}
+	lessEqualToken        = Token{typ: lessEqualType}
+	greaterToken          = Token{typ: greaterType}
+	greaterEqualToken     = Token{typ: greaterEqualType}
+	assignToken           = Token{typ: assignType}
+	commaToken            = Token{typ: commaType}
 	incOperatorToken      = Token{typ: incOperatorTokenType}
-	semicolonToken        = Token{typ: semicolonTokenType}
+	semicolonToken        = Token{typ: semicolonType}
 	colonToken            = Token{typ: colonTokenType}
-	periodToken           = Token{typ: periodTokenType}
-	equalToken            = Token{typ: EqualTokenType}
+	periodToken           = Token{typ: periodType}
+	equalToken            = Token{typ: EqualType}
 	leftBracketToken      = Token{typ: leftBracketTokenType}
 	rightBracketToken     = Token{typ: rightBracketTokenType}
 	NoEqualToken          = Token{typ: NoEqualTokenType}
-	subOperatorToken      = Token{typ: subOperatorTokenType}
+	subOperatorToken      = Token{typ: subType}
+	orToken               = Token{typ: orType}
+	andToken              = Token{typ: AndType}
 )
 
 var Keywords = []string{
@@ -237,15 +251,15 @@ var Keywords = []string{
 }
 
 var keywordTokenType = map[string]Type{
-	"if":     ifTokenType,
-	"else":   elseTokenType,
-	"func":   funcTokenType,
-	"return": returnTokenType,
-	"break":  breakTokenType,
-	"for":    forTokenType,
-	"var":    varTokenType,
-	"type":   typeTokenType,
+	"if":     ifType,
+	"else":   elseType,
+	"func":   funcType,
+	"return": returnType,
+	"break":  breakType,
+	"for":    forType,
+	"var":    varType,
+	"type":   typeType,
 	"nil":    nilType,
-	"true":   TrueTokenType,
-	"false":  falseTokenType,
+	"true":   TrueType,
+	"false":  falseType,
 }

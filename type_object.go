@@ -17,6 +17,18 @@ type TypeObject struct {
 	objects map[string]*Object
 }
 
+func (sObj *TypeObject) String() string {
+	str := "type " + sObj.label + "{"
+	for index, exp := range sObj.initStatement {
+		if index == 0{
+			str += "\n"
+		}
+		str += "\t"+exp.String() + ";\n"
+
+	}
+	return str +"}"
+}
+
 func (sObj *TypeObject) Invoke() Expression {
 	if sObj.init {
 		return sObj

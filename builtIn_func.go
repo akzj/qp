@@ -1,9 +1,9 @@
 package qp
 
 var (
-	builtInFunctions = map[string]Function{
-		"println": printlnFunc{},
-		"now":     NowFunc{},
+	builtInFunctions = map[string]*Object{
+		"println": &Object{inner: printlnFunc{}},
+		"now":     &Object{inner: NowFunc{}},
 	}
 	arrayBuiltInFunctions = map[string]*Object{
 		"append": &Object{
@@ -21,11 +21,11 @@ var (
 	}
 	stringBuiltInFunctions = map[string]*Object{
 		"to_lower": &Object{
-			inner: &stringLowCase{},
+			inner: stringLowCase{},
 			label: "to_lower",
 		},
 		"clone": &Object{
-			inner: &StringObjectClone{},
+			inner: StringObjectClone{},
 			label: "clone",
 		},
 	}

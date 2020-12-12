@@ -8,6 +8,14 @@ import (
 
 type Statements []Statement
 
+func (statements Statements) String() string {
+	var str string
+	for _, state := range statements {
+		str += state.String()
+	}
+	return str
+}
+
 type Statement interface {
 	Expression
 }
@@ -20,9 +28,17 @@ type IfStatement struct {
 	elseStatement    Statements
 }
 
+func (ifStm IfStatement) String() string {
+	return "if " + ifStm.check.String() + "{}"
+}
+
 type ReturnStatement struct {
 	express   Expression
 	returnVal Expression
+}
+
+func (r ReturnStatement) String() string {
+	panic("implement me")
 }
 
 //just new Object
@@ -32,15 +48,50 @@ type VarStatement struct {
 	object *TypeObject
 }
 
+func (v VarStatement) String() string {
+	panic("implement me")
+}
+
+type periodStatement struct {
+	val string
+	exp Expression
+}
+
+func (p periodStatement) Invoke() Expression {
+	switch obj := p.exp.Invoke().(type) {
+	case BaseObject:
+		return obj.allocObject(p.val)
+	default:
+		log.Panicf("val `%s` `%s` is no object type", p.val, obj.getType())
+	}
+	return nil
+}
+
+func (p periodStatement) getType() Type {
+	return periodType
+}
+
+func (p periodStatement) String() string {
+	return p.exp.String() + "." + p.val
+}
+
 type getVarStatement struct {
 	ctx   *VMContext
 	label string
+}
+
+func (f *getVarStatement) String() string {
+	return f.label
 }
 
 //a.b.c.d
 type getObjectPropStatement struct {
 	this      bool
 	getObject *getObjectObjectStatement
+}
+
+func (g *getObjectPropStatement) String() string {
+	panic("implement me")
 }
 
 type getObjectObjectStatement struct {
@@ -52,12 +103,22 @@ type FuncCallQueueStatement struct {
 	statement []*FuncCallStatement
 }
 
+func (f *FuncCallQueueStatement) String() string {
+	panic("implement me")
+}
+
 type FuncCallStatement struct {
-	vm        *VMContext
-	label     string
-	getObject *getObjectPropStatement
-	function  Function
-	arguments Expressions
+	expression Expression
+	arguments  Expressions
+}
+
+func (f *FuncCallStatement) String() string {
+	return f.expression.String() + "()"
+}
+
+type CallStatement struct {
+	function  Expression
+	arguments []Expression
 }
 
 type AssignStatement struct {
@@ -67,6 +128,10 @@ type AssignStatement struct {
 	getObject  *getObjectObjectStatement
 }
 
+func (expression *AssignStatement) String() string {
+	panic("implement me")
+}
+
 type VarAssignStatement struct {
 	object     *TypeObject //belong to struct object member field
 	ctx        *VMContext  //global or stack var
@@ -74,9 +139,17 @@ type VarAssignStatement struct {
 	expression Expression  // init expression : var a = 1+1
 }
 
+func (expression VarAssignStatement) String() string {
+	return "var " + expression.label + "=" + expression.expression.String()
+}
+
 type IncFieldStatement struct {
-	ctx   *VMContext
-	label string
+	ctx *VMContext
+	exp Expression
+}
+
+func (statement IncFieldStatement) String() string {
+	panic("implement me")
 }
 
 type BreakStatement struct {
@@ -85,6 +158,10 @@ type BreakStatement struct {
 var nopStatement = NopStatement{}
 
 type NopStatement struct {
+}
+
+func (n NopStatement) String() string {
+	panic("implement me")
 }
 
 type FuncStatement struct {
@@ -99,8 +176,12 @@ type FuncStatement struct {
 	closureObjs  []Expression
 }
 
+func (f *FuncStatement) String() string {
+	return "func"
+}
+
 func (f *FuncCallQueueStatement) Invoke() Expression {
-	var function Function
+	/*var function Function
 	for index, call := range f.statement {
 
 		//prepare closure for function object
@@ -125,7 +206,8 @@ func (f *FuncCallQueueStatement) Invoke() Expression {
 		}
 		return expression
 	}
-	return nil
+	return nil*/
+	panic("no ")
 }
 
 func (f *FuncCallQueueStatement) getType() Type {
@@ -145,15 +227,28 @@ type ForStatement struct {
 	statements     Statements
 }
 
+func (f *ForStatement) String() string {
+
+	panic("implement me")
+}
+
 type StructObjectInitStatement struct {
 	label          string // TypeObject label
 	vm             *VMContext
 	initStatements Statements
 }
 
+func (statement *StructObjectInitStatement) String() string {
+	panic("implement me")
+}
+
 type makeArrayStatement struct {
 	vm             *VMContext
 	initStatements Statements
+}
+
+func (m *makeArrayStatement) String() string {
+	panic("implement me")
 }
 
 func (m *makeArrayStatement) Invoke() Expression {
@@ -293,6 +388,7 @@ func (f *FuncStatement) doClosureInit() {
 		if obj == nil {
 			log.Panicf("no find obj with label `%s`", label)
 		}
+		log.Println(label)
 		closureObjs = append(closureObjs, obj.inner)
 	}
 	f.closureObjs = closureObjs
@@ -362,15 +458,12 @@ func (f *ForStatement) Invoke() Expression {
 }
 
 func (f *ForStatement) getType() Type {
-	return forTokenType
+	return forType
 }
 
 func (statement IncFieldStatement) Invoke() Expression {
-	object := statement.ctx.getObject(statement.label)
-	if object == nil {
-		log.Panic("no find Object with label ", statement.label)
-	}
-	object.inner = Int(int(object.inner.(Int)) + 1)
+	object := statement.exp.(*getVarStatement).getObject()
+	object.inner = object.inner.(Int) + 1
 	return nil
 }
 
@@ -383,7 +476,17 @@ func (Statements) getType() Type {
 }
 
 func (f *FuncCallStatement) Invoke() Expression {
-	var function Function
+	exp := f.expression.Invoke()
+	if function, ok := exp.(Function); ok {
+		var arguments []Expression
+		for _, argument := range f.arguments {
+			arguments = append(arguments, argument.Invoke())
+		}
+		return function.call(arguments...)
+	}
+	log.Panicf("object`%s` is no callable", exp.String())
+	return nil
+	/*var function Function
 	var arguments Expressions
 	if f.function != nil {
 		function = f.function
@@ -416,14 +519,19 @@ func (f *FuncCallStatement) Invoke() Expression {
 	if ret, ok := result.(ReturnStatement); ok {
 		return ret.returnVal
 	}
-	return result
+	return result*/
 }
 
 func (f *FuncCallStatement) getType() Type {
-	return funcTokenType
+	return funcType
+}
+
+func (f *getVarStatement) getObject() *Object {
+	return f.ctx.getObject(f.label)
 }
 
 func (f *getVarStatement) Invoke() Expression {
+
 	object := f.ctx.getObject(f.label)
 	if object == nil {
 		log.Panicf("getObject faild `%s`", f.label)
@@ -435,7 +543,7 @@ func (f *getVarStatement) Invoke() Expression {
 }
 
 func (f *getVarStatement) getType() Type {
-	return labelType
+	return IDType
 }
 
 func (v VarStatement) Invoke() Expression {
@@ -448,7 +556,7 @@ func (v VarStatement) Invoke() Expression {
 }
 
 func (v VarStatement) getType() Type {
-	return varTokenType
+	return varType
 }
 
 func (expression VarAssignStatement) Invoke() Expression {
@@ -484,11 +592,11 @@ func (r ReturnStatement) Invoke() Expression {
 }
 
 func (ReturnStatement) getType() Type {
-	return returnTokenType
+	return returnType
 }
 
 func (IfStatement) getType() Type {
-	return ifTokenType
+	return ifType
 }
 
 func (statements Statements) Invoke() Expression {

@@ -15,7 +15,7 @@ type lexer struct {
 }
 
 func (l *lexer) finish() bool {
-	return l.err != nil && l.token.typ == EOFTokenType
+	return l.err != nil && l.token.typ == EOFType
 }
 
 func isSpace(c byte) bool {
@@ -46,7 +46,7 @@ func (l *lexer) get() (byte, error) {
 }
 
 func (l *lexer) peek() Token {
-	if l.token.typ != EOFTokenType {
+	if l.token.typ != EOFType {
 		return l.token
 	}
 	for {
@@ -132,12 +132,22 @@ func (l *lexer) peek() Token {
 				_, _ = l.get()
 				token = Token{
 					typ:  commentTokenType,
-					data: l.readline(),
+					val:  l.readline(),
 					line: l.line,
 				}
 			}
+		case c == '|':
+			if c, _ := l.ahead(); c == '|' {
+				l.get()
+				token = orToken
+			}
+		case c == '&':
+			if c, _ := l.ahead(); c == '&' {
+				l.get()
+				token = andToken
+			}
 		default:
-			log.Panicln(string(c),l.line)
+			log.Panicln(string(c), l.line)
 		}
 		token.line = l.line
 		l.token = token
@@ -153,10 +163,12 @@ func (l *lexer) parseString(multiline bool) Token {
 			l.err = err
 			break
 		}
-		if c == '\n' && multiline == false {
-			log.Panic("parse string failed", string(c))
-		} else {
-			l.line++
+		if c == '\n' {
+			if multiline == false {
+				log.Panic("parse string failed", string(c))
+			} else {
+				l.line++
+			}
 		}
 		if c == '\\' {
 			c, err = l.ahead()
@@ -178,8 +190,8 @@ func (l *lexer) parseString(multiline bool) Token {
 		buffer.WriteByte(c)
 	}
 	return Token{
-		typ:  stringTokenType,
-		data: buffer.String(),
+		typ:  stringType,
+		val:  buffer.String(),
 		line: 0,
 	}
 }
@@ -203,8 +215,8 @@ func (l *lexer) parseNumToken(c byte) Token {
 		}
 	}
 	return Token{
-		typ:  intTokenType,
-		data: buf.String(),
+		typ: intType,
+		val: buf.String(),
 	}
 }
 
@@ -239,8 +251,8 @@ func (l *lexer) parseLabel(c byte) Token {
 	}
 
 	return Token{
-		typ:  labelType,
-		data: buf.String(),
+		typ: IDType,
+		val: buf.String(),
 	}
 }
 

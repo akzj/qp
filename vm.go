@@ -82,7 +82,7 @@ func (m *memory) popStackFrame() {
 
 type VMContext struct {
 	mem           *memory
-	functions     map[string]Function
+	functions     map[string]*Object
 	structObjects map[string]*TypeObject
 }
 
@@ -90,7 +90,7 @@ func newVMContext() *VMContext {
 	return &VMContext{
 		mem:           newMemory(),
 		structObjects: map[string]*TypeObject{},
-		functions:     map[string]Function{},
+		functions:     map[string]*Object{},
 	}
 }
 
@@ -99,6 +99,12 @@ func (ctx *VMContext) allocObject(label string) *Object {
 }
 
 func (ctx *VMContext) getObject(label string) *Object {
+	if obj, ok := builtInFunctions[label]; ok {
+		return &Object{inner: obj}
+	}
+	if obj,ok := ctx.functions[label];ok{
+		return obj
+	}
 	return ctx.mem.getObject(label)
 }
 
@@ -129,17 +135,15 @@ func (ctx *VMContext) addUserFunction(function *FuncStatement) {
 	if _, ok := ctx.functions[function.label]; ok {
 		log.Panic("function name repeated")
 	}
-	ctx.functions[function.label] = function
+	ctx.functions[function.label] = &Object{inner: function}
 }
 
 func (ctx *VMContext) getFunction(label string) (Function, error) {
-	function, ok := builtInFunctions[label]
-	if ok {
-		return function, nil
+	if function, ok := builtInFunctions[label]; ok {
+		return function.inner.(Function), nil
 	}
-	function, ok = ctx.functions[label]
-	if ok {
-		return function, nil
+	if function, ok := ctx.functions[label]; ok {
+		return function.inner.(Function), nil
 	}
 
 	if object := ctx.getObject(label); object != nil {
