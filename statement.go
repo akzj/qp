@@ -38,7 +38,11 @@ type ReturnStatement struct {
 }
 
 func (r ReturnStatement) String() string {
-	panic("implement me")
+	if r.returnVal != nil {
+		return "return " + r.returnVal.String()
+	} else {
+		return "return " + r.express.String()
+	}
 }
 
 //just new Object
@@ -232,13 +236,13 @@ func (f *ForStatement) String() string {
 	panic("implement me")
 }
 
-type StructObjectInitStatement struct {
-	label          string // TypeObject label
+type objectInitStatement struct {
+	exp            Expression
 	vm             *VMContext
 	initStatements Statements
 }
 
-func (statement *StructObjectInitStatement) String() string {
+func (statement *objectInitStatement) String() string {
 	panic("implement me")
 }
 
@@ -309,11 +313,8 @@ func (g *getObjectPropStatement) getType() Type {
 	return propObjectStatementType
 }
 
-func (statement *StructObjectInitStatement) Invoke() Expression {
-	object := statement.vm.cloneTypeObject(statement.label)
-	if object == nil {
-		log.Panicf("cloneTypeObject with label `%s` failed", statement.label)
-	}
+func (statement *objectInitStatement) Invoke() Expression {
+	object := statement.exp.Invoke().(*TypeObject).clone().(*TypeObject)
 	for _, initStatement := range statement.initStatements {
 		object.initStatement = append(object.initStatement, initStatement)
 	}
@@ -333,7 +334,7 @@ func (statement *StructObjectInitStatement) Invoke() Expression {
 	return object
 }
 
-func (statement *StructObjectInitStatement) getType() Type {
+func (statement *objectInitStatement) getType() Type {
 	return typeObjectInitStatementType
 }
 
@@ -383,15 +384,21 @@ func (f *FuncStatement) doClosureInit() {
 	}
 	f.closureInit = true
 	var closureObjs []Expression
+	var closureLabel []string
 	for _, label := range f.closureLabel {
+		if f.vm.isGlobal(label) {
+			continue
+		}
 		obj := f.vm.getObject(label)
 		if obj == nil {
 			log.Panicf("no find obj with label `%s`", label)
 		}
-		log.Println(label)
+		//log.Println(label)
 		closureObjs = append(closureObjs, obj.inner)
+		closureLabel = append(closureLabel, label)
 	}
 	f.closureObjs = closureObjs
+	f.closureLabel = closureLabel
 }
 
 func (expression *AssignStatement) Invoke() Expression {
@@ -468,7 +475,7 @@ func (statement IncFieldStatement) Invoke() Expression {
 }
 
 func (statement *IncFieldStatement) getType() Type {
-	return incOperatorTokenType
+	return incType
 }
 
 func (Statements) getType() Type {
@@ -486,40 +493,6 @@ func (f *FuncCallStatement) Invoke() Expression {
 	}
 	log.Panicf("object`%s` is no callable", exp.String())
 	return nil
-	/*var function Function
-	var arguments Expressions
-	if f.function != nil {
-		function = f.function
-	} else if f.getObject != nil {
-		var object = f.getObject.Invoke()
-		if object == nil {
-			log.Panic("no find function", f.label)
-		}
-		//lambda function can't bind this to first argument
-		if funcStatement, ok := object.(*FuncStatement); ok {
-			if funcStatement.closure && len(f.arguments) != 0 {
-				statement, ok := f.arguments[0].(*getObjectPropStatement)
-				if ok && statement.this {
-					f.arguments = f.arguments[1:]
-				}
-			}
-		}
-		function = object.(Function)
-	} else {
-		var err error
-		function, err = f.vm.getFunction(f.label)
-		if err != nil {
-			log.Panicf("no find function with label`%s`", f.label)
-		}
-	}
-	for _, argument := range f.arguments {
-		arguments = append(arguments, argument.Invoke())
-	}
-	result := function.call(arguments...)
-	if ret, ok := result.(ReturnStatement); ok {
-		return ret.returnVal
-	}
-	return result*/
 }
 
 func (f *FuncCallStatement) getType() Type {
@@ -531,7 +504,6 @@ func (f *getVarStatement) getObject() *Object {
 }
 
 func (f *getVarStatement) Invoke() Expression {
-
 	object := f.ctx.getObject(f.label)
 	if object == nil {
 		log.Panicf("getObject faild `%s`", f.label)

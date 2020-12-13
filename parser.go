@@ -275,7 +275,7 @@ Loop:
 				//function call
 				if next.typ == leftParenthesisType {
 					expressions = append(expressions, p.parseFunctionCall([]string{label}))
-				} else if next.typ == incOperatorTokenType {
+				} else if next.typ == incType {
 					p.closureCheckVisit(token.val)
 					expressions = append(expressions, &IncFieldStatement{
 						ctx:   p.vmCtx,
@@ -408,7 +408,7 @@ Loop:
 					return nil
 				}
 				statements = append(statements, statement)
-			} else if next.typ == incOperatorTokenType {
+			} else if next.typ == incType {
 				p.closureCheckVisit(token.val)
 				statements = append(statements, &IncFieldStatement{
 					ctx:   p.vmCtx,
@@ -744,11 +744,10 @@ func (p *parser) parseTypeObject() *TypeObject {
 	return object
 }
 
-func (p *parser) parseObjectStructInit(label string) *StructObjectInitStatement {
-	var statement StructObjectInitStatement
+func (p *parser) parseObjectStructInit(label string) *objectInitStatement {
+	var statement objectInitStatement
 	var leftBrace []int
 
-	statement.label = label
 	statement.vm = p.vmCtx
 	leftBrace = append(leftBrace, 1)
 	//check empty statement

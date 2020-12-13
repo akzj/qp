@@ -1,6 +1,7 @@
 package qp
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -82,6 +83,12 @@ if 1 == 2 && 2==4 || 3== 4 && true{
 			t.Logf("parse %s failed,result \n%s\n expect\n%s", testcase.data, str, testcase.expect)
 		}
 
+	}
+}
+
+func TestIfElseIF(t *testing.T) {
+	for _,token := range NewParse2(`if 1==1{}else if 1==2{}else{}`).initTokens().tokens{
+		fmt.Println(token)
 	}
 }
 

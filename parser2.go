@@ -65,8 +65,9 @@ type Parser2 struct {
 
 func NewParse2(buffer string) *Parser2 {
 	return &Parser2{
-		lexer: newLexer(bytes.NewReader([]byte(buffer))),
-		vm:    newVMContext(),
+		status: []int{GlobalStatus},
+		lexer:  newLexer(bytes.NewReader([]byte(buffer))),
+		vm:     newVMContext(),
 	}
 }
 
@@ -86,15 +87,17 @@ func (p *Parser2) initTokens() *Parser2 {
 			p.tokens = append(p.tokens, token)
 			break
 		}
-		if token.typ == ifType {
+		if token.typ == elseType {
 			p.lexer.next()
 			next := p.lexer.peek()
-			if next.typ == elseType {
+			p.lexer.next()
+			if next.typ == ifType {
 				token.typ = elseifType
-			} else {
 				p.tokens = append(p.tokens, token)
-				continue
+			} else {
+				p.tokens = append(p.tokens, token, next)
 			}
+			continue
 		}
 		p.tokens = append(p.tokens, token)
 		p.lexer.next()
@@ -127,7 +130,7 @@ func (p *Parser2) ParseStatement() Statement {
 		case varType:
 			return p.parseVarStatement()
 		case ifType:
-			return p.parseIfStatement()
+			return p.parseIfStatement(false)
 		case EOFType:
 			//log.Println(token)
 			return statement
@@ -136,8 +139,16 @@ func (p *Parser2) ParseStatement() Statement {
 		case semicolonType:
 			continue
 		case IDType:
+			next := p.ahead(0)
 			p.putToken(token)
-			return p.parseFactor(0)
+			switch next.typ {
+			case assignType:
+				return p.parseVarStatement()
+			case leftParenthesisType, incType,periodType:
+				return p.parseFactor(0)
+			default:
+				log.Panicln(token, next)
+			}
 		case returnType:
 			return p.parseReturn()
 		case rightBraceType:
@@ -189,7 +200,16 @@ func (p *Parser2) parseTypeStatement() *TypeObject {
 			if ahead := p.ahead(0); ahead.typ == commaType || ahead.typ == semicolonType {
 				p.nextToken()
 			} else {
-				break
+				log.Println(p.ahead(0))
+				if p.ahead(0).typ == varType {
+					if p.historyToken(1).line != p.ahead(0).line {
+						continue
+					}
+					log.Panic("require new line")
+				} else {
+					log.Println(p.ahead(0))
+					break
+				}
 			}
 		}
 	}
@@ -211,32 +231,17 @@ func (p *Parser2) parseVarStatement() Statement {
 	//var id = ....
 	p.closureCheckAddVar(token.val)
 	if next.typ == assignType {
-		expression := p.parseExpression()
-		return &VarAssignStatement{
-			object:     nil,
+		expression := p.parseFactor(0)
+		return VarAssignStatement{
 			ctx:        p.vm,
 			label:      token.val,
 			expression: expression,
 		}
 	}
-	p.putToken(token)
-	return &VarStatement{
+	p.putToken(next)
+	return VarStatement{
 		ctx:   p.vm,
 		label: token.val,
-	}
-}
-
-func (p *Parser2) parseExpression() Expression {
-	factor := p.parseFactor(0)
-	op := p.ahead(0)
-	if op.typ == addType || op.typ == subType {
-		p.nextToken()
-		return BinaryOpExpression{opType: op.typ,
-			Left:  factor,
-			right: p.parseFactor(0)}
-	} else {
-		//		log.Println(op)
-		return factor
 	}
 }
 
@@ -374,12 +379,24 @@ func (p *Parser2) parseFactor(pre int) Expression {
 				Left:   exp,
 				right:  p.parseFactor(precedence(token.typ)),
 			}
-		case incOperatorTokenType:
+		case incType:
 			p.assertNoNil(exp)
 			exp = &IncFieldStatement{
 				ctx: p.vm,
 				exp: exp,
 			}
+		case nilType:
+			p.assertNil(exp)
+			exp = nilObject
+		case leftBraceType:
+			if status := p.getStatus(); status == IfStatus || status == ForStatus {
+				p.putToken(token)
+				if exp == nil {
+					log.Panicf("unexpect token %s", token)
+				}
+				return exp
+			}
+			return p.ParseObjInitStatement(exp)
 		default:
 			if p.isTerminateToken(token) == false {
 				log.Panicf("unexpect token %s", token)
@@ -412,7 +429,7 @@ func (p *Parser2) parseCallStatement(left Expression) Expression {
 			p.nextToken()
 			return &call
 		}
-		call.arguments = append(call.arguments, p.parseExpression())
+		call.arguments = append(call.arguments, p.parseFactor(0))
 		if p.ahead(0).typ == commaType { // ,
 			p.nextToken()
 		}
@@ -440,7 +457,6 @@ func (p *Parser2) parseFuncStatement() *FuncStatement {
 	}
 	p.expectType(p.nextToken(), leftParenthesisType)
 	funcS.parameters = p.parseFuncParameters()
-	p.expectType(p.nextToken(), rightParenthesisType)
 	p.expectType(p.nextToken(), leftBraceType)
 	for {
 		funcS.statements = append(funcS.statements, p.ParseStatement())
@@ -486,6 +502,7 @@ func (p *Parser2) parseFuncParameters() []string {
 			p.nextToken()
 			continue
 		} else if ahead.typ == rightParenthesisType {
+			p.nextToken()
 			break
 		}
 	}
@@ -502,7 +519,7 @@ func (p *Parser2) parseBoolExpression(pre int) Expression {
 	return exp
 }
 
-func (p *Parser2) parseIfStatement() *IfStatement {
+func (p *Parser2) parseIfStatement(elseif bool) *IfStatement {
 	var ifS IfStatement
 	if p.ahead(0).typ != leftBraceType {
 		ifS.check = p.parseBoolExpression(0)
@@ -516,6 +533,22 @@ func (p *Parser2) parseIfStatement() *IfStatement {
 	ifS.vm = p.vm
 	ifS.statement = p.ParseStatements()
 	p.expectType(p.nextToken(), rightBraceType)
+
+	for elseif == false {
+		next := p.ahead(0)
+		if next.typ == elseifType {
+			p.nextToken()
+			statement := p.parseIfStatement(true)
+			ifS.elseIfStatements = append(ifS.elseIfStatements, statement)
+		} else if next.typ == elseType {
+			p.expectType(p.nextToken(), elseType)
+			p.expectType(p.nextToken(), leftBraceType)
+			ifS.elseStatement = p.ParseStatements()
+			p.expectType(p.nextToken(), rightBraceType)
+		} else {
+			break
+		}
+	}
 	return &ifS
 
 }
@@ -596,6 +629,14 @@ func (p *Parser2) parseReturn() Statement {
 	}
 }
 
+func (p Parser2) getStatus() int {
+	if len(p.status) != 0 {
+		return p.status[0]
+	}
+	log.Panic("status stack empty")
+	return 0
+}
+
 func (p *Parser2) parseForStatement() Statement {
 	log.Println("parseForStatement")
 	p.status = append(p.status, ForStatus)
@@ -631,7 +672,7 @@ func (p *Parser2) parseForStatement() Statement {
 		forStatement.checkStatement = &trueObject
 	} else {
 		p.putToken(token)
-		expression := p.parseExpression()
+		expression := p.parseFactor(0)
 		if p.nextToken().typ != semicolonType {
 			log.Panic("expect ; in `for` check expression")
 		}
@@ -644,7 +685,7 @@ func (p *Parser2) parseForStatement() Statement {
 		forStatement.postStatement = nopStatement
 	} else {
 		p.putToken(token)
-		expression := p.parseExpression()
+		expression := p.parseFactor(0)
 		p.expectType(p.nextToken(), leftBraceType)
 		forStatement.postStatement = expression
 	}
@@ -665,4 +706,13 @@ func (p *Parser2) ParseStatements() Statements {
 			return statements
 		}
 	}
+}
+
+func (p *Parser2) ParseObjInitStatement(exp Expression) Expression {
+	var statement objectInitStatement
+	statement.exp = exp
+	statement.vm = p.vm
+	statement.initStatements = p.ParseStatements()
+	p.expectType(p.nextToken(),rightBraceType)
+	return &statement
 }

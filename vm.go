@@ -83,13 +83,13 @@ func (m *memory) popStackFrame() {
 type VMContext struct {
 	mem           *memory
 	functions     map[string]*Object
-	structObjects map[string]*TypeObject
+	structObjects map[string]*Object
 }
 
 func newVMContext() *VMContext {
 	return &VMContext{
 		mem:           newMemory(),
-		structObjects: map[string]*TypeObject{},
+		structObjects: map[string]*Object{},
 		functions:     map[string]*Object{},
 	}
 }
@@ -102,7 +102,10 @@ func (ctx *VMContext) getObject(label string) *Object {
 	if obj, ok := builtInFunctions[label]; ok {
 		return &Object{inner: obj}
 	}
-	if obj,ok := ctx.functions[label];ok{
+	if obj, ok := ctx.functions[label]; ok {
+		return obj
+	}
+	if obj, ok := ctx.structObjects[label]; ok {
 		return obj
 	}
 	return ctx.mem.getObject(label)
@@ -158,19 +161,17 @@ func (ctx *VMContext) addStructObject(object *TypeObject) {
 	if _, ok := ctx.structObjects[object.label]; ok {
 		log.Panic("structObject repeated", object.label)
 	}
-	ctx.structObjects[object.label] = object
+	ctx.structObjects[object.label] = &Object{inner: object}
 }
 
 func (ctx *VMContext) getTypeObject(label string) *TypeObject {
 	obj, _ := ctx.structObjects[label]
-	return obj
+	return obj.inner.(*TypeObject)
 }
 
-func (ctx *VMContext) cloneTypeObject(label string) *TypeObject {
-	obj, ok := ctx.structObjects[label]
-	if ok == false {
-		fmt.Println("no find structObject with label", label)
-		return nil
+func (ctx *VMContext) isGlobal(label string) bool {
+	if _, ok := builtInFunctions[label]; ok {
+		return true
 	}
-	return obj.clone().(*TypeObject)
+	return false
 }

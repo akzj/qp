@@ -112,6 +112,16 @@ func (b BinaryBoolExpression) Invoke() Expression {
 				return DurationObject(time.Time(lVal).Sub(time.Time(rVal)))
 			}
 		}
+	case *FuncStatement:
+		switch right.(type) {
+		case NilObject:
+			switch b.opType {
+			case EqualType:
+				return falseObject
+			case NoEqualTokenType:
+				return trueObject
+			}
+		}
 	default:
 		panic("no support type" + reflect.TypeOf(lVal).String() + "\n" + reflect.TypeOf(b.right).String())
 	}

@@ -123,30 +123,29 @@ func TestReturnStatement(t *testing.T) {
 		exp: `
 var global = 1
 var main = func(val) {
-	println(val)
+	println(val,1)
 	var out = 10 
 	var f = func(){
 		var a = 100
-		println("jjs")
+		println(val,2)
 		var b = func(){
-			println(val)
+			println(val,3)
 			var c = 1000
 			var d = func(){
-					println(val)
+					println(val,4)
 					return a + out + global +c
 				}
 			return d()
 		}
-		println("jjsss")
 		if b != nil{
 			println("b != nil")
-			}
+		}
 		return b
 	}
 	var b = f()
 	return b()
 }
-println(main("hello"))
+println(main("closure "))
 `,
 		val: int64(100),
 	},
@@ -207,7 +206,7 @@ return a+1
 			t.Fatal("Parse failed")
 		}
 		if val := expression.Invoke(); val != nil {
-			fmt.Println("result", val)
+			fmt.Println("result", val.String())
 		}
 	}
 }
@@ -256,6 +255,7 @@ a++
 println(a)
 
 var b = func(){
+	println(a+1)
 }
 b()
 `, val: int64(3),
@@ -361,7 +361,8 @@ type User {
 }
 
 var user = User{}
-println(user.id) //
+user.id = 1
+println(user) //
 
 `
 

@@ -67,7 +67,7 @@ func (t Type) String() string {
 		return "Int"
 	case commaType:
 		return ","
-	case incOperatorTokenType:
+	case incType:
 		return "++"
 	case callFunctionType:
 		return "call"
@@ -151,7 +151,7 @@ const NewLineType Type = 7                     // \n
 const NoType Type = 8                          // !
 const orType Type = 9                          // ||
 const AndType Type = 10                        // &&
-const incOperatorTokenType Type = 100          // ++
+const incType Type = 100                       // ++
 const addType Type = 101                       // +
 const subType Type = 102                       // -
 const mulOpType Type = 103                     // *
@@ -233,7 +233,7 @@ var (
 	greaterEqualToken     = Token{typ: greaterEqualType}
 	assignToken           = Token{typ: assignType}
 	commaToken            = Token{typ: commaType}
-	incOperatorToken      = Token{typ: incOperatorTokenType}
+	incOperatorToken      = Token{typ: incType}
 	semicolonToken        = Token{typ: semicolonType}
 	colonToken            = Token{typ: colonTokenType}
 	periodToken           = Token{typ: periodType}
