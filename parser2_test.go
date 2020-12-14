@@ -2,6 +2,8 @@ package qp
 
 import (
 	"fmt"
+	"log"
+	"strings"
 	"testing"
 )
 
@@ -43,8 +45,18 @@ if 1 == 2 && 2==4 || 3== 4 && true{
 			`var a = 1`, `var a=1`,
 		},
 	}
-	for _, testcase := range testCases {
-		statement := NewParse2(testcase.data).Parse()
+	for index, testcase := range testCases {
+		if index != len(testCases)-1{
+			continue
+		}
+		log.Println(strings.Repeat("-",100))
+		log.Println(testcase.data)
+		p := NewParse2(testcase.data)
+		p.initTokens()
+		for _,token := range p.tokens{
+			log.Println(token)
+		}
+		statement := p.Parse()
 		if statement == nil {
 			t.Fatal("parse failed")
 		}
@@ -63,13 +75,13 @@ if 1 == 2 && 2==4 || 3== 4 && true{
 			`type user{}`, `type user{}`,
 		},
 		{
-			`type user{var a = 1}`, `type user{
-	var a=1;
+			`type user{a:1}`, `type user{
+	a:1;
 }`,
 		},
 		{
-			`type user{var a = func(){}}`, `type user{
-	var a=func;
+			`type user{a:func(){}}`, `type user{
+	a:func;
 }`,
 		},
 	}
@@ -87,7 +99,7 @@ if 1 == 2 && 2==4 || 3== 4 && true{
 }
 
 func TestIfElseIF(t *testing.T) {
-	for _,token := range NewParse2(`if 1==1{}else if 1==2{}else{}`).initTokens().tokens{
+	for _, token := range NewParse2(`if 1==1{}else if 1==2{}else{}`).initTokens().tokens {
 		fmt.Println(token)
 	}
 }
@@ -96,26 +108,43 @@ func TestNewParse2Invoke(t *testing.T) {
 	testcases := []struct {
 		data string
 	}{
+		/*{
+		`
+type User{
+	name:"hello"
+}
+var u = User{
+	id :1
+	print:func(){
+		println("hello world")
+	}
+}
+println(u.name,u.id)
+u.print()
+`,
+		},*/
 		{
 			`
-var a = 1
-println(a,"hello")
+var f  = func(){
+	var c  =func(){
+		var a = func(){
+			println("func c call")
+		}
 
-func hello(){
-	println("hello")
+		if a == nil{
+			println("a nil")
+		}
+		return a
+	}
+	c()
 }
-hello()
-
-var f = func(){
-var b = 3
-	println(a,"lambda")
-}
-f()
-
+f()()
 `,
 		},
 	}
 	for _, testcase := range testcases {
-		NewParse2(testcase.data).Parse().Invoke()
+		statements := NewParse2(testcase.data).Parse()
+		fmt.Println("--------")
+		statements.Invoke()
 	}
 }

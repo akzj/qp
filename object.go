@@ -1,7 +1,6 @@
 package qp
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -28,7 +27,7 @@ func (obj *Object) getType() Type {
 }
 
 func (obj *Object) String() string {
-	return fmt.Sprintf("pointer %d label %s", obj.pointer, obj.label)
+	return obj.inner.String()
 }
 
 func (obj *Object) initType() {

@@ -7,35 +7,38 @@ type BaseObject interface {
 	clone() BaseObject
 }
 
+type TypeObjectPropTemplate struct {
+	name string
+	exp  Expression
+}
+
+func (t TypeObjectPropTemplate) String() string {
+	return t.name + ":" + t.exp.String()
+}
+
 type TypeObject struct {
 	vm    *VMContext
 	label string
 	//init statement when create objects
-	init          bool
-	initStatement Statements
+	init                    bool
+	typeObjectPropTemplates []TypeObjectPropTemplate
 	//user define function
 	objects map[string]*Object
 }
 
 func (sObj *TypeObject) String() string {
 	str := "type " + sObj.label + "{"
-	for index, exp := range sObj.initStatement {
-		if index == 0{
+	for index, exp := range sObj.typeObjectPropTemplates {
+		if index == 0 {
 			str += "\n"
 		}
-		str += "\t"+exp.String() + ";\n"
+		str += "\t" + exp.String() + ";\n"
 
 	}
-	return str +"}"
+	return str + "}"
 }
 
 func (sObj *TypeObject) Invoke() Expression {
-	if sObj.init {
-		return sObj
-	}
-	for _, statement := range sObj.initStatement {
-		statement.Invoke()
-	}
 	return sObj
 }
 
@@ -73,9 +76,9 @@ func (sObj *TypeObject) clone() BaseObject {
 	for k, v := range sObj.objects {
 		clone.addObject(k, v)
 	}
-	if len(sObj.initStatement) != 0 {
-		clone.initStatement = make(Statements, len(sObj.initStatement))
-		copy(clone.initStatement, sObj.initStatement)
+	if len(sObj.typeObjectPropTemplates) != 0 {
+		clone.typeObjectPropTemplates = make([]TypeObjectPropTemplate, len(sObj.typeObjectPropTemplates))
+		copy(clone.typeObjectPropTemplates, sObj.typeObjectPropTemplates)
 	}
 	return &clone
 }

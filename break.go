@@ -6,7 +6,7 @@ type BreakObject struct {
 }
 
 func (b *BreakObject) String() string {
-	panic("implement me")
+	return "break"
 }
 
 func (b *BreakObject) Invoke() Expression {

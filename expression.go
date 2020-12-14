@@ -68,9 +68,38 @@ func (b BinaryBoolExpression) String() string {
 		b.right.String() + ")"
 }
 
+func unwrapObject(expression Expression) Expression {
+	if obj, ok := expression.(*Object); ok {
+		return obj.inner
+	}
+	return expression
+}
+
 func (b BinaryBoolExpression) Invoke() Expression {
-	var left = b.Left.Invoke()
-	var right = b.right.Invoke()
+	return BinaryOpExpression{
+		Left:   b.Left,
+		right:  b.right,
+		opType: b.opType,
+	}.Invoke()
+}
+
+func (b BinaryBoolExpression) getType() Type {
+	panic("implement me")
+}
+
+type BinaryOpExpression struct {
+	opType Type
+	Left   Expression
+	right  Expression
+}
+
+func (b BinaryOpExpression) String() string {
+	return b.Left.String() + b.opType.String() + b.right.String()
+}
+
+func (b BinaryOpExpression) Invoke() Expression {
+	var left = unwrapObject(unwrapObject(b.Left.Invoke()))
+	var right = unwrapObject(b.right.Invoke())
 	switch lVal := left.(type) {
 	case Int:
 		switch rVal := right.(type) {
@@ -126,24 +155,6 @@ func (b BinaryBoolExpression) Invoke() Expression {
 		panic("no support type" + reflect.TypeOf(lVal).String() + "\n" + reflect.TypeOf(b.right).String())
 	}
 	panic("no support type\n" + reflect.TypeOf(left).String() + "\n" + reflect.TypeOf(right).String() + "\n" + b.opType.String())
-}
-
-func (b BinaryBoolExpression) getType() Type {
-	panic("implement me")
-}
-
-type BinaryOpExpression struct {
-	opType Type
-	Left   Expression
-	right  Expression
-}
-
-func (b BinaryOpExpression) String() string {
-	panic("implement me")
-}
-
-func (b BinaryOpExpression) Invoke() Expression {
-	panic("implement me")
 }
 
 func (b BinaryOpExpression) getType() Type {

@@ -56,7 +56,7 @@ func (t Type) String() string {
 	case statementsType:
 		return "statements"
 	case expressionType:
-		return "expression"
+		return "exp"
 	case varType:
 		return "var"
 	case assignType:
@@ -186,7 +186,7 @@ const intType Type = 700                       // int
 const typeType Type = 999                      // type
 const mapObjectType Type = 1001                // map {}
 const arrayObjectType Type = 1002              // array []
-const IDType Type = 5000                       // label
+const IDType Type = 5000                       // name
 const statementType Type = 6001                // statement
 const statementsType Type = 6003               // statementType
 const expressionType Type = 6002               // expressionType

@@ -2,6 +2,7 @@ package qp
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"strconv"
 )
@@ -10,6 +11,7 @@ import (
    Expression:Expression+Expression
 		|Expression-Expression
    		|Expression
+		|Factor
 
 
    FunCall:id()
@@ -24,7 +26,20 @@ import (
    BlockStatement:{Statements}
 
    Statements:Statement \n Statement
-   		|Statements,Statement
+   		|Statement;Statement
+
+Statement:IfStatement
+		|forStatement
+		|assignStatement
+		|breakStatement
+		|varStatement
+
+varStatement:var ID = Expression
+
+assignStatement:ID = Expression
+		|Selector = Expression
+
+
 
 	Selector:ID.ID
 		|Selector.ID
@@ -60,12 +75,39 @@ type Parser2 struct {
 	hTokens      []Token
 	pStack       []int //parenthesis stack
 	closureCheck []*closureCheck
-	status       []int
+	status       []PStatus
+}
+
+type PStatus int
+
+const (
+	GlobalStatus   = 0
+	IfStatus       = 1
+	ElseStatus     = 2
+	ForStatus      = 3
+	FunctionStatus = 4
+)
+
+func precedence(tokenType Type) int {
+	switch tokenType {
+	case mulOpType, divOpType:
+		return 10
+	case addType, subType:
+		return 9
+	case lessTokenType, lessEqualType, greaterType, greaterEqualType, NoEqualTokenType, EqualType:
+		return 8
+	case AndType:
+		return 7
+	case orType:
+		return 6
+	default:
+		return 0
+	}
 }
 
 func NewParse2(buffer string) *Parser2 {
 	return &Parser2{
-		status: []int{GlobalStatus},
+		status: []PStatus{GlobalStatus},
 		lexer:  newLexer(bytes.NewReader([]byte(buffer))),
 		vm:     newVMContext(),
 	}
@@ -117,6 +159,52 @@ func (p *Parser2) Parse() Statements {
 	}
 }
 
+/*
+	AssignStatement:
+		|ID = Expression
+		|selector = Expression
+
+	FunctionCallStatement:
+		|ID()
+		|selector()
+		|FunctionCallStatement()
+		|lambda
+*/
+func (p *Parser2) ParseIDPrefixStatement(token Token) Statement {
+	var exp Expression = getVarStatement{
+		ctx:   p.vm,
+		label: token.val,
+	}
+	for {
+		token := p.nextToken()
+		switch token.typ {
+		case assignType:
+			return p.parseAssignStatement(exp)
+		case incType:
+			return IncFieldStatement{
+				exp: exp,
+			}
+		case colonTokenType:
+			log.Println("colonTokenType")
+			return AssignStatement{left: exp, exp: p.parseFactor(0)}
+		case periodType:
+			token := p.nextToken()
+			p.expectType(token, IDType)
+			exp = periodStatement{
+				val: token.val,
+				exp: exp,
+			}
+		case leftParenthesisType:
+			exp = p.parseCallStatement(exp)
+			if p.ahead(0).typ != leftParenthesisType {
+				return exp
+			}
+		default:
+			log.Panic("unexpect token ", token)
+		}
+	}
+}
+
 func (p *Parser2) ParseStatement() Statement {
 	var statement Statement
 	for {
@@ -132,23 +220,13 @@ func (p *Parser2) ParseStatement() Statement {
 		case ifType:
 			return p.parseIfStatement(false)
 		case EOFType:
-			//log.Println(token)
 			return statement
 		case NewLineType:
 			continue
 		case semicolonType:
 			continue
 		case IDType:
-			next := p.ahead(0)
-			p.putToken(token)
-			switch next.typ {
-			case assignType:
-				return p.parseVarStatement()
-			case leftParenthesisType, incType,periodType:
-				return p.parseFactor(0)
-			default:
-				log.Panicln(token, next)
-			}
+			return p.ParseIDPrefixStatement(token)
 		case returnType:
 			return p.parseReturn()
 		case rightBraceType:
@@ -157,7 +235,7 @@ func (p *Parser2) ParseStatement() Statement {
 		case forType:
 			return p.parseForStatement()
 		case breakType:
-			return breakObject
+			return p.parseBreakStatement()
 		default:
 			log.Panic(token)
 		}
@@ -182,6 +260,34 @@ func (p *Parser2) nextToken() Token {
 type User{
 }
 */
+func (p *Parser2) parseTypeObjectInit() []TypeObjectPropTemplate {
+	var objectPropTemplates []TypeObjectPropTemplate
+	for {
+		token := p.nextToken()
+		p.expectType(p.nextToken(), colonTokenType)
+		exp := p.parseFactor(0) //delay bind
+		objectPropTemplates = append(objectPropTemplates, TypeObjectPropTemplate{
+			name: token.val,
+			exp:  exp,
+		})
+		if ahead := p.ahead(0); ahead.typ == commaType || ahead.typ == semicolonType {
+			p.nextToken()
+		} else {
+			log.Println(p.ahead(0))
+			if p.ahead(0).typ == IDType {
+				if p.historyToken(1).line != p.ahead(0).line {
+					continue
+				}
+				log.Panic("require new line")
+			} else {
+				log.Println(p.ahead(0))
+				break
+			}
+		}
+	}
+	return objectPropTemplates
+}
+
 func (p *Parser2) parseTypeStatement() *TypeObject {
 	var object TypeObject
 	token := p.nextToken()
@@ -193,25 +299,7 @@ func (p *Parser2) parseTypeStatement() *TypeObject {
 		p.nextToken()
 		return &object
 	} else {
-		for {
-			p.expectType(p.nextToken(), varType)
-			statement := p.parseVarStatement()
-			object.initStatement = append(object.initStatement, statement)
-			if ahead := p.ahead(0); ahead.typ == commaType || ahead.typ == semicolonType {
-				p.nextToken()
-			} else {
-				log.Println(p.ahead(0))
-				if p.ahead(0).typ == varType {
-					if p.historyToken(1).line != p.ahead(0).line {
-						continue
-					}
-					log.Panic("require new line")
-				} else {
-					log.Println(p.ahead(0))
-					break
-				}
-			}
-		}
+		object.typeObjectPropTemplates = p.parseTypeObjectInit()
 	}
 	p.expectType(p.nextToken(), rightBraceType) //}
 	return &object
@@ -234,7 +322,7 @@ func (p *Parser2) parseVarStatement() Statement {
 		expression := p.parseFactor(0)
 		return VarAssignStatement{
 			ctx:        p.vm,
-			label:      token.val,
+			name:       token.val,
 			expression: expression,
 		}
 	}
@@ -294,11 +382,12 @@ func (p *Parser2) parseFactor(pre int) Expression {
 				exp = ParenthesisExpression{exp: p.parseFactor(pre)}
 				p.expectType(p.nextToken(), rightParenthesisType)
 			} else {
+				log.Println("parseCallStatement")
 				exp = p.parseCallStatement(exp)
 			}
 		case rightParenthesisType: //end of parenthesis ()
 			if exp == nil {
-				log.Panic("parse bool expression failed")
+				log.Panic("parse bool exp failed")
 			}
 			p.putToken(token)
 			return exp
@@ -382,7 +471,6 @@ func (p *Parser2) parseFactor(pre int) Expression {
 		case incType:
 			p.assertNoNil(exp)
 			exp = &IncFieldStatement{
-				ctx: p.vm,
 				exp: exp,
 			}
 		case nilType:
@@ -394,9 +482,14 @@ func (p *Parser2) parseFactor(pre int) Expression {
 				if exp == nil {
 					log.Panicf("unexpect token %s", token)
 				}
+				log.Println("return {")
 				return exp
+			} else {
+				log.Println(status)
 			}
 			return p.ParseObjInitStatement(exp)
+		case EOFType:
+			return exp
 		default:
 			if p.isTerminateToken(token) == false {
 				log.Panicf("unexpect token %s", token)
@@ -515,11 +608,17 @@ func (p *Parser2) parseBoolExpression(pre int) Expression {
 	if _, ok := exp.(BinaryBoolExpression); ok {
 		return exp
 	}
-	log.Printf("parse expression bool failed,%s", exp.String())
+	log.Printf("parse exp bool failed,%s", exp.String())
 	return exp
 }
 
 func (p *Parser2) parseIfStatement(elseif bool) *IfStatement {
+	p.pushStatus(IfStatus)
+	log.Println("enter parseIfStatement")
+	defer func() {
+		p.assertTrue(p.popStatus() == IfStatus)
+		log.Println("out parseIfStatement")
+	}()
 	var ifS IfStatement
 	if p.ahead(0).typ != leftBraceType {
 		ifS.check = p.parseBoolExpression(0)
@@ -629,19 +728,11 @@ func (p *Parser2) parseReturn() Statement {
 	}
 }
 
-func (p Parser2) getStatus() int {
-	if len(p.status) != 0 {
-		return p.status[0]
-	}
-	log.Panic("status stack empty")
-	return 0
-}
-
 func (p *Parser2) parseForStatement() Statement {
 	log.Println("parseForStatement")
-	p.status = append(p.status, ForStatus)
+	p.pushStatus(ForStatus)
 	defer func() {
-		p.status = p.status[:len(p.status)-1]
+		p.assertTrue(p.popStatus() == ForStatus)
 	}()
 	var forStatement = ForStatement{
 		vm: p.vm,
@@ -667,20 +758,20 @@ func (p *Parser2) parseForStatement() Statement {
 		forStatement.preStatement = expression
 	}
 	token = p.nextToken()
-	//check expression
+	//check exp
 	if token.typ == semicolonType {
 		forStatement.checkStatement = &trueObject
 	} else {
 		p.putToken(token)
 		expression := p.parseFactor(0)
 		if p.nextToken().typ != semicolonType {
-			log.Panic("expect ; in `for` check expression")
+			log.Panic("expect ; in `for` check exp")
 		}
 		forStatement.checkStatement = expression
 	}
 
 	token = p.nextToken()
-	//post expression
+	//post exp
 	if token.typ == leftBraceType {
 		forStatement.postStatement = nopStatement
 	} else {
@@ -701,7 +792,10 @@ func (p *Parser2) ParseStatements() Statements {
 		return append(statements, NopStatement{})
 	}
 	for {
-		statements = append(statements, p.ParseStatement())
+		statement := p.ParseStatement()
+		fmt.Println(statement.String())
+		statements = append(statements, statement)
+
 		if p.ahead(0).typ == rightBraceType {
 			return statements
 		}
@@ -712,7 +806,63 @@ func (p *Parser2) ParseObjInitStatement(exp Expression) Expression {
 	var statement objectInitStatement
 	statement.exp = exp
 	statement.vm = p.vm
-	statement.initStatements = p.ParseStatements()
-	p.expectType(p.nextToken(),rightBraceType)
+	if ahead := p.ahead(0); ahead.typ == rightBraceType {
+		p.nextToken()
+		return &statement
+	} else {
+		statement.propTemplates = p.parseTypeObjectInit()
+	}
+	p.expectType(p.nextToken(), rightBraceType)
 	return &statement
+}
+
+func (p *Parser2) pushStatus(status PStatus) {
+	p.status = append(p.status, status)
+}
+
+func (p *Parser2) popStatus() PStatus {
+	if len(p.status) == 0 {
+		log.Panic("status stack empty")
+	}
+	status := p.status[len(p.status)-1]
+	p.status = p.status[:len(p.status)-1]
+	return status
+}
+func (p *Parser2) assertTrue(val bool) {
+	if val == false {
+		panic("assert failed")
+	}
+}
+
+func (p *Parser2) checkInStatus(status PStatus) bool {
+	for i := len(p.status) - 1; i >= 0; i-- {
+		if p.status[i] == status {
+			return true
+		} else if p.status[i] == FunctionStatus {
+			break
+		}
+	}
+	return false
+}
+
+func (p Parser2) getStatus() PStatus {
+	if len(p.status) != 0 {
+		return p.status[len(p.status)-1]
+	}
+	log.Panic("status stack empty")
+	return 0
+}
+
+func (p *Parser2) parseBreakStatement() Statement {
+	if p.checkInStatus(ForStatus) == false {
+		log.Panic("current no in `for` brock ")
+	}
+	return breakObject
+}
+
+func (p *Parser2) parseAssignStatement(exp Expression) AssignStatement {
+	return AssignStatement{
+		exp:  p.parseFactor(0),
+		left: exp,
+	}
 }

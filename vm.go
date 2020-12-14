@@ -154,7 +154,7 @@ func (ctx *VMContext) getFunction(label string) (Function, error) {
 			return function, nil
 		}
 	}
-	return nil, fmt.Errorf("no find function with label `%s`", label)
+	return nil, fmt.Errorf("no find function with name `%s`", label)
 }
 
 func (ctx *VMContext) addStructObject(object *TypeObject) {

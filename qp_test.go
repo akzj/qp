@@ -65,48 +65,11 @@ if (1 > (1+2)) == false{
 	Parse(data).Invoke()
 }
 
-func TestLessExpression(t *testing.T) {
-
-	cases := []struct {
-		expStr string
-		expect bool
-	}{
-		{
-			"1 < 2",
-			true,
-		},
-		{
-			"1 <= 2",
-			true,
-		},
-		{
-			"2 <= 1",
-			false,
-		},
-		{
-			"2 < 1",
-			false,
-		},
-	}
-
-	for _, Case := range cases {
-		parser := newParser(bytes.NewReader([]byte(Case.expStr)))
-		expression := parser.parseExpression()
-		if expression == nil {
-			t.Fatal("Parse failed")
-		}
-		if val := expression.Invoke(); val != nil {
-			if bool((val.(Bool))) != Case.expect {
-				t.Fatalf("expression parse failed,`%s` "+
-					"result `%+v` expect `%+v`", Case.expStr, val, Case.expect)
-			}
-		}
-	}
-}
 
 func TestNumAddParse(t *testing.T) {
-	parser := newParser(bytes.NewReader([]byte("1*(5+5+5)*2")))
-	expression := parser.parseExpression()
+	parser := NewParse2("1*(5+5+5)*2")
+	parser.initTokens()
+	expression := parser.parseFactor(0)
 	if expression == nil {
 		t.Fatal("Parse failed")
 	}
@@ -122,30 +85,23 @@ func TestReturnStatement(t *testing.T) {
 	}{{
 		exp: `
 var global = 1
-var main = func(val) {
-	println(val,1)
-	var out = 10 
+var main = func(left) {
+	println(left,1)
 	var f = func(){
-		var a = 100
-		println(val,2)
+		println(left,2)
 		var b = func(){
-			println(val,3)
-			var c = 1000
 			var d = func(){
-					println(val,4)
-					return a + out + global +c
+					println(left,4)
+					return global
 				}
 			return d()
 		}
-		if b != nil{
-			println("b != nil")
-		}
 		return b
 	}
-	var b = f()
-	return b()
+	var d = f
+	return d()
 }
-println(main("closure "))
+var b = main("closure ")()+1
 `,
 		val: int64(100),
 	},
@@ -649,9 +605,9 @@ if 1 != 0 {
 	println("!= done")
 }
 
-func List.insert(val){
+func List.insert(left){
     var item =Item{}
-	item.value = val
+	item.value = left
     if this.head == nil {
         this.head = item
     }else{
@@ -710,12 +666,12 @@ PASS
 func TestFibonacci(t *testing.T) {
 	data := `
 
-func fib(val){
-	if val < 2 {
-		return val
+func fib(left){
+	if left < 2 {
+		return left
 	}
-var l = fib(val-2) 
-var r = fib(val-1)
+var l = fib(left-2) 
+var r = fib(left-1)
 	 var res = l+r
 	return res
 }
