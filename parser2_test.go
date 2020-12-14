@@ -136,9 +136,9 @@ var f  = func(){
 		}
 		return a
 	}
-	c()
+	return c()
 }
-f()()
+f()
 `,
 		},
 	}

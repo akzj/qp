@@ -84,7 +84,7 @@ func TestReturnStatement(t *testing.T) {
 		val int64
 	}{{
 		exp: `
-var global = 1
+var global = 100
 var main = func(left) {
 	println(left,1)
 	var f = func(){
@@ -101,7 +101,8 @@ var main = func(left) {
 	var d = f
 	return d()
 }
-var b = main("closure ")()+1
+var b = main("closure ")()
+println(b)
 `,
 		val: int64(100),
 	},

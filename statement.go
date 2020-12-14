@@ -336,7 +336,7 @@ func (f *FuncStatement) call(arguments ...Expression) Expression {
 	for _, statement := range f.statements {
 		result := statement.Invoke()
 		if ret, ok := result.(ReturnStatement); ok {
-			return ret
+			return ret.returnVal
 		}
 	}
 	return nil
