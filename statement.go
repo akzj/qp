@@ -65,7 +65,6 @@ type periodStatement struct {
 }
 
 func (p periodStatement) Invoke() Expression {
-	log.Println(p.val)
 	object := p.exp.Invoke().(*Object)
 	switch obj := object.inner.(type) {
 	case BaseObject:
@@ -341,6 +340,8 @@ func (statement *objectInitStatement) getType() Type {
 
 func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) {
 	if len(f.parameters) != len(inArguments) {
+		if f.closure {
+		}
 		log.Panicf("call function %s argument count %d %d no match ", f.label, len(f.parameters), len(inArguments))
 	}
 
@@ -348,6 +349,7 @@ func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) {
 	for index := range f.closureLabel {
 		// put closure objects to stack
 		//object :=
+		log.Println(f.closureObjs[index].String())
 		f.vm.allocObject(f.closureLabel[index]).inner = f.closureObjs[index]
 	}
 
@@ -388,7 +390,7 @@ func (f *FuncStatement) doClosureInit() {
 		if obj == nil {
 			log.Panicf("no find obj with name `%s`", label)
 		}
-		//log.Println(name)
+		log.Println(obj.inner.getType())
 		closureObjs = append(closureObjs, obj.inner)
 		closureLabel = append(closureLabel, label)
 	}
@@ -475,21 +477,29 @@ func (f *FuncCallStatement) Invoke() Expression {
 		exp = obj.Invoke()
 	case ReturnStatement:
 		exp = obj.returnVal
-	default:
-		log.Println(reflect.TypeOf(exp).String())
+	}
+	if exp == nil {
+		log.Panic("function nil")
 	}
 	var arguments []Expression
-	if f.parentExp != nil {
-		argument := f.parentExp.Invoke()
-		switch argument.(type) {
+	if Func, ok := exp.(*FuncStatement);
+		f.parentExp != nil && (ok == false ||  Func.closure == false) {
+		switch argument := f.parentExp.Invoke().(type) {
 		case *Object:
-			argument = argument.(*Object).inner
+			arguments = append(arguments, argument.inner)
+		default:
+			arguments = append(arguments, argument)
 		}
-		arguments = append(arguments, argument)
 	}
+
 	if function, ok := exp.(Function); ok {
 		for _, argument := range f.arguments {
-			arguments = append(arguments, argument.Invoke())
+			switch job := argument.Invoke().(type) {
+			case *Object:
+				arguments = append(arguments, job.inner)
+			default:
+				arguments = append(arguments, job)
+			}
 		}
 		return function.call(arguments...)
 	}
@@ -510,7 +520,11 @@ func (f getVarStatement) getType() Type {
 }
 
 func (v VarStatement) Invoke() Expression {
-	v.ctx.allocObject(v.label).inner = v.object.Invoke()
+	if v.object != nil {
+		v.ctx.allocObject(v.label).inner = v.object.Invoke()
+	} else {
+		v.ctx.allocObject(v.label).inner = nilObject
+	}
 	return nil
 }
 

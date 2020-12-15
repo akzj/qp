@@ -151,14 +151,13 @@ func (p *Parser2) Parse() Statements {
 	p.initTokens()
 	var statements Statements
 	for {
-		statement := p.ParseStatement()
-		if statement == nil {
-			if p.ahead(0).typ == EOFType {
-				return statements
-			}
-			continue
+
+		if statement := p.ParseStatement(); statement != nil {
+			statements = append(statements, statement)
 		}
-		statements = append(statements, statement)
+		if p.ahead(0).typ == EOFType {
+			return statements
+		}
 	}
 }
 
@@ -214,7 +213,7 @@ func (p *Parser2) ParseStatement() Statement {
 	var statement Statement
 	for {
 		token := p.nextToken()
-		log.Println(token)
+		//		log.Println(token)
 		switch token.typ {
 		case typeType:
 			p.vm.addStructObject(p.parseTypeStatement())
@@ -226,6 +225,7 @@ func (p *Parser2) ParseStatement() Statement {
 				funcStatement := p.parseLambdaStatement()
 				//function call
 				for p.ahead(0).typ == leftParenthesisType {
+					p.nextToken()
 					funcStatement = p.parseCallStatement(nil, funcStatement)
 				}
 				return funcStatement
@@ -235,6 +235,9 @@ func (p *Parser2) ParseStatement() Statement {
 		case ifType:
 			return p.parseIfStatement(false)
 		case EOFType:
+			if statement == nil {
+				return nopStatement
+			}
 			return statement
 		case NewLineType:
 			continue
@@ -246,6 +249,9 @@ func (p *Parser2) ParseStatement() Statement {
 			return p.parseReturn()
 		case rightBraceType:
 			p.putToken(token)
+			if statement == nil {
+				return nopStatement
+			}
 			return statement
 		case forType:
 			return p.parseForStatement()
@@ -328,7 +334,7 @@ func (p *Parser2) expectType(token Token, expect Type) {
 
 func (p *Parser2) parseVarStatement() Statement {
 	token := p.nextToken()
-	log.Println(token)
+	//log.Println(token)
 	p.expectType(token, IDType)
 	next := p.nextToken()
 	//var id = ....
@@ -378,7 +384,7 @@ func (p *Parser2) parseLambdaStatement() Statement {
 			p.nextToken()
 			break
 		}
-		log.Println("lambda next token",p.ahead(0))
+		log.Println("lambda next token", p.ahead(0))
 	}
 	funcS.closureLabel = p.popClosureLabels()
 	return &funcS
@@ -389,7 +395,6 @@ func (p *Parser2) parseFactor(pre int) Expression {
 	var parentExp Expression
 	for {
 		token := p.nextToken()
-		log.Println(token)
 		switch token.typ {
 		case falseType:
 			p.assertNil(exp)
@@ -403,7 +408,7 @@ func (p *Parser2) parseFactor(pre int) Expression {
 				exp = ParenthesisExpression{exp: p.parseFactor(pre)}
 				p.expectType(p.nextToken(), rightParenthesisType)
 			} else {
-				log.Println("parseCallStatement")
+				//log.Println("parseCallStatement")
 				exp = p.parseCallStatement(parentExp, exp)
 			}
 		case rightParenthesisType: //end of parenthesis ()
@@ -504,10 +509,8 @@ func (p *Parser2) parseFactor(pre int) Expression {
 				if exp == nil {
 					log.Panicf("unexpect token %s", token)
 				}
-				log.Println("return {")
+				//log.Println("return {")
 				return exp
-			} else {
-				log.Println(status)
 			}
 			return p.ParseObjInitStatement(exp)
 		case leftBracketTokenType:
@@ -631,11 +634,11 @@ func (p *Parser2) parseFuncStatement() *FuncStatement {
 	funcS.parameters = append(funcS.parameters, p.parseFuncParameters()...)
 	p.expectType(p.nextToken(), leftBraceType)
 	for {
-		funcS.statements = append(funcS.statements, p.ParseStatement())
 		if p.ahead(0).typ == rightBraceType {
 			p.nextToken()
 			break
 		}
+		funcS.statements = append(funcS.statements, p.ParseStatement())
 	}
 	funcS.vm = p.vm
 	return &funcS
@@ -675,10 +678,10 @@ func (p *Parser2) parseBoolExpression(pre int) Expression {
 
 func (p *Parser2) parseIfStatement(elseif bool) *IfStatement {
 	p.pushStatus(IfStatus)
-	log.Println("enter parseIfStatement")
+	//log.Println("enter parseIfStatement")
 	defer func() {
 		p.assertTrue(p.popStatus() == IfStatus)
-		log.Println("out parseIfStatement")
+		//log.Println("out parseIfStatement")
 	}()
 	var ifS IfStatement
 	if p.ahead(0).typ != leftBraceType {
@@ -730,6 +733,7 @@ func (p *Parser2) isTerminateToken(next Token) bool {
 		next.typ == leftBraceType ||
 		next.typ == rightBraceType ||
 		next.typ == semicolonType ||
+		next.typ == rightBracketType ||
 		next.typ == commaType ||
 		next.typ == varType ||
 		next.typ == breakType ||
@@ -790,7 +794,6 @@ func (p *Parser2) parseReturn() Statement {
 }
 
 func (p *Parser2) parseForStatement() Statement {
-	log.Println("parseForStatement")
 	p.pushStatus(ForStatus)
 	defer func() {
 		p.assertTrue(p.popStatus() == ForStatus)
@@ -799,7 +802,7 @@ func (p *Parser2) parseForStatement() Statement {
 		vm: p.vm,
 	}
 	token := p.nextToken()
-	log.Println(token)
+	//log.Println(token)
 	if token.typ == semicolonType {
 		forStatement.preStatement = nopStatement
 	} else if token.typ == leftBraceType {
@@ -860,7 +863,7 @@ func (p *Parser2) ParseStatements() Statements {
 		statements = append(statements, statement)
 
 		if p.ahead(0).typ == rightBraceType {
-			log.Println(p.getStatus())
+			//log.Println(p.getStatus())
 			if p.getStatus() == GlobalStatus {
 				p.nextToken()
 				continue

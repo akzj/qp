@@ -312,9 +312,8 @@ func TestStructObjectDefaultInit(t *testing.T) {
 	data := `
 type User {
 	//define user member with default Int 1
-	var id = 66666
+	id:  66666
 	//define user member with default nil
-	var id2
 }
 
 var user = User{}
@@ -334,14 +333,11 @@ println(user) //
 func TestStructObject(t *testing.T) {
 	data := `
 type User {
-	//define user member with default Int 1
-	var id = 66666
-	//define user member with default nil
-	var id2
+	id: 66666
 }
 
 var user = User{
-a:1+1
+	a:1+1
 }
 //println struct member field
 println(user.a) //2
@@ -350,7 +346,7 @@ println(user.a) //100
 
 
 func User.print(){
-	println(.id)
+	println(this.id)
 }
 
 // -----------------------------------------------------------
@@ -395,14 +391,12 @@ func TestObject(t *testing.T) {
 	data := `
 type user {
 	//define user member with default Int 1
-	var id = 1
-	//define user member with default nil
-	var id2
+	id: 1
 }
 
 //define function for user
 func user.print(){
-	println(.id) //i
+	println(this.id) //i
 }
 
 // alloc field u
@@ -426,8 +420,10 @@ u.hello = func(){
 //alloc int field
 var b = 1
 
+
 //closure
 u.incB = func(b){
+	println(b,"bbbbbbbbbbbbbbbbb")
 	b++
 }
 
@@ -564,7 +560,12 @@ func TestFunctionCallC(t *testing.T) {
 	data := `
 
 func(){
-	
+	return func(){
+	return func(){
+	return func(){	
+}
+}
+}
 }()()()()
 `
 	Parse(data).Invoke()

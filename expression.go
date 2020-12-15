@@ -69,10 +69,13 @@ func (b BinaryBoolExpression) String() string {
 }
 
 func unwrapObject(expression Expression) Expression {
-	if obj, ok := expression.(*Object); ok {
-		return obj.inner
+	for {
+		if obj, ok := expression.(*Object); ok {
+			expression = obj.inner
+		} else {
+			return expression
+		}
 	}
-	return expression
 }
 
 func (b BinaryBoolExpression) Invoke() Expression {
@@ -98,7 +101,7 @@ func (b BinaryOpExpression) String() string {
 }
 
 func (b BinaryOpExpression) Invoke() Expression {
-	var left = unwrapObject(unwrapObject(b.Left.Invoke()))
+	var left = unwrapObject(b.Left.Invoke())
 	var right = unwrapObject(b.right.Invoke())
 	switch lVal := left.(type) {
 	case Int:
@@ -115,15 +118,20 @@ func (b BinaryOpExpression) Invoke() Expression {
 				return lVal / rVal
 			case lessTokenType:
 				return Bool(lVal < rVal)
+			case lessEqualType:
+				return Bool(lVal < rVal)
 			case greaterType:
 				return Bool(lVal > rVal)
+			case greaterEqualType:
+				return Bool(lVal >= rVal)
 			case EqualType:
 				return Bool(lVal == rVal)
 			case NoEqualTokenType:
 				return Bool(lVal != rVal)
 			}
 		default:
-			panic("no support type" + reflect.TypeOf(lVal).String() + "\n" + reflect.TypeOf(lVal).String())
+			panic("no support type " + reflect.TypeOf(lVal).String() +
+				"\n" + reflect.TypeOf(rVal).String() + " op type" + b.opType.String())
 		}
 	case Bool:
 		switch rVal := right.(type) {
@@ -169,7 +177,7 @@ func (b BinaryOpExpression) Invoke() Expression {
 			}
 		}
 	default:
-		panic("no support type" + reflect.TypeOf(lVal).String() +
+		panic("no support type " + reflect.TypeOf(lVal).String() +
 			"\n" + reflect.TypeOf(b.right).String() + b.opType.String())
 	}
 	panic("no support type\n" + reflect.TypeOf(left).String() +
