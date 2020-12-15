@@ -602,10 +602,6 @@ type Item {
 type List {
 }
 
-if 1 != 0 {
-	println("!= done")
-}
-
 func List.insert(left){
     var item =Item{}
 	item.value = left
@@ -615,6 +611,7 @@ func List.insert(left){
         item.next = this.head
         this.head = item
     }
+	println(this.head.value)
 }
 
 
@@ -626,6 +623,7 @@ list.insert(3)
 list.insert(4)
 list.insert(5)
 
+println("-----------------")
 for var head =list.head ;head != nil; head = head.next{
 	println(head.value)
 }

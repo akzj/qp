@@ -119,6 +119,8 @@ func (b BinaryOpExpression) Invoke() Expression {
 				return Bool(lVal > rVal)
 			case EqualType:
 				return Bool(lVal == rVal)
+			case NoEqualTokenType:
+				return Bool(lVal != rVal)
 			}
 		default:
 			panic("no support type" + reflect.TypeOf(lVal).String() + "\n" + reflect.TypeOf(lVal).String())
@@ -151,10 +153,27 @@ func (b BinaryOpExpression) Invoke() Expression {
 				return trueObject
 			}
 		}
+	case *TypeObject:
+		switch right.(type) {
+		case NilObject:
+			return falseObject
+		}
+	case NilObject:
+		switch right.(type) {
+		case NilObject:
+			switch b.opType {
+			case EqualType:
+				return trueObject
+			case NoEqualTokenType:
+				return falseObject
+			}
+		}
 	default:
-		panic("no support type" + reflect.TypeOf(lVal).String() + "\n" + reflect.TypeOf(b.right).String())
+		panic("no support type" + reflect.TypeOf(lVal).String() +
+			"\n" + reflect.TypeOf(b.right).String() + b.opType.String())
 	}
-	panic("no support type\n" + reflect.TypeOf(left).String() + "\n" + reflect.TypeOf(right).String() + "\n" + b.opType.String())
+	panic("no support type\n" + reflect.TypeOf(left).String() +
+		"\n" + reflect.TypeOf(right).String() + "\n" + b.opType.String())
 }
 
 func (b BinaryOpExpression) getType() Type {

@@ -65,11 +65,13 @@ type periodStatement struct {
 }
 
 func (p periodStatement) Invoke() Expression {
-	switch obj := p.exp.Invoke().(*Object).inner.(type) {
+	log.Println(p.val)
+	object := p.exp.Invoke().(*Object)
+	switch obj := object.inner.(type) {
 	case BaseObject:
 		return obj.allocObject(p.val)
 	default:
-		log.Panicf("left `%s` `%s` is no object type", p.val, obj.getType())
+		log.Panicf("left `%s` `%s` is no object type", p.val, reflect.TypeOf(obj).String())
 	}
 	return nil
 }
@@ -339,7 +341,7 @@ func (statement *objectInitStatement) getType() Type {
 
 func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) {
 	if len(f.parameters) != len(inArguments) {
-		log.Panic("argument size no match ", len(f.parameters), len(inArguments))
+		log.Panicf("call function %s argument count %d %d no match ", f.label, len(f.parameters), len(inArguments))
 	}
 
 	f.vm.pushStackFrame(true)
@@ -473,7 +475,12 @@ func (f *FuncCallStatement) Invoke() Expression {
 	}
 	var arguments []Expression
 	if f.parentExp != nil {
-		arguments = append(arguments, f.parentExp.Invoke())
+		argument := f.parentExp.Invoke()
+		switch argument.(type) {
+		case *Object:
+			argument = argument.(*Object).inner
+		}
+		arguments = append(arguments, argument)
 	}
 	if function, ok := exp.(Function); ok {
 		for _, argument := range f.arguments {

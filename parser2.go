@@ -153,7 +153,10 @@ func (p *Parser2) Parse() Statements {
 	for {
 		statement := p.ParseStatement()
 		if statement == nil {
-			return statements
+			if p.ahead(0).typ == EOFType {
+				return statements
+			}
+			continue
 		}
 		statements = append(statements, statement)
 	}
@@ -607,7 +610,10 @@ func (p *Parser2) parseFuncStatement() *FuncStatement {
 		funcS.label = token.val
 	}
 	p.expectType(p.nextToken(), leftParenthesisType)
-	funcS.parameters = p.parseFuncParameters()
+	if len(funcS.labels) != 0 {
+		funcS.parameters = append(funcS.parameters, "this")
+	}
+	funcS.parameters = append(funcS.parameters, p.parseFuncParameters()...)
 	p.expectType(p.nextToken(), leftBraceType)
 	for {
 		funcS.statements = append(funcS.statements, p.ParseStatement())
@@ -786,6 +792,7 @@ func (p *Parser2) parseForStatement() Statement {
 		forStatement.postStatement = nopStatement
 		forStatement.checkStatement = &trueObject
 		statements := p.ParseStatements()
+		p.expectType(p.nextToken(), rightBraceType)
 		forStatement.statements = statements
 		return &forStatement
 	} else {
@@ -816,13 +823,14 @@ func (p *Parser2) parseForStatement() Statement {
 		forStatement.postStatement = nopStatement
 	} else {
 		p.putToken(token)
-		expression := p.parseFactor(0)
+		expression := p.ParseStatement()
 		p.expectType(p.nextToken(), leftBraceType)
 		forStatement.postStatement = expression
 	}
 	// statements
 	statements := p.ParseStatements()
 	forStatement.statements = statements
+	p.expectType(p.nextToken(), rightBraceType)
 	return &forStatement
 }
 

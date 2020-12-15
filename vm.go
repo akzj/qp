@@ -125,6 +125,7 @@ func (ctx *VMContext) addUserFunction(function *FuncStatement) {
 		if structObject == nil { //todo fix parse order
 			log.Panic("no find structObject", function.labels[0])
 		}
+		log.Println(function.labels)
 		structObject.addObject(function.labels[1], &Object{
 			inner: function,
 			label: strings.Join(function.labels, "."),

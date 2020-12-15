@@ -56,12 +56,12 @@ func registerArrayFunction() {
 		}
 		return array
 	})("size", func(arguments ...Expression) Expression {
-		return Int(len(arguments[0].(*Array).data))
+		return Int(len(arguments[0].Invoke().(*Array).data))
 	})("get", func(arguments ...Expression) Expression {
 		if len(arguments) != 2 {
 			log.Panic("array get() arguments error")
 		}
-		array, ok := arguments[0].(*Array)
+		array, ok := arguments[0].Invoke().(*Array)
 		if ok == false {
 			log.Panic("object not array type")
 		}
