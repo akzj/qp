@@ -36,61 +36,33 @@ func (s String) getType() Type {
 	return stringType
 }
 
-type StringObjectClone struct {
-}
-
-func (s StringObjectClone) String() string {
-	panic("implement me")
-}
-
-func (s StringObjectClone) Invoke() Expression {
-	return s
-}
-
-func (s StringObjectClone) getType() Type {
-	return TypeObjectType
-}
-
-func (s StringObjectClone) call(arguments ...Expression) Expression {
-	if len(arguments) > 1 {
-		log.Panicln("only one arguments")
-	}
-
-	for {
-		switch inner := arguments[0].(type) {
-		case String:
-			return inner.clone()
-		default:
-			log.Panicln("type error", reflect.TypeOf(arguments[0]).String())
+func registerStringFunction() {
+	registerBuiltInFunc(stringBuiltInFunctions, "to_lower", func(arguments ...Expression) Expression {
+		if len(arguments) > 1 {
+			log.Panicln("only one arguments")
 		}
-	}
-}
-
-type stringLowCase struct{}
-
-func (c stringLowCase) String() string {
-	panic("implement me")
-}
-
-func (c stringLowCase) Invoke() Expression {
-	return c
-}
-
-func (c stringLowCase) getType() Type {
-	return TypeObjectType
-}
-
-func (stringLowCase) call(arguments ...Expression) Expression {
-	if len(arguments) > 1 {
-		log.Panicln("only one arguments")
-	}
-	for {
-		switch inner := arguments[0].(type) {
-		case String:
-			inner = String(strings.ToLower(string(inner)))
-			return inner
-		default:
-			log.Panicln("type error", reflect.TypeOf(arguments[0]).String())
+		for {
+			switch inner := arguments[0].(type) {
+			case String:
+				inner = String(strings.ToLower(string(inner)))
+				return inner
+			default:
+				log.Panicln("type error", reflect.TypeOf(arguments[0]).String())
+			}
 		}
-	}
+	})
+
+	registerBuiltInFunc(stringBuiltInFunctions, "clone", func(arguments ...Expression) Expression {
+		if len(arguments) > 1 {
+			log.Panicln("only one arguments")
+		}
+		for {
+			switch inner := arguments[0].(type) {
+			case String:
+				return inner.clone()
+			default:
+				log.Panicln("type error", reflect.TypeOf(arguments[0]).String())
+			}
+		}
+	})
 }

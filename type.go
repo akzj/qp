@@ -111,7 +111,7 @@ func (t Type) String() string {
 		return "getObjectObjectStatementType"
 	case leftBracketTokenType:
 		return "["
-	case rightBracketTokenType:
+	case rightBracketType:
 		return "]"
 	case funcCallQueueStatementType:
 		return "funcCallQueueStatementType"
@@ -171,7 +171,7 @@ const semicolonType Type = 125                 // ;
 const colonTokenType Type = 126                // :
 const periodType Type = 127                    // .
 const leftBracketTokenType Type = 128          // [
-const rightBracketTokenType Type = 129         // ]
+const rightBracketType Type = 129              // ]
 const ifType Type = 230                        // if
 const elseType Type = 331                      // else
 const funcType Type = 332                      // func
@@ -239,7 +239,7 @@ var (
 	periodToken           = Token{typ: periodType}
 	equalToken            = Token{typ: EqualType}
 	leftBracketToken      = Token{typ: leftBracketTokenType}
-	rightBracketToken     = Token{typ: rightBracketTokenType}
+	rightBracketToken     = Token{typ: rightBracketType}
 	NoEqualToken          = Token{typ: NoEqualTokenType}
 	subOperatorToken      = Token{typ: subType}
 	orToken               = Token{typ: orType}

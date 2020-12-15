@@ -1,77 +1,46 @@
 package qp
 
-import (
-	"fmt"
-	"log"
-	"reflect"
-	"time"
-)
-
 type Function interface {
 	Expression
 	call(arguments ...Expression) Expression
 }
 
-type BuiltInFunctionBase struct {
+type BuiltInFunctionHandler struct {
+	name     string
+	callFunc CallFunc
 }
 
-func (b BuiltInFunctionBase) String() string {
-	panic("implement me")
+type CallFunc func(arguments ...Expression) Expression
+type funcObjectMap map[string]*Object
+type registerBuiltInFuncHelper func(name string, callFunc CallFunc) registerBuiltInFuncHelper
+
+func registerBuiltInFunc(funcObjectMap funcObjectMap, name string, callFunc CallFunc) registerBuiltInFuncHelper {
+	var helper registerBuiltInFuncHelper
+	helper = func(name string, callFunc CallFunc) registerBuiltInFuncHelper {
+		funcObjectMap[name] = &Object{
+			label: name,
+			inner: &BuiltInFunctionHandler{
+				name:     name,
+				callFunc: callFunc,
+			},
+		}
+		return helper
+	}
+	return helper(name, callFunc)
 }
 
-func (b BuiltInFunctionBase) Invoke() Expression {
+func (b *BuiltInFunctionHandler) call(arguments ...Expression) Expression {
+	return b.callFunc(arguments...)
+}
+
+func (b *BuiltInFunctionHandler) String() string {
+	return b.name
+}
+
+func (b *BuiltInFunctionHandler) Invoke() Expression {
 	return b
 }
 
-func (b BuiltInFunctionBase) getType() Type {
+func (b *BuiltInFunctionHandler) getType() Type {
 	return builtInFunctionType
-}
-
-
-type printlnFunc struct{}
-
-func (p printlnFunc) String() string {
-	panic("implement me")
-}
-
-func (p printlnFunc) Invoke() Expression {
-	return p
-}
-
-func (printlnFunc) getType() Type {
-	return builtInFunctionType
-}
-
-func (printlnFunc) call(arguments ...Expression) Expression {
-	for index, argument := range arguments {
-		if stringer, ok := argument.(fmt.Stringer); ok {
-			fmt.Print(stringer)
-		} else {
-			log.Panicf("unknown type `%s`", reflect.TypeOf(argument).String())
-		}
-		if index != len(arguments)-1 {
-			fmt.Print(" ")
-		}
-	}
-	fmt.Println()
-	return nil
-}
-
-type NowFunc struct {
-}
-
-func (n NowFunc) String() string {
-	panic("implement me")
-}
-
-func (n NowFunc) Invoke() Expression {
-	return n
-}
-
-func (n NowFunc) getType() Type {
-	return builtInFunctionType
-}
-
-func (n NowFunc) call(arguments ...Expression) Expression {
-	return TimeObject(time.Now())
 }

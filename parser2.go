@@ -175,6 +175,7 @@ func (p *Parser2) ParseIDPrefixStatement(token Token) Statement {
 		ctx:   p.vm,
 		label: token.val,
 	}
+	var parentExp Expression
 	for {
 		token := p.nextToken()
 		switch token.typ {
@@ -190,12 +191,13 @@ func (p *Parser2) ParseIDPrefixStatement(token Token) Statement {
 		case periodType:
 			token := p.nextToken()
 			p.expectType(token, IDType)
+			parentExp = exp
 			exp = periodStatement{
 				val: token.val,
 				exp: exp,
 			}
 		case leftParenthesisType:
-			exp = p.parseCallStatement(exp)
+			exp = p.parseCallStatement(parentExp, exp)
 			if p.ahead(0).typ != leftParenthesisType {
 				return exp
 			}
@@ -366,6 +368,7 @@ func (p *Parser2) parseLambdaStatement() Statement {
 
 func (p *Parser2) parseFactor(pre int) Expression {
 	var exp Expression
+	var parentExp Expression
 	for {
 		token := p.nextToken()
 		log.Println(token)
@@ -383,7 +386,7 @@ func (p *Parser2) parseFactor(pre int) Expression {
 				p.expectType(p.nextToken(), rightParenthesisType)
 			} else {
 				log.Println("parseCallStatement")
-				exp = p.parseCallStatement(exp)
+				exp = p.parseCallStatement(parentExp, exp)
 			}
 		case rightParenthesisType: //end of parenthesis ()
 			if exp == nil {
@@ -394,6 +397,7 @@ func (p *Parser2) parseFactor(pre int) Expression {
 		case periodType:
 			token := p.nextToken()
 			p.expectType(token, IDType)
+			parentExp = exp
 			exp = periodStatement{
 				val: token.val,
 				exp: exp,
@@ -488,6 +492,8 @@ func (p *Parser2) parseFactor(pre int) Expression {
 				log.Println(status)
 			}
 			return p.ParseObjInitStatement(exp)
+		case leftBracketTokenType:
+			exp = p.parseBracketStatement(exp)
 		case EOFType:
 			return exp
 		default:
@@ -504,8 +510,41 @@ func (p *Parser2) parseFactor(pre int) Expression {
 }
 
 /*
+	FactorList:Factor,Factor
+			|FactorList,Factor
 
- */
+	getBracketStatement:ID[]
+		|ID[Factor]
+		|ID[FactorList]
+
+	initBracketStatement:[Factor]
+			|[FactorList]
+
+*/
+
+func (p *Parser2) parseBracketStatement(exp Expression) Expression {
+	//init array object
+	if exp == nil {
+		var arrayStatement makeArrayStatement
+		for {
+			if p.ahead(0).typ == rightBracketType {
+				p.nextToken()
+				return &arrayStatement
+			}
+			arrayStatement.initStatements = append(arrayStatement.initStatements, p.parseFactor(0))
+			if p.ahead(0).typ == commaType { // ,
+				p.nextToken()
+			}
+		}
+	} else { //get array field
+		index := p.parseFactor(0)
+		p.expectType(p.nextToken(), rightBracketType)
+		return getArrayElement{
+			arrayExp: exp,
+			indexExp: index,
+		}
+	}
+}
 
 func (p *Parser2) ahead(index int) Token {
 	if len(p.tokens) <= index {
@@ -514,9 +553,10 @@ func (p *Parser2) ahead(index int) Token {
 	return p.tokens[index]
 }
 
-func (p *Parser2) parseCallStatement(left Expression) Expression {
+func (p *Parser2) parseCallStatement(parentExp, function Expression) Expression {
 	var call FuncCallStatement
-	call.expression = left
+	call.function = function
+	call.parentExp = parentExp
 	for {
 		if p.ahead(0).typ == rightParenthesisType {
 			p.nextToken()
@@ -528,6 +568,24 @@ func (p *Parser2) parseCallStatement(left Expression) Expression {
 		}
 	}
 }
+
+/*
+BoolExpression:Factor BoolOperator Factor
+	|FallCall
+	|!BoolExpression
+	|(BoolExpression)
+	|BoolExpression BoolOperator BoolExpression
+
+
+if !(0 != 2) == true {
+
+}
+
+precedence
+|| : 1
+&& : 2
+> >= < <= == != : 3
+*/
 
 /*
 func hello(){}
@@ -561,24 +619,6 @@ func (p *Parser2) parseFuncStatement() *FuncStatement {
 	funcS.vm = p.vm
 	return &funcS
 }
-
-/*
-BoolExpression:Factor BoolOperator Factor
-	|FallCall
-	|!BoolExpression
-	|(BoolExpression)
-	|BoolExpression BoolOperator BoolExpression
-
-
-if !(0 != 2) == true {
-
-}
-
-precedence
-|| : 1
-&& : 2
-> >= < <= == != : 3
-*/
 
 func (p *Parser2) parseFuncParameters() []string {
 	var parameters []string
@@ -651,12 +691,12 @@ func (p *Parser2) parseIfStatement(elseif bool) *IfStatement {
 	return &ifS
 
 }
-
 func (p *Parser2) assertNil(exp Expression) {
 	if exp != nil {
 		log.Panicf("expect nil")
 	}
 }
+
 func (p *Parser2) assertNoNil(exp Expression) {
 	if exp == nil {
 		log.Panicf("expect nil")
@@ -797,6 +837,11 @@ func (p *Parser2) ParseStatements() Statements {
 		statements = append(statements, statement)
 
 		if p.ahead(0).typ == rightBraceType {
+			log.Println(p.getStatus())
+			if p.getStatus() == GlobalStatus {
+				p.nextToken()
+				continue
+			}
 			return statements
 		}
 	}
@@ -819,7 +864,6 @@ func (p *Parser2) ParseObjInitStatement(exp Expression) Expression {
 func (p *Parser2) pushStatus(status PStatus) {
 	p.status = append(p.status, status)
 }
-
 func (p *Parser2) popStatus() PStatus {
 	if len(p.status) == 0 {
 		log.Panic("status stack empty")
@@ -828,6 +872,7 @@ func (p *Parser2) popStatus() PStatus {
 	p.status = p.status[:len(p.status)-1]
 	return status
 }
+
 func (p *Parser2) assertTrue(val bool) {
 	if val == false {
 		panic("assert failed")

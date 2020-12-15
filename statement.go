@@ -107,12 +107,13 @@ type getObjectObjectStatement struct {
 }
 
 type FuncCallStatement struct {
-	expression Expression
-	arguments  Expressions
+	parentExp Expression
+	function  Expression
+	arguments Expressions
 }
 
 func (f *FuncCallStatement) String() string {
-	var str = f.expression.String() + "("
+	var str = f.function.String() + "("
 	for index, statement := range f.arguments {
 		if index != 0 {
 			str += ","
@@ -220,13 +221,37 @@ func (statement *objectInitStatement) String() string {
 	return "{" + str + "}"
 }
 
+type getArrayElement struct {
+	arrayExp Expression
+	indexExp Expression
+}
+
+func (g getArrayElement) Invoke() Expression {
+	panic("implement me")
+}
+
+func (g getArrayElement) getType() Type {
+	panic("implement me")
+}
+
+func (g getArrayElement) String() string {
+	panic("implement me")
+}
+
 type makeArrayStatement struct {
 	vm             *VMContext
 	initStatements Statements
 }
 
 func (m *makeArrayStatement) String() string {
-	panic("implement me")
+	var str = "["
+	for index, statement := range m.initStatements {
+		if index != 0 {
+			str += ","
+		}
+		str += statement.String()
+	}
+	return str + "]"
 }
 
 func (m *makeArrayStatement) Invoke() Expression {
@@ -437,7 +462,7 @@ func (Statements) getType() Type {
 }
 
 func (f *FuncCallStatement) Invoke() Expression {
-	exp := f.expression.Invoke()
+	exp := f.function.Invoke()
 	switch obj := exp.(type) {
 	case *Object:
 		exp = obj.Invoke()
@@ -446,8 +471,11 @@ func (f *FuncCallStatement) Invoke() Expression {
 	default:
 		log.Println(reflect.TypeOf(exp).String())
 	}
+	var arguments []Expression
+	if f.parentExp != nil {
+		arguments = append(arguments, f.parentExp.Invoke())
+	}
 	if function, ok := exp.(Function); ok {
-		var arguments []Expression
 		for _, argument := range f.arguments {
 			arguments = append(arguments, argument.Invoke())
 		}

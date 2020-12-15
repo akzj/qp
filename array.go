@@ -48,46 +48,30 @@ func (a *Array) clone() BaseObject {
 	return &Array{data: data}
 }
 
-
-
-type appendArray struct {
-	BuiltInFunctionBase
-}
-
-type getArraySize struct {
-	BuiltInFunctionBase
-}
-
-type getArray struct {
-	BuiltInFunctionBase
-}
-
-func (appendArray) call(arguments ...Expression) Expression {
-	array := arguments[0].(*Array)
-	for _, exp := range arguments[1:] {
-		array.data = append(array.data, exp.Invoke())
-	}
-	return array
-}
-
-func (getArraySize) call(arguments ...Expression) Expression {
-	return Int(len(arguments[0].(*Array).data))
-}
-
-func (getArray) call(arguments ...Expression) Expression {
-	if len(arguments) != 2 {
-		log.Panic("array get() arguments error")
-	}
-	array, ok := arguments[0].(*Array)
-	if ok == false {
-		log.Panic("object not array type")
-	}
-	i, ok := arguments[1].(Int)
-	if ok == false {
-		log.Panic("is not array arguments error")
-	}
-	if len(array.data) <= int(i) {
-		log.Panic("index out of range")
-	}
-	return array.data[i]
+func registerArrayFunction() {
+	registerBuiltInFunc(arrayBuiltInFunctions, "append", func(arguments ...Expression) Expression {
+		array := arguments[0].Invoke().(*Array)
+		for _, exp := range arguments[1:] {
+			array.data = append(array.data, exp.Invoke())
+		}
+		return array
+	})("size", func(arguments ...Expression) Expression {
+		return Int(len(arguments[0].(*Array).data))
+	})("get", func(arguments ...Expression) Expression {
+		if len(arguments) != 2 {
+			log.Panic("array get() arguments error")
+		}
+		array, ok := arguments[0].(*Array)
+		if ok == false {
+			log.Panic("object not array type")
+		}
+		i, ok := arguments[1].(Int)
+		if ok == false {
+			log.Panic("is not array arguments error")
+		}
+		if len(array.data) <= int(i) {
+			log.Panic("index out of range")
+		}
+		return array.data[i]
+	})
 }

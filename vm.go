@@ -166,6 +166,9 @@ func (ctx *VMContext) addStructObject(object *TypeObject) {
 
 func (ctx *VMContext) getTypeObject(label string) *TypeObject {
 	obj, _ := ctx.structObjects[label]
+	if obj == nil {
+		return nil
+	}
 	return obj.inner.(*TypeObject)
 }
 
