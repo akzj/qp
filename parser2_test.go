@@ -46,14 +46,14 @@ if 1 == 2 && 2==4 || 3== 4 && true{
 		},
 	}
 	for index, testcase := range testCases {
-		if index != len(testCases)-1{
+		if index != len(testCases)-1 {
 			continue
 		}
-		log.Println(strings.Repeat("-",100))
+		log.Println(strings.Repeat("-", 100))
 		log.Println(testcase.data)
 		p := NewParse2(testcase.data)
 		p.initTokens()
-		for _,token := range p.tokens{
+		for _, token := range p.tokens {
 			log.Println(token)
 		}
 		statement := p.Parse()
@@ -104,25 +104,45 @@ func TestIfElseIF(t *testing.T) {
 	}
 }
 
+func TestTypeStruct(t *testing.T) {
+	data := `
+
+type Info {}
+type User{}
+
+func User.hello(){
+	var info = Info{}
+	info.id = 1
+	this.info = info
+}
+
+var user =User{}
+user.hello()
+println(user.info.id)
+
+`
+	NewParse2(data).Parse().Invoke()
+}
+
 func TestNewParse2Invoke(t *testing.T) {
 	testcases := []struct {
 		data string
 	}{
 		/*{
-		`
-type User{
-	name:"hello"
-}
-var u = User{
-	id :1
-	print:func(){
-		println("hello world")
-	}
-}
-println(u.name,u.id)
-u.print()
-`,
-		},*/
+				`
+		type User{
+			name:"hello"
+		}
+		var u = User{
+			id :1
+			print:func(){
+				println("hello world")
+			}
+		}
+		println(u.name,u.id)
+		u.print()
+		`,
+				},*/
 		{
 			`
 var f  = func(){

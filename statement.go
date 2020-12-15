@@ -398,7 +398,12 @@ func (f *FuncStatement) doClosureInit() {
 
 func (expression AssignStatement) Invoke() Expression {
 	left := expression.left.Invoke()
-	left.(*Object).inner = expression.exp.Invoke()
+	switch right := expression.exp.Invoke().(type) {
+	case *Object:
+		left.(*Object).inner = right.inner
+	default:
+		left.(*Object).inner = right
+	}
 	return nil
 }
 
