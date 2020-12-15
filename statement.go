@@ -348,8 +348,6 @@ func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) {
 	f.vm.pushStackFrame(true)
 	for index := range f.closureLabel {
 		// put closure objects to stack
-		//object :=
-		log.Println(f.closureObjs[index].String())
 		f.vm.allocObject(f.closureLabel[index]).inner = f.closureObjs[index]
 	}
 
@@ -390,7 +388,6 @@ func (f *FuncStatement) doClosureInit() {
 		if obj == nil {
 			log.Panicf("no find obj with name `%s`", label)
 		}
-		log.Println(obj.inner.getType())
 		closureObjs = append(closureObjs, obj.inner)
 		closureLabel = append(closureLabel, label)
 	}

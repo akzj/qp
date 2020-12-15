@@ -2,7 +2,6 @@ package qp
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"strconv"
 )
@@ -294,14 +293,14 @@ func (p *Parser2) parseTypeObjectInit() []TypeObjectPropTemplate {
 		if ahead := p.ahead(0); ahead.typ == commaType || ahead.typ == semicolonType {
 			p.nextToken()
 		} else {
-			log.Println(p.ahead(0))
+			//log.Println(p.ahead(0))
 			if p.ahead(0).typ == IDType {
 				if p.historyToken(1).line != p.ahead(0).line {
 					continue
 				}
 				log.Panic("require new line")
 			} else {
-				log.Println(p.ahead(0))
+				//log.Println(p.ahead(0))
 				break
 			}
 		}
@@ -384,7 +383,7 @@ func (p *Parser2) parseLambdaStatement() Statement {
 			p.nextToken()
 			break
 		}
-		log.Println("lambda next token", p.ahead(0))
+		//log.Println("lambda next token", p.ahead(0))
 	}
 	funcS.closureLabel = p.popClosureLabels()
 	return &funcS
@@ -859,11 +858,8 @@ func (p *Parser2) ParseStatements() Statements {
 	}
 	for {
 		statement := p.ParseStatement()
-		fmt.Println(statement.String())
 		statements = append(statements, statement)
-
 		if p.ahead(0).typ == rightBraceType {
-			//log.Println(p.getStatus())
 			if p.getStatus() == GlobalStatus {
 				p.nextToken()
 				continue

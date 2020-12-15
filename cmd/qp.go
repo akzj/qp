@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/akzj/qp"
 	"io/ioutil"
 	"os"
-	"github.com/akzj/qp"
 )
 
 func main() {
@@ -23,5 +23,5 @@ func main() {
 		os.Exit(1)
 		return
 	}
-	qp.Parse(string(data)).Invoke()
+	qp.NewParse2(string(data)).Parse().Invoke()
 }

@@ -2,8 +2,6 @@ package qp
 
 import (
 	"fmt"
-	"log"
-	"strings"
 	"testing"
 )
 
@@ -49,13 +47,8 @@ if 1 == 2 && 2==4 || 3== 4 && true{
 		if index != len(testCases)-1 {
 			continue
 		}
-		log.Println(strings.Repeat("-", 100))
-		log.Println(testcase.data)
 		p := NewParse2(testcase.data)
 		p.initTokens()
-		for _, token := range p.tokens {
-			log.Println(token)
-		}
 		statement := p.Parse()
 		if statement == nil {
 			t.Fatal("parse failed")
@@ -128,8 +121,8 @@ func TestNewParse2Invoke(t *testing.T) {
 	testcases := []struct {
 		data string
 	}{
-		/*{
-				`
+		{
+			`
 		type User{
 			name:"hello"
 		}
@@ -142,23 +135,22 @@ func TestNewParse2Invoke(t *testing.T) {
 		println(u.name,u.id)
 		u.print()
 		`,
-				},*/
+		},
 		{
 			`
-var f  = func(){
+func(){
 	var c  =func(){
 		var a = func(){
 			println("func c call")
 		}
-
 		if a == nil{
-			println("a nil")
+			println("a nil????")
 		}
+		a()
 		return a
 	}
 	return c()
-}
-f()
+}()
 `,
 		},
 	}
