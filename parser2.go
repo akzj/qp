@@ -219,7 +219,17 @@ func (p *Parser2) ParseStatement() Statement {
 		case typeType:
 			p.vm.addStructObject(p.parseTypeStatement())
 		case funcType:
-			p.vm.addUserFunction(p.parseFuncStatement())
+			//function
+			if p.ahead(0).typ == IDType {
+				p.vm.addUserFunction(p.parseFuncStatement())
+			} else if p.ahead(0).typ == leftParenthesisType { //func(){} lambda
+				funcStatement := p.parseLambdaStatement()
+				//function call
+				for p.ahead(0).typ == leftParenthesisType {
+					funcStatement = p.parseCallStatement(nil, funcStatement)
+				}
+				return funcStatement
+			}
 		case varType:
 			return p.parseVarStatement()
 		case ifType:
@@ -343,6 +353,10 @@ func(){}()
 
 */
 func (p *Parser2) parseLambdaStatement() Statement {
+	p.pushStatus(FunctionStatus)
+	defer func() {
+		p.assertTrue(p.popStatus() == FunctionStatus)
+	}()
 	var funcS FuncStatement
 	funcS.closure = true
 	funcS.vm = p.vm
@@ -364,6 +378,7 @@ func (p *Parser2) parseLambdaStatement() Statement {
 			p.nextToken()
 			break
 		}
+		log.Println("lambda next token",p.ahead(0))
 	}
 	funcS.closureLabel = p.popClosureLabels()
 	return &funcS

@@ -562,24 +562,9 @@ a()
 
 func TestFunctionCallC(t *testing.T) {
 	data := `
-var a0 = 1
-var a1 = 2
-var a2 = 3
-var a3 = 4
-var a4 = 5
 
-println(a0)
 func(){
-	println(a1)
-	return func(){
-			println(a2)
-			return func(){
-				println(a3)
-				return func(){
-					println(a4)
-			}
-		}
-	}
+	
 }()()()()
 `
 	Parse(data).Invoke()
