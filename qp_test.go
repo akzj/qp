@@ -65,7 +65,6 @@ if (1 > (1+2)) == false{
 	Parse(data).Invoke()
 }
 
-
 func TestNumAddParse(t *testing.T) {
 	parser := NewParse2("1*(5+5+5)*2")
 	parser.initTokens()
@@ -597,29 +596,19 @@ func List.insert(left){
         item.next = this.head
         this.head = item
     }
-	println(this.head.value)
 }
 
 
 var list = List{}
 
-list.insert(1)
-list.insert(2)
-list.insert(3)
-list.insert(4)
-list.insert(5)
+for var count = 0;count < 10;count++{
+	list.insert(count)
+}
 
-println("-----------------")
+
 for var head =list.head ;head != nil; head = head.next{
 	println(head.value)
 }
-
-println(list.no)
-
-var a = list.no
-println(a)
-a = 1
-println(a)
 
 `
 	Parse(data).Invoke()

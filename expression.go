@@ -126,7 +126,7 @@ func (b BinaryOpExpression) Invoke() Expression {
 				return Bool(lVal >= rVal)
 			case EqualType:
 				return Bool(lVal == rVal)
-			case NoEqualTokenType:
+			case NoEqualType:
 				return Bool(lVal != rVal)
 			}
 		default:
@@ -139,7 +139,7 @@ func (b BinaryOpExpression) Invoke() Expression {
 			switch b.opType {
 			case EqualType:
 				return Bool(lVal == rVal)
-			case NoEqualTokenType:
+			case NoEqualType:
 				return !Bool(lVal == rVal)
 			}
 		}
@@ -157,14 +157,19 @@ func (b BinaryOpExpression) Invoke() Expression {
 			switch b.opType {
 			case EqualType:
 				return falseObject
-			case NoEqualTokenType:
+			case NoEqualType:
 				return trueObject
 			}
 		}
 	case *TypeObject:
 		switch right.(type) {
 		case NilObject:
-			return falseObject
+			switch b.opType {
+			case NoEqualType:
+				return trueObject
+			case EqualType:
+				return falseObject
+			}
 		}
 	case NilObject:
 		switch right.(type) {
@@ -172,7 +177,7 @@ func (b BinaryOpExpression) Invoke() Expression {
 			switch b.opType {
 			case EqualType:
 				return trueObject
-			case NoEqualTokenType:
+			case NoEqualType:
 				return falseObject
 			}
 		}
@@ -305,7 +310,7 @@ func (n NoEqualExpression) Invoke() Expression {
 }
 
 func (n NoEqualExpression) getType() Type {
-	return NoEqualTokenType
+	return NoEqualType
 }
 
 func (expression EqualExpression) Invoke() Expression {

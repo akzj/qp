@@ -160,7 +160,7 @@ type NopStatement struct {
 }
 
 func (n NopStatement) String() string {
-	panic("implement me")
+	return "nop"
 }
 
 type FuncStatement struct {
@@ -483,7 +483,7 @@ func (f *FuncCallStatement) Invoke() Expression {
 	}
 	var arguments []Expression
 	if Func, ok := exp.(*FuncStatement);
-		f.parentExp != nil && (ok == false ||  Func.closure == false) {
+		f.parentExp != nil && (ok == false || Func.closure == false) {
 		switch argument := f.parentExp.Invoke().(type) {
 		case *Object:
 			arguments = append(arguments, argument.inner)

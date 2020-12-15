@@ -94,7 +94,7 @@ func precedence(tokenType Type) int {
 		return 10
 	case addType, subType:
 		return 9
-	case lessTokenType, lessEqualType, greaterType, greaterEqualType, NoEqualTokenType, EqualType:
+	case lessTokenType, lessEqualType, greaterType, greaterEqualType, NoEqualType, EqualType:
 		return 8
 	case AndType:
 		return 7
@@ -473,7 +473,7 @@ func (p *Parser2) parseFactor(pre int) Expression {
 			}
 			exp = p.parseLambdaStatement()
 		case EqualType, // ==
-			NoEqualTokenType, // !=
+			NoEqualType,      // !=
 			greaterEqualType, // >=
 			greaterType,      // >
 			lessEqualType,    // <=

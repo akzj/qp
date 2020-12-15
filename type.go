@@ -119,7 +119,7 @@ func (t Type) String() string {
 		return "false"
 	case TrueType:
 		return "true"
-	case NoEqualTokenType:
+	case NoEqualType:
 		return "!="
 	case DurationObjectType:
 		return "DurationObjectType"
@@ -161,7 +161,7 @@ const greaterType Type = 106                   // >
 const lessEqualType Type = 116                 // <=
 const greaterEqualType Type = 117              // >=
 const EqualType Type = 118                     // ==
-const NoEqualTokenType Type = 119              // !=
+const NoEqualType Type = 119                   // !=
 const leftParenthesisType Type = 120           // (
 const rightParenthesisType Type = 121          // )
 const leftBraceType Type = 122                 // {
@@ -240,7 +240,7 @@ var (
 	equalToken            = Token{typ: EqualType}
 	leftBracketToken      = Token{typ: leftBracketTokenType}
 	rightBracketToken     = Token{typ: rightBracketType}
-	NoEqualToken          = Token{typ: NoEqualTokenType}
+	NoEqualToken          = Token{typ: NoEqualType}
 	subOperatorToken      = Token{typ: subType}
 	orToken               = Token{typ: orType}
 	andToken              = Token{typ: AndType}
