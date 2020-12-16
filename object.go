@@ -22,7 +22,7 @@ func (obj *Object) Invoke() Expression {
 func (obj *Object) isNil() bool {
 	return obj.inner == nil
 }
-func (obj *Object) getType() Type {
+func (obj *Object) GetType() Type {
 	return ObjectType
 }
 

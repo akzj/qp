@@ -99,7 +99,7 @@ func (ctx *VMContext) allocObject(label string) *Object {
 }
 
 func (ctx *VMContext) getObject(label string) *Object {
-	if obj, ok := builtInFunctions[label]; ok {
+	if obj, ok := BuiltInFunctions[label]; ok {
 		return &Object{inner: obj}
 	}
 	if obj, ok := ctx.functions[label]; ok {
@@ -133,7 +133,7 @@ func (ctx *VMContext) addUserFunction(function *FuncStatement) {
 		})
 	}
 
-	if _, ok := builtInFunctions[function.label]; ok {
+	if _, ok := BuiltInFunctions[function.label]; ok {
 		log.Panic("function name conflict with built in function", function.label)
 	}
 	if _, ok := ctx.functions[function.label]; ok {
@@ -143,7 +143,7 @@ func (ctx *VMContext) addUserFunction(function *FuncStatement) {
 }
 
 func (ctx *VMContext) getFunction(label string) (Function, error) {
-	if function, ok := builtInFunctions[label]; ok {
+	if function, ok := BuiltInFunctions[label]; ok {
 		return function.inner.(Function), nil
 	}
 	if function, ok := ctx.functions[label]; ok {
@@ -174,7 +174,7 @@ func (ctx *VMContext) getTypeObject(label string) *TypeObject {
 }
 
 func (ctx *VMContext) isGlobal(label string) bool {
-	if _, ok := builtInFunctions[label]; ok {
+	if _, ok := BuiltInFunctions[label]; ok {
 		return true
 	}
 	return false

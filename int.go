@@ -10,7 +10,7 @@ func (i Int) Invoke() Expression {
 	return i
 }
 
-func (Int) getType() Type {
+func (Int) GetType() Type {
 	return IntType
 }
 

@@ -40,11 +40,11 @@ var a = nil
 ==
 `)))
 	if lexer == nil {
-		t.Fatal("lexer nil")
+		t.Fatal("Lexer nil")
 	}
 	var count = 1000
-	for lexer.finish() == false && count > 0 {
-		fmt.Println(lexer.peek().String())
+	for lexer.Finish() == false && count > 0 {
+		fmt.Println(lexer.Peek().String())
 		lexer.next()
 		count--
 	}
@@ -404,7 +404,7 @@ var ccc = 1
 var u = user{
 	c:ccc
 }
-// get field
+// Get field
 println(u.id) // 1 
 
 //call user function
@@ -547,8 +547,8 @@ var a = [1,func(){
 	println("function object")
 }]
 a.append(2)
-println(a.get(0))
-var a = a.get(1)
+println(a.Get(0))
+var a = a.Get(1)
 a()
 
 `
@@ -676,7 +676,7 @@ for var i = 0; i < 100;i ++{
 }
 
 println(arr.size())
-println(arr.get(10))
+println(arr.Get(10))
 `
 	Parse(data).Invoke()
 }

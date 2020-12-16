@@ -75,8 +75,8 @@ func (p periodStatement) Invoke() Expression {
 	return nil
 }
 
-func (p periodStatement) getType() Type {
-	return periodType
+func (p periodStatement) GetType() Type {
+	return PeriodType
 }
 
 func (p periodStatement) String() string {
@@ -231,7 +231,7 @@ func (g getArrayElement) Invoke() Expression {
 	panic("implement me")
 }
 
-func (g getArrayElement) getType() Type {
+func (g getArrayElement) GetType() Type {
 	panic("implement me")
 }
 
@@ -263,8 +263,8 @@ func (m *makeArrayStatement) Invoke() Expression {
 	return array
 }
 
-func (m *makeArrayStatement) getType() Type {
-	return arrayObjectType
+func (m *makeArrayStatement) GetType() Type {
+	return ArrayObjectType
 }
 
 func (g *getObjectPropStatement) Invoke() Expression {
@@ -306,11 +306,11 @@ func (g *getObjectObjectStatement) Invoke() Expression {
 }
 
 func (g *getObjectObjectStatement) getType() Type {
-	return getObjectObjectStatementType
+	return GetObjectObjectStatementType
 }
 
-func (g *getObjectPropStatement) getType() Type {
-	return propObjectStatementType
+func (g *getObjectPropStatement) GetType() Type {
+	return PropObjectStatementType
 }
 
 func (statement *objectInitStatement) Invoke() Expression {
@@ -334,8 +334,8 @@ Loop:
 	return object
 }
 
-func (statement *objectInitStatement) getType() Type {
-	return typeObjectInitStatementType
+func (statement *objectInitStatement) GetType() Type {
+	return TypeObjectInitStatementType
 }
 
 func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) {
@@ -369,7 +369,7 @@ func (f *FuncStatement) call(arguments ...Expression) Expression {
 	return nil
 }
 
-func (f *FuncStatement) getType() Type {
+func (f *FuncStatement) GetType() Type {
 	return FuncStatementType
 }
 
@@ -406,16 +406,16 @@ func (expression AssignStatement) Invoke() Expression {
 	return nil
 }
 
-func (expression AssignStatement) getType() Type {
-	return assignStatementType
+func (expression AssignStatement) GetType() Type {
+	return AssignStatementType
 }
 
 func (NopStatement) Invoke() Expression {
 	return nopStatement
 }
 
-func (n NopStatement) getType() Type {
-	return nopStatementType
+func (n NopStatement) GetType() Type {
+	return NopStatementType
 }
 
 func (f *ForStatement) Invoke() Expression {
@@ -449,8 +449,8 @@ func (f *ForStatement) Invoke() Expression {
 	}
 }
 
-func (f *ForStatement) getType() Type {
-	return forType
+func (f *ForStatement) GetType() Type {
+	return ForType
 }
 
 func (statement IncFieldStatement) Invoke() Expression {
@@ -459,12 +459,12 @@ func (statement IncFieldStatement) Invoke() Expression {
 	return nil
 }
 
-func (statement IncFieldStatement) getType() Type {
-	return incType
+func (statement IncFieldStatement) GetType() Type {
+	return IncType
 }
 
-func (Statements) getType() Type {
-	return statementsType
+func (Statements) GetType() Type {
+	return StatementsType
 }
 
 func (f *FuncCallStatement) Invoke() Expression {
@@ -504,15 +504,15 @@ func (f *FuncCallStatement) Invoke() Expression {
 	return nil
 }
 
-func (f *FuncCallStatement) getType() Type {
-	return funcType
+func (f *FuncCallStatement) GetType() Type {
+	return FuncType
 }
 
 func (f getVarStatement) Invoke() Expression {
 	return f.ctx.getObject(f.label)
 }
 
-func (f getVarStatement) getType() Type {
+func (f getVarStatement) GetType() Type {
 	return IDType
 }
 
@@ -525,8 +525,8 @@ func (v VarStatement) Invoke() Expression {
 	return nil
 }
 
-func (v VarStatement) getType() Type {
-	return varType
+func (v VarStatement) GetType() Type {
+	return VarType
 }
 
 func (expression VarAssignStatement) Invoke() Expression {
@@ -545,8 +545,8 @@ func (expression VarAssignStatement) Invoke() Expression {
 	return nil
 }
 
-func (expression VarAssignStatement) getType() Type {
-	return varAssignTokenType
+func (expression VarAssignStatement) GetType() Type {
+	return VarAssignType
 }
 
 func (r ReturnStatement) Invoke() Expression {
@@ -563,12 +563,12 @@ func (r ReturnStatement) Invoke() Expression {
 	return ReturnStatement{returnVal: exp}
 }
 
-func (ReturnStatement) getType() Type {
-	return returnType
+func (ReturnStatement) GetType() Type {
+	return ReturnType
 }
 
-func (IfStatement) getType() Type {
-	return ifType
+func (IfStatement) GetType() Type {
+	return IfType
 }
 
 func (statements Statements) Invoke() Expression {

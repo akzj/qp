@@ -41,6 +41,6 @@ func (b *BuiltInFunctionHandler) Invoke() Expression {
 	return b
 }
 
-func (b *BuiltInFunctionHandler) getType() Type {
-	return builtInFunctionType
+func (b *BuiltInFunctionHandler) GetType() Type {
+	return BuiltInFunctionType
 }

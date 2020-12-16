@@ -7,14 +7,14 @@ import (
 	"log"
 )
 
-type lexer struct {
+type Lexer struct {
 	reader *bufio.Reader
 	line   int
 	token  Token
 	err    error
 }
 
-func (l *lexer) finish() bool {
+func (l *Lexer) Finish() bool {
 	return l.err != nil && l.token.typ == EOFType
 }
 
@@ -26,7 +26,7 @@ func isLetter(c byte) bool {
 	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'
 }
 
-func (l *lexer) ahead() (byte, error) {
+func (l *Lexer) ahead() (byte, error) {
 	c, err := l.reader.ReadByte()
 	if err != nil {
 		l.err = err
@@ -36,7 +36,7 @@ func (l *lexer) ahead() (byte, error) {
 	return c, nil
 }
 
-func (l *lexer) get() (byte, error) {
+func (l *Lexer) Get() (byte, error) {
 	c, err := l.reader.ReadByte()
 	if err != nil {
 		l.err = err
@@ -45,14 +45,14 @@ func (l *lexer) get() (byte, error) {
 	return c, nil
 }
 
-func (l *lexer) peek() Token {
+func (l *Lexer) Peek() Token {
 	if l.token.typ != EOFType {
 		return l.token
 	}
 	for {
-		c, err := l.get()
+		c, err := l.Get()
 		if err != nil {
-			return emptyToken
+			return EmptyToken
 		}
 		var token Token
 		switch {
@@ -65,86 +65,86 @@ func (l *lexer) peek() Token {
 			token = l.parseLabel(c)
 		case c == '+':
 			if a, _ := l.ahead(); a == '+' {
-				_, _ = l.get()
-				token = incOperatorToken
+				_, _ = l.Get()
+				token = IncOperatorToken
 			} else {
-				token = addOperatorToken
+				token = AddOperatorToken
 			}
 		case c == '(':
-			token = leftParenthesisToken
+			token = LeftParenthesisToken
 		case c == ')':
-			token = rightParenthesisToken
+			token = RightParenthesisToken
 		case c == '{':
-			token = leftBraceToken
+			token = LeftBraceToken
 		case c == '}':
-			token = rightBraceToken
+			token = RightBraceToken
 		case c == '[':
-			token = leftBracketToken
+			token = LeftBracketToken
 		case c == ']':
-			token = rightBracketToken
+			token = RightBracketToken
 		case c == '<':
 			if ahead, _ := l.ahead(); ahead == '=' {
-				_, _ = l.get()
-				token = lessEqualToken
+				_, _ = l.Get()
+				token = LessEqualToken
 			} else {
-				token = lessToken
+				token = LessToken
 			}
 		case c == '>':
 			if ahead, _ := l.ahead(); ahead == '=' {
-				_, _ = l.get()
-				token = greaterEqualToken
+				_, _ = l.Get()
+				token = GreaterEqualToken
 			} else {
-				token = greaterToken
+				token = GreaterToken
 			}
 		case c == '*':
-			token = mulOperatorToken
+			token = MulOperatorToken
 		case '0' <= c && c <= '9':
 			token = l.parseNumToken(c)
 		case c == '!':
 			if c, _ = l.ahead(); c == '=' {
-				_, _ = l.get()
+				_, _ = l.Get()
 				token = NoEqualToken
 			} else {
 				log.Panicf("unknown token`%s`", string(c))
 			}
 		case c == '-':
-			token = subOperatorToken
+			token = SubOperatorToken
 		case c == '=':
-			token = assignToken
+			token = AssignToken
 			if c, _ = l.ahead(); c == '=' {
-				_, _ = l.get()
-				token = equalToken
+				_, _ = l.Get()
+				token = EqualToken
 			}
 		case c == ',':
-			token = commaToken
+			token = CommaToken
 		case c == ';':
-			token = semicolonToken
+			token = SemicolonToken
 		case c == ':':
-			token = colonToken
+			token = ColonToken
 		case c == '.':
-			token = periodToken
+			token = PeriodToken
 		case c == '"':
 			token = l.parseString(false)
 		case c == '`':
 			token = l.parseString(true)
 		case c == '/':
 			if ahead, _ := l.ahead(); ahead == '/' { //
-				_, _ = l.get()
+				_, _ = l.Get()
 				token = Token{
-					typ:  commentTokenType,
+					typ:  CommentType,
 					val:  l.readline(),
 					line: l.line,
 				}
 			}
 		case c == '|':
 			if c, _ := l.ahead(); c == '|' {
-				l.get()
-				token = orToken
+				l.Get()
+				token = OrToken
 			}
 		case c == '&':
 			if c, _ := l.ahead(); c == '&' {
-				l.get()
-				token = andToken
+				l.Get()
+				token = AndToken
 			}
 		default:
 			log.Panicln(string(c), l.line)
@@ -155,10 +155,10 @@ func (l *lexer) peek() Token {
 	}
 }
 
-func (l *lexer) parseString(multiline bool) Token {
+func (l *Lexer) parseString(multiline bool) Token {
 	var buffer bytes.Buffer
 	for {
-		c, err := l.get()
+		c, err := l.Get()
 		if err != nil {
 			l.err = err
 			break
@@ -190,13 +190,13 @@ func (l *lexer) parseString(multiline bool) Token {
 		buffer.WriteByte(c)
 	}
 	return Token{
-		typ:  stringType,
+		typ:  StringType,
 		val:  buffer.String(),
 		line: 0,
 	}
 }
 
-func (l *lexer) parseNumToken(c byte) Token {
+func (l *Lexer) parseNumToken(c byte) Token {
 	var buf bytes.Buffer
 	buf.WriteByte(c)
 	for {
@@ -215,16 +215,16 @@ func (l *lexer) parseNumToken(c byte) Token {
 		}
 	}
 	return Token{
-		typ: intType,
+		typ: IntType,
 		val: buf.String(),
 	}
 }
 
-func (l *lexer) next() {
-	l.token = emptyToken
+func (l *Lexer) next() {
+	l.token = EmptyToken
 }
 
-func (l *lexer) parseLabel(c byte) Token {
+func (l *Lexer) parseLabel(c byte) Token {
 	var buf bytes.Buffer
 	buf.WriteByte(c)
 	for {
@@ -245,7 +245,7 @@ func (l *lexer) parseLabel(c byte) Token {
 	for _, keyword := range Keywords {
 		if keyword == buf.String() {
 			return Token{
-				typ: keywordTokenType[keyword],
+				typ: KeywordType[keyword],
 			}
 		}
 	}
@@ -256,11 +256,11 @@ func (l *lexer) parseLabel(c byte) Token {
 	}
 }
 
-func (l *lexer) Line() int {
+func (l *Lexer) Line() int {
 	return l.line
 }
 
-func (l *lexer) readline() string {
+func (l *Lexer) readline() string {
 	var line []byte
 	for {
 		c, err := l.ahead()
@@ -271,7 +271,7 @@ func (l *lexer) readline() string {
 		if c == '\n' {
 			return string(line)
 		}
-		_, _ = l.get()
+		_, _ = l.Get()
 		line = append(line, c)
 	}
 }
@@ -280,9 +280,9 @@ func isDigit(c byte) bool {
 	return '0' <= c && c <= '9'
 }
 
-func newLexer(reader io.Reader) *lexer {
-	return &lexer{
-		token:  emptyToken,
+func newLexer(reader io.Reader) *Lexer {
+	return &Lexer{
+		token:  EmptyToken,
 		reader: bufio.NewReader(reader),
 	}
 }

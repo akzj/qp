@@ -8,19 +8,19 @@ import (
 )
 
 var (
-	builtInFunctions       = map[string]*Object{}
-	arrayBuiltInFunctions  = map[string]*Object{}
-	stringBuiltInFunctions = map[string]*Object{}
+	BuiltInFunctions       = map[string]*Object{}
+	ArrayBuiltInFunctions  = map[string]*Object{}
+	StringBuiltInFunctions = map[string]*Object{}
 )
 
 func init() {
-	registerArrayFunction()
-	registerStringFunction()
-	registerGlobalFunction()
+	RegisterArrayFunction()
+	RegisterStringFunction()
+	RegisterGlobalFunction()
 }
 
-func registerGlobalFunction() {
-	registerBuiltInFunc(builtInFunctions, "println", func(arguments ...Expression) Expression {
+func RegisterGlobalFunction() {
+	registerBuiltInFunc(BuiltInFunctions, "println", func(arguments ...Expression) Expression {
 		for index, argument := range arguments {
 			if stringer, ok := argument.(fmt.Stringer); ok {
 				fmt.Print(stringer)
@@ -35,7 +35,7 @@ func registerGlobalFunction() {
 		return nil
 	})
 
-	registerBuiltInFunc(builtInFunctions, "now", func(arguments ...Expression) Expression {
+	registerBuiltInFunc(BuiltInFunctions, "now", func(arguments ...Expression) Expression {
 		return TimeObject(time.Now())
 	})
 }

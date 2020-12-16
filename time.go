@@ -12,8 +12,8 @@ func (t TimeObject) Invoke() Expression {
 	return t
 }
 
-func (t TimeObject) getType() Type {
-	return timeObjectType
+func (t TimeObject) GetType() Type {
+	return TimeObjectType
 }
 
 type DurationObject time.Duration
@@ -22,7 +22,7 @@ func (d DurationObject) Invoke() Expression {
 	return d
 }
 
-func (d DurationObject) getType() Type {
+func (d DurationObject) GetType() Type {
 	return DurationObjectType
 }
 

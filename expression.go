@@ -8,7 +8,7 @@ import (
 
 type Expression interface {
 	Invoke() Expression
-	getType() Type
+	GetType() Type
 	fmt.Stringer
 }
 
@@ -26,16 +26,16 @@ func (p ParenthesisExpression) Invoke() Expression {
 	return p.exp.Invoke()
 }
 
-func (p ParenthesisExpression) getType() Type {
-	return leftParenthesisType
+func (p ParenthesisExpression) GetType() Type {
+	return LeftParenthesisType
 }
 
 func (p ParenthesisExpression) String() string {
 	return "(" + p.exp.String() + ")"
 }
 
-func (Expressions) getType() Type {
-	return expressionType
+func (Expressions) GetType() Type {
+	return ExpressionType
 }
 
 type AddExpression struct {
@@ -86,7 +86,7 @@ func (b BinaryBoolExpression) Invoke() Expression {
 	}.Invoke()
 }
 
-func (b BinaryBoolExpression) getType() Type {
+func (b BinaryBoolExpression) GetType() Type {
 	panic("implement me")
 }
 
@@ -108,21 +108,21 @@ func (b BinaryOpExpression) Invoke() Expression {
 		switch rVal := right.(type) {
 		case Int:
 			switch b.opType {
-			case addType:
+			case AddType:
 				return lVal + rVal
-			case subType:
+			case SubType:
 				return lVal - rVal
-			case mulOpType:
+			case MulOpType:
 				return lVal * rVal
-			case divOpType:
+			case DivOpType:
 				return lVal / rVal
-			case lessTokenType:
+			case LessType:
 				return Bool(lVal < rVal)
-			case lessEqualType:
+			case LessEqualType:
 				return Bool(lVal < rVal)
-			case greaterType:
+			case GreaterType:
 				return Bool(lVal > rVal)
-			case greaterEqualType:
+			case GreaterEqualType:
 				return Bool(lVal >= rVal)
 			case EqualType:
 				return Bool(lVal == rVal)
@@ -147,7 +147,7 @@ func (b BinaryOpExpression) Invoke() Expression {
 		switch rVal := right.(type) {
 		case TimeObject:
 			switch b.opType {
-			case subType:
+			case SubType:
 				return DurationObject(time.Time(lVal).Sub(time.Time(rVal)))
 			}
 		}
@@ -189,7 +189,7 @@ func (b BinaryOpExpression) Invoke() Expression {
 		"\n" + reflect.TypeOf(right).String() + "\n" + b.opType.String())
 }
 
-func (b BinaryOpExpression) getType() Type {
+func (b BinaryOpExpression) GetType() Type {
 	panic("implement me")
 }
 
@@ -202,8 +202,8 @@ func (expression MulExpression) String() string {
 	panic("implement me")
 }
 
-func (MulExpression) getType() Type {
-	return mulOpType
+func (MulExpression) GetType() Type {
+	return MulOpType
 }
 
 type LessExpression struct {
@@ -277,7 +277,7 @@ func (n NoStatement) Invoke() Expression {
 	return !n.exp.Invoke().(Bool)
 }
 
-func (n NoStatement) getType() Type {
+func (n NoStatement) GetType() Type {
 	return NoType
 }
 
@@ -309,7 +309,7 @@ func (n NoEqualExpression) Invoke() Expression {
 	return val
 }
 
-func (n NoEqualExpression) getType() Type {
+func (n NoEqualExpression) GetType() Type {
 	return NoEqualType
 }
 
@@ -355,28 +355,28 @@ func (expression EqualExpression) Invoke() Expression {
 	return Bool(val)
 }
 
-func (EqualExpression) getType() Type {
+func (EqualExpression) GetType() Type {
 	return EqualType
 }
 
-func (LessExpression) getType() Type {
-	return lessTokenType
+func (LessExpression) GetType() Type {
+	return LessType
 }
 
-func (AddExpression) getType() Type {
-	return addType
+func (AddExpression) GetType() Type {
+	return AddType
 }
 
-func (expression LessEqualExpression) getType() Type {
-	return lessEqualType
+func (expression LessEqualExpression) GetType() Type {
+	return LessEqualType
 }
 
-func (GreaterExpression) getType() Type {
-	return greaterType
+func (GreaterExpression) GetType() Type {
+	return GreaterType
 }
 
-func (GreaterEqualExpression) getType() Type {
-	return greaterEqualType
+func (GreaterEqualExpression) GetType() Type {
+	return GreaterEqualType
 }
 func (expression GreaterExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
@@ -502,16 +502,16 @@ func (s SubExpression) Invoke() Expression {
 		reflect.TypeOf(right).String())
 }
 
-func (s SubExpression) getType() Type {
-	return subType
+func (s SubExpression) GetType() Type {
+	return SubType
 }
 
 func (expression AddExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
-	if left.getType() == IntType && right.getType() == IntType {
+	if left.GetType() == IntType && right.GetType() == IntType {
 		return left.(Int) + right.(Int)
-	} else if left.getType() == stringType && right.getType() == stringType {
+	} else if left.GetType() == StringType && right.GetType() == StringType {
 		return left.(String) + right.(String)
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +

@@ -42,7 +42,7 @@ func (sObj *TypeObject) Invoke() Expression {
 	return sObj
 }
 
-func (sObj *TypeObject) getType() Type {
+func (sObj *TypeObject) GetType() Type {
 	return TypeObjectType
 }
 

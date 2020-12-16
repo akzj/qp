@@ -13,6 +13,6 @@ func (n NilObject) Invoke() Expression {
 	return n
 }
 
-func (NilObject) getType() Type {
-	return nilType
+func (NilObject) GetType() Type {
+	return NilType
 }

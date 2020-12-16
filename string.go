@@ -9,11 +9,11 @@ import (
 type String string
 
 func (s String) getObject(label string) *Object {
-	return stringBuiltInFunctions[label]
+	return StringBuiltInFunctions[label]
 }
 
 func (s String) allocObject(label string) *Object {
-	return stringBuiltInFunctions[label]
+	return StringBuiltInFunctions[label]
 }
 
 func (s String) addObject(k string, v *Object) {
@@ -32,12 +32,12 @@ func (s String) clone() BaseObject {
 	return String(string(s))
 }
 
-func (s String) getType() Type {
-	return stringType
+func (s String) GetType() Type {
+	return StringType
 }
 
-func registerStringFunction() {
-	registerBuiltInFunc(stringBuiltInFunctions, "to_lower", func(arguments ...Expression) Expression {
+func RegisterStringFunction() {
+	registerBuiltInFunc(StringBuiltInFunctions, "to_lower", func(arguments ...Expression) Expression {
 		if len(arguments) > 1 {
 			log.Panicln("only one arguments")
 		}
@@ -52,7 +52,7 @@ func registerStringFunction() {
 		}
 	})
 
-	registerBuiltInFunc(stringBuiltInFunctions, "clone", func(arguments ...Expression) Expression {
+	registerBuiltInFunc(StringBuiltInFunctions, "clone", func(arguments ...Expression) Expression {
 		if len(arguments) > 1 {
 			log.Panicln("only one arguments")
 		}

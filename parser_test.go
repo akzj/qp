@@ -82,7 +82,7 @@ if 1 == 2 && 2==4 || 3== 4 && true{
 	for _, testcase := range testTypeObjects {
 		p := NewParse2(testcase.data)
 		p.initTokens()
-		p.expectType(p.nextToken(), typeType)
+		p.expectType(p.nextToken(), TypeType)
 		statement := p.parseTypeStatement()
 		if str := statement.String(); str != testcase.expect {
 			t.Logf("parse %s failed,result \n%s\n expect\n%s", testcase.data, str, testcase.expect)

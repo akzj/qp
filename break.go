@@ -13,6 +13,6 @@ func (b *BreakObject) Invoke() Expression {
 	return b
 }
 
-func (b *BreakObject) getType() Type {
-	return breakType
+func (b *BreakObject) GetType() Type {
+	return BreakType
 }

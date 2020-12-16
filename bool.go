@@ -16,6 +16,6 @@ func (b Bool) Invoke() Expression {
 	return b
 }
 
-func (b Bool) getType() Type {
+func (b Bool) GetType() Type {
 	return BoolObjectType
 }

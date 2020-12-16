@@ -18,12 +18,12 @@ func (a *Array) Invoke() Expression {
 	return a
 }
 
-func (a *Array) getType() Type {
-	return arrayObjectType
+func (a *Array) GetType() Type {
+	return ArrayObjectType
 }
 
 func (a *Array) getObject(label string) *Object {
-	return arrayBuiltInFunctions[label]
+	return ArrayBuiltInFunctions[label]
 }
 
 func (a *Array) allocObject(label string) *Object {
@@ -36,7 +36,7 @@ func (a *Array) allocObject(label string) *Object {
 	obj := &Object{
 		inner: nilObject,
 		label: label,
-		typ:   nilType,
+		typ:   NilType,
 	}
 	a.object[label] = obj
 	return obj
@@ -48,8 +48,8 @@ func (a *Array) clone() BaseObject {
 	return &Array{data: data}
 }
 
-func registerArrayFunction() {
-	registerBuiltInFunc(arrayBuiltInFunctions, "append", func(arguments ...Expression) Expression {
+func RegisterArrayFunction() {
+	registerBuiltInFunc(ArrayBuiltInFunctions, "append", func(arguments ...Expression) Expression {
 		array := arguments[0].Invoke().(*Array)
 		for _, exp := range arguments[1:] {
 			array.data = append(array.data, exp.Invoke())
@@ -57,9 +57,9 @@ func registerArrayFunction() {
 		return array
 	})("size", func(arguments ...Expression) Expression {
 		return Int(len(arguments[0].Invoke().(*Array).data))
-	})("get", func(arguments ...Expression) Expression {
+	})("Get", func(arguments ...Expression) Expression {
 		if len(arguments) != 2 {
-			log.Panic("array get() arguments error")
+			log.Panic("array Get() arguments error")
 		}
 		array, ok := arguments[0].Invoke().(*Array)
 		if ok == false {
