@@ -1,15 +1,21 @@
 package qp
 
+import (
+	"gitlab.com/akzj/qp/ast"
+	"gitlab.com/akzj/qp/lexer"
+	vm2 "gitlab.com/akzj/qp/vm"
+)
+
 type BaseObject interface {
-	Expression
-	getObject(label string) *Object
-	allocObject(label string) *Object
-	clone() BaseObject
+	ast.Expression
+	GetObject(label string) *ast.Object
+	AllocObject(label string) *ast.Object
+	Clone() BaseObject
 }
 
 type TypeObjectPropTemplate struct {
 	name string
-	exp  Expression
+	exp  ast.Expression
 }
 
 func (t TypeObjectPropTemplate) String() string {
@@ -17,13 +23,13 @@ func (t TypeObjectPropTemplate) String() string {
 }
 
 type TypeObject struct {
-	vm    *VMContext
+	vm    *vm2.VMContext
 	label string
 	//init statement when create objects
 	init                    bool
 	typeObjectPropTemplates []TypeObjectPropTemplate
 	//user define function
-	objects map[string]*Object
+	objects map[string]*ast.Object
 }
 
 func (sObj *TypeObject) String() string {
@@ -38,15 +44,15 @@ func (sObj *TypeObject) String() string {
 	return str + "}"
 }
 
-func (sObj *TypeObject) Invoke() Expression {
+func (sObj *TypeObject) Invoke() ast.Expression {
 	return sObj
 }
 
-func (sObj *TypeObject) GetType() Type {
-	return TypeObjectType
+func (sObj *TypeObject) GetType() lexer.Type {
+	return lexer.TypeObjectType
 }
 
-func (sObj *TypeObject) getObject(label string) *Object {
+func (sObj *TypeObject) GetObject(label string) *ast.Object {
 	object, ok := sObj.objects[label]
 	if ok {
 		return object
@@ -54,16 +60,16 @@ func (sObj *TypeObject) getObject(label string) *Object {
 	return nil
 }
 
-func (sObj *TypeObject) allocObject(label string) *Object {
+func (sObj *TypeObject) AllocObject(label string) *ast.Object {
 	if sObj.objects == nil {
-		sObj.objects = map[string]*Object{}
+		sObj.objects = map[string]*ast.Object{}
 	}
 	object, ok := sObj.objects[label]
 	if ok {
 		return object
 	} else {
-		object = &Object{
-			inner: nilObject,
+		object = &ast.Object{
+			inner: ast.nilObject,
 			label: label,
 		}
 		sObj.objects[label] = object
@@ -71,7 +77,7 @@ func (sObj *TypeObject) allocObject(label string) *Object {
 	return object
 }
 
-func (sObj *TypeObject) clone() BaseObject {
+func (sObj *TypeObject) Clone() BaseObject {
 	clone := *sObj
 	for k, v := range sObj.objects {
 		clone.addObject(k, v)
@@ -83,12 +89,12 @@ func (sObj *TypeObject) clone() BaseObject {
 	return &clone
 }
 
-func (sObj *TypeObject) addObject(k string, v *Object) {
+func (sObj *TypeObject) addObject(k string, v *ast.Object) {
 	if v == nil {
 		panic(v)
 	}
 	if sObj.objects == nil {
-		sObj.objects = map[string]*Object{}
+		sObj.objects = map[string]*ast.Object{}
 	}
 	sObj.objects[k] = v
 }

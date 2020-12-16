@@ -1,6 +1,8 @@
 package qp
 
 import (
+	"gitlab.com/akzj/qp/ast"
+	"gitlab.com/akzj/qp/lexer"
 	"log"
 	"reflect"
 	"strings"
@@ -8,15 +10,15 @@ import (
 
 type String string
 
-func (s String) getObject(label string) *Object {
+func (s String) getObject(label string) *ast.Object {
 	return StringBuiltInFunctions[label]
 }
 
-func (s String) allocObject(label string) *Object {
+func (s String) allocObject(label string) *ast.Object {
 	return StringBuiltInFunctions[label]
 }
 
-func (s String) addObject(k string, v *Object) {
+func (s String) addObject(k string, v *ast.Object) {
 	panic("implement me")
 }
 
@@ -24,7 +26,7 @@ func (s String) String() string {
 	return string(s)
 }
 
-func (s String) Invoke() Expression {
+func (s String) Invoke() ast.Expression {
 	return s
 }
 
@@ -32,12 +34,12 @@ func (s String) clone() BaseObject {
 	return String(string(s))
 }
 
-func (s String) GetType() Type {
-	return StringType
+func (s String) GetType() lexer.Type {
+	return lexer.StringType
 }
 
 func RegisterStringFunction() {
-	registerBuiltInFunc(StringBuiltInFunctions, "to_lower", func(arguments ...Expression) Expression {
+	registerBuiltInFunc(StringBuiltInFunctions, "to_lower", func(arguments ...ast.Expression) ast.Expression {
 		if len(arguments) > 1 {
 			log.Panicln("only one arguments")
 		}
@@ -52,7 +54,7 @@ func RegisterStringFunction() {
 		}
 	})
 
-	registerBuiltInFunc(StringBuiltInFunctions, "clone", func(arguments ...Expression) Expression {
+	registerBuiltInFunc(StringBuiltInFunctions, "clone", func(arguments ...ast.Expression) ast.Expression {
 		if len(arguments) > 1 {
 			log.Panicln("only one arguments")
 		}

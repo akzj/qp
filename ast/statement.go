@@ -1,6 +1,8 @@
-package qp
+package ast
 
 import (
+	"gitlab.com/akzj/qp"
+	"gitlab.com/akzj/qp/lexer"
 	"log"
 	"reflect"
 	"strings"
@@ -20,12 +22,12 @@ func (statements Statements) String() string {
 }
 
 type Statement interface {
-	Expression
+	qp.Expression
 }
 
 type IfStatement struct {
-	vm               *VMContext
-	check            Expression
+	vm               *qp.VMContext
+	check            qp.Expression
 	statement        Statements
 	elseIfStatements []*IfStatement
 	elseStatement    Statements
@@ -36,8 +38,8 @@ func (ifStm IfStatement) String() string {
 }
 
 type ReturnStatement struct {
-	express   Expression
-	returnVal Expression
+	express   qp.Expression
+	returnVal qp.Expression
 }
 
 func (r ReturnStatement) String() string {
@@ -50,9 +52,9 @@ func (r ReturnStatement) String() string {
 
 //just new Object
 type VarStatement struct {
-	ctx    *VMContext
+	ctx    *qp.VMContext
 	label  string
-	object Expression
+	object qp.Expression
 }
 
 func (v VarStatement) String() string {
@@ -61,13 +63,13 @@ func (v VarStatement) String() string {
 
 type periodStatement struct {
 	val string
-	exp Expression
+	exp qp.Expression
 }
 
-func (p periodStatement) Invoke() Expression {
-	object := p.exp.Invoke().(*Object)
+func (p periodStatement) Invoke() qp.Expression {
+	object := p.exp.Invoke().(*qp.Object)
 	switch obj := object.inner.(type) {
-	case BaseObject:
+	case qp.BaseObject:
 		return obj.allocObject(p.val)
 	default:
 		log.Panicf("left `%s` `%s` is no object type", p.val, reflect.TypeOf(obj).String())
@@ -75,8 +77,8 @@ func (p periodStatement) Invoke() Expression {
 	return nil
 }
 
-func (p periodStatement) GetType() Type {
-	return PeriodType
+func (p periodStatement) GetType() lexer.Type {
+	return lexer.PeriodType
 }
 
 func (p periodStatement) String() string {
@@ -84,7 +86,7 @@ func (p periodStatement) String() string {
 }
 
 type getVarStatement struct {
-	ctx   *VMContext
+	ctx   *qp.VMContext
 	label string
 }
 
@@ -103,14 +105,14 @@ func (g *getObjectPropStatement) String() string {
 }
 
 type getObjectObjectStatement struct {
-	vmContext *VMContext
+	vmContext *qp.VMContext
 	labels    []string
 }
 
 type FuncCallStatement struct {
-	parentExp Expression
-	function  Expression
-	arguments Expressions
+	parentExp qp.Expression
+	function  qp.Expression
+	arguments qp.Expressions
 }
 
 func (f *FuncCallStatement) String() string {
@@ -125,8 +127,8 @@ func (f *FuncCallStatement) String() string {
 }
 
 type AssignStatement struct {
-	exp  Expression
-	left Expression
+	exp  qp.Expression
+	left qp.Expression
 }
 
 func (expression AssignStatement) String() string {
@@ -134,9 +136,9 @@ func (expression AssignStatement) String() string {
 }
 
 type VarAssignStatement struct {
-	ctx        *VMContext //global or stack var
-	name       string     //var name : var a,`a` is the name
-	expression Expression // init expression : var a = 1+1
+	ctx        *qp.VMContext //global or stack var
+	name       string        //var name : var a,`a` is the name
+	expression qp.Expression // init expression : var a = 1+1
 }
 
 func (expression VarAssignStatement) String() string {
@@ -144,7 +146,7 @@ func (expression VarAssignStatement) String() string {
 }
 
 type IncFieldStatement struct {
-	exp Expression
+	exp qp.Expression
 }
 
 func (statement IncFieldStatement) String() string {
@@ -170,9 +172,9 @@ type FuncStatement struct {
 	parameters   []string // parameter label
 	closureLabel []string // closure label
 	closureInit  bool
-	statements   Statements // function body
-	vm           *VMContext // vm context
-	closureObjs  []Expression
+	statements   Statements    // function body
+	vm           *qp.VMContext // vm context
+	closureObjs  []qp.Expression
 }
 
 func (f *FuncStatement) String() string {
@@ -191,16 +193,16 @@ func (f *FuncStatement) String() string {
 	return str
 }
 
-func (f *FuncStatement) Invoke() Expression {
+func (f *FuncStatement) Invoke() qp.Expression {
 	f.doClosureInit()
 	return f
 }
 
 type ForStatement struct {
-	vm             *VMContext
-	preStatement   Expression
-	checkStatement Expression
-	postStatement  Expression
+	vm             *qp.VMContext
+	preStatement   qp.Expression
+	checkStatement qp.Expression
+	postStatement  qp.Expression
 	statements     Statements
 }
 
@@ -209,9 +211,9 @@ func (f *ForStatement) String() string {
 }
 
 type objectInitStatement struct {
-	exp           Expression
-	vm            *VMContext
-	propTemplates []TypeObjectPropTemplate
+	exp           qp.Expression
+	vm            *qp.VMContext
+	propTemplates []qp.TypeObjectPropTemplate
 }
 
 func (statement *objectInitStatement) String() string {
@@ -223,15 +225,15 @@ func (statement *objectInitStatement) String() string {
 }
 
 type getArrayElement struct {
-	arrayExp Expression
-	indexExp Expression
+	arrayExp qp.Expression
+	indexExp qp.Expression
 }
 
-func (g getArrayElement) Invoke() Expression {
+func (g getArrayElement) Invoke() qp.Expression {
 	panic("implement me")
 }
 
-func (g getArrayElement) GetType() Type {
+func (g getArrayElement) GetType() lexer.Type {
 	panic("implement me")
 }
 
@@ -240,7 +242,7 @@ func (g getArrayElement) String() string {
 }
 
 type makeArrayStatement struct {
-	vm             *VMContext
+	vm             *qp.VMContext
 	initStatements Statements
 }
 
@@ -255,32 +257,32 @@ func (m *makeArrayStatement) String() string {
 	return str + "]"
 }
 
-func (m *makeArrayStatement) Invoke() Expression {
-	var array = &Array{}
+func (m *makeArrayStatement) Invoke() qp.Expression {
+	var array = &qp.Array{}
 	for _, statement := range m.initStatements {
 		array.data = append(array.data, statement.Invoke())
 	}
 	return array
 }
 
-func (m *makeArrayStatement) GetType() Type {
-	return ArrayObjectType
+func (m *makeArrayStatement) GetType() lexer.Type {
+	return lexer.ArrayObjectType
 }
 
-func (g *getObjectPropStatement) Invoke() Expression {
+func (g *getObjectPropStatement) Invoke() qp.Expression {
 	obj := g.getObject.Invoke()
-	if obj == nilObject {
+	if obj == qp.nilObject {
 		return obj
 	}
-	return obj.(*Object).inner
+	return obj.(*qp.Object).inner
 }
 
-func (g *getObjectObjectStatement) Invoke() Expression {
+func (g *getObjectObjectStatement) Invoke() qp.Expression {
 	object := g.vmContext.getObject(g.labels[0])
 	if object == nil {
 		log.Panicf("left failed `%s`", g.labels[0])
 	}
-	structObj, ok := object.inner.(BaseObject)
+	structObj, ok := object.inner.(qp.BaseObject)
 	if ok == false {
 		log.Panic("objects type no struct objects,error",
 			g.labels, reflect.TypeOf(object.inner).String())
@@ -295,7 +297,7 @@ func (g *getObjectObjectStatement) Invoke() Expression {
 		//last name
 		if i != len(g.labels)-1 {
 			var ok bool
-			structObj, ok = obj.inner.(*TypeObject)
+			structObj, ok = obj.inner.(*qp.TypeObject)
 			if ok == false {
 				label := strings.Join(g.labels[:i+1], ".")
 				log.Panic("objects is no struct objects type", label)
@@ -305,16 +307,16 @@ func (g *getObjectObjectStatement) Invoke() Expression {
 	return obj
 }
 
-func (g *getObjectObjectStatement) getType() Type {
-	return GetObjectObjectStatementType
+func (g *getObjectObjectStatement) getType() lexer.Type {
+	return lexer.GetObjectObjectStatementType
 }
 
-func (g *getObjectPropStatement) GetType() Type {
-	return PropObjectStatementType
+func (g *getObjectPropStatement) GetType() lexer.Type {
+	return lexer.PropObjectStatementType
 }
 
-func (statement *objectInitStatement) Invoke() Expression {
-	object := statement.exp.Invoke().(*Object).inner.(BaseObject).clone().(*TypeObject)
+func (statement *objectInitStatement) Invoke() qp.Expression {
+	object := statement.exp.Invoke().(*qp.Object).inner.(qp.BaseObject).clone().(*qp.TypeObject)
 
 Loop:
 	for _, init := range object.typeObjectPropTemplates {
@@ -334,11 +336,11 @@ Loop:
 	return object
 }
 
-func (statement *objectInitStatement) GetType() Type {
-	return TypeObjectInitStatementType
+func (statement *objectInitStatement) GetType() lexer.Type {
+	return lexer.TypeObjectInitStatementType
 }
 
-func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) {
+func (f *FuncStatement) prepareArgumentBind(inArguments qp.Expressions) {
 	if len(f.parameters) != len(inArguments) {
 		if f.closure {
 		}
@@ -357,7 +359,7 @@ func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) {
 	}
 }
 
-func (f *FuncStatement) call(arguments ...Expression) Expression {
+func (f *FuncStatement) call(arguments ...qp.Expression) qp.Expression {
 	defer f.vm.popStackFrame()
 	f.prepareArgumentBind(arguments)
 	for _, statement := range f.statements {
@@ -369,8 +371,8 @@ func (f *FuncStatement) call(arguments ...Expression) Expression {
 	return nil
 }
 
-func (f *FuncStatement) GetType() Type {
-	return FuncStatementType
+func (f *FuncStatement) GetType() lexer.Type {
+	return lexer.FuncStatementType
 }
 
 func (f *FuncStatement) doClosureInit() {
@@ -378,7 +380,7 @@ func (f *FuncStatement) doClosureInit() {
 		return
 	}
 	f.closureInit = true
-	var closureObjs []Expression
+	var closureObjs []qp.Expression
 	var closureLabel []string
 	for _, label := range f.closureLabel {
 		if f.vm.isGlobal(label) {
@@ -395,30 +397,30 @@ func (f *FuncStatement) doClosureInit() {
 	f.closureLabel = closureLabel
 }
 
-func (expression AssignStatement) Invoke() Expression {
+func (expression AssignStatement) Invoke() qp.Expression {
 	left := expression.left.Invoke()
 	switch right := expression.exp.Invoke().(type) {
-	case *Object:
-		left.(*Object).inner = right.inner
+	case *qp.Object:
+		left.(*qp.Object).inner = right.inner
 	default:
-		left.(*Object).inner = right
+		left.(*qp.Object).inner = right
 	}
 	return nil
 }
 
-func (expression AssignStatement) GetType() Type {
-	return AssignStatementType
+func (expression AssignStatement) GetType() lexer.Type {
+	return lexer.AssignStatementType
 }
 
-func (NopStatement) Invoke() Expression {
+func (NopStatement) Invoke() qp.Expression {
 	return nopStatement
 }
 
-func (n NopStatement) GetType() Type {
-	return NopStatementType
+func (n NopStatement) GetType() lexer.Type {
+	return lexer.NopStatementType
 }
 
-func (f *ForStatement) Invoke() Expression {
+func (f *ForStatement) Invoke() qp.Expression {
 	f.vm.pushStackFrame(false) //make stack frame
 
 	//make for brock stack
@@ -426,7 +428,7 @@ func (f *ForStatement) Invoke() Expression {
 
 	for ; ; {
 		val := f.checkStatement.Invoke()
-		bObj, ok := val.(Bool)
+		bObj, ok := val.(qp.Bool)
 		if ok == false {
 			log.Panic("for checkStatement expect Bool")
 		}
@@ -437,7 +439,7 @@ func (f *ForStatement) Invoke() Expression {
 		f.vm.pushStackFrame(false) //make stack frame for `{` brock
 		for _, statement := range f.statements {
 			val := statement.Invoke()
-			if val == breakObject {
+			if val == qp.breakObject {
 				return nil
 			}
 			if _, ok := val.(ReturnStatement); ok {
@@ -449,28 +451,28 @@ func (f *ForStatement) Invoke() Expression {
 	}
 }
 
-func (f *ForStatement) GetType() Type {
-	return ForType
+func (f *ForStatement) GetType() lexer.Type {
+	return lexer.ForType
 }
 
-func (statement IncFieldStatement) Invoke() Expression {
-	object := statement.exp.Invoke().(*Object)
-	object.inner = object.inner.(Int) + 1
+func (statement IncFieldStatement) Invoke() qp.Expression {
+	object := statement.exp.Invoke().(*qp.Object)
+	object.inner = object.inner.(qp.Int) + 1
 	return nil
 }
 
-func (statement IncFieldStatement) GetType() Type {
-	return IncType
+func (statement IncFieldStatement) GetType() lexer.Type {
+	return lexer.IncType
 }
 
-func (Statements) GetType() Type {
-	return StatementsType
+func (Statements) GetType() lexer.Type {
+	return lexer.StatementsType
 }
 
-func (f *FuncCallStatement) Invoke() Expression {
+func (f *FuncCallStatement) Invoke() qp.Expression {
 	exp := f.function.Invoke()
 	switch obj := exp.(type) {
-	case *Object:
+	case *qp.Object:
 		exp = obj.Invoke()
 	case ReturnStatement:
 		exp = obj.returnVal
@@ -478,21 +480,21 @@ func (f *FuncCallStatement) Invoke() Expression {
 	if exp == nil {
 		log.Panic("function nil")
 	}
-	var arguments []Expression
+	var arguments []qp.Expression
 	if Func, ok := exp.(*FuncStatement);
 		f.parentExp != nil && (ok == false || Func.closure == false) {
 		switch argument := f.parentExp.Invoke().(type) {
-		case *Object:
+		case *qp.Object:
 			arguments = append(arguments, argument.inner)
 		default:
 			arguments = append(arguments, argument)
 		}
 	}
 
-	if function, ok := exp.(Function); ok {
+	if function, ok := exp.(qp.Function); ok {
 		for _, argument := range f.arguments {
 			switch job := argument.Invoke().(type) {
-			case *Object:
+			case *qp.Object:
 				arguments = append(arguments, job.inner)
 			default:
 				arguments = append(arguments, job)
@@ -504,39 +506,39 @@ func (f *FuncCallStatement) Invoke() Expression {
 	return nil
 }
 
-func (f *FuncCallStatement) GetType() Type {
-	return FuncType
+func (f *FuncCallStatement) GetType() lexer.Type {
+	return lexer.FuncType
 }
 
-func (f getVarStatement) Invoke() Expression {
+func (f getVarStatement) Invoke() qp.Expression {
 	return f.ctx.getObject(f.label)
 }
 
-func (f getVarStatement) GetType() Type {
-	return IDType
+func (f getVarStatement) GetType() lexer.Type {
+	return lexer.IDType
 }
 
-func (v VarStatement) Invoke() Expression {
+func (v VarStatement) Invoke() qp.Expression {
 	if v.object != nil {
 		v.ctx.allocObject(v.label).inner = v.object.Invoke()
 	} else {
-		v.ctx.allocObject(v.label).inner = nilObject
+		v.ctx.allocObject(v.label).inner = qp.nilObject
 	}
 	return nil
 }
 
-func (v VarStatement) GetType() Type {
-	return VarType
+func (v VarStatement) GetType() lexer.Type {
+	return lexer.VarType
 }
 
-func (expression VarAssignStatement) Invoke() Expression {
+func (expression VarAssignStatement) Invoke() qp.Expression {
 	obj := expression.expression.Invoke()
 	var object = expression.ctx.allocObject(expression.name)
 	if obj == nil {
 		panic(obj)
 	}
 	switch obj := obj.(type) {
-	case *Object:
+	case *qp.Object:
 		object.inner = obj.inner
 	default:
 		object.inner = obj
@@ -545,17 +547,17 @@ func (expression VarAssignStatement) Invoke() Expression {
 	return nil
 }
 
-func (expression VarAssignStatement) GetType() Type {
-	return VarAssignType
+func (expression VarAssignStatement) GetType() lexer.Type {
+	return lexer.VarAssignType
 }
 
-func (r ReturnStatement) Invoke() Expression {
+func (r ReturnStatement) Invoke() qp.Expression {
 	if r.returnVal != nil {
 		return r
 	}
 	exp := r.express.Invoke()
 	switch obj := exp.(type) {
-	case *Object:
+	case *qp.Object:
 		exp = obj.inner
 	case ReturnStatement:
 		return obj
@@ -563,33 +565,33 @@ func (r ReturnStatement) Invoke() Expression {
 	return ReturnStatement{returnVal: exp}
 }
 
-func (ReturnStatement) GetType() Type {
-	return ReturnType
+func (ReturnStatement) GetType() lexer.Type {
+	return lexer.ReturnType
 }
 
-func (IfStatement) GetType() Type {
-	return IfType
+func (IfStatement) GetType() lexer.Type {
+	return lexer.IfType
 }
 
-func (statements Statements) Invoke() Expression {
-	var val Expression
+func (statements Statements) Invoke() qp.Expression {
+	var val qp.Expression
 	for _, statement := range statements {
 		val = statement.Invoke()
 		if _, ok := val.(ReturnStatement); ok {
 			return val
-		} else if _, ok := val.(*BreakObject); ok {
-			return breakObject
+		} else if _, ok := val.(*qp.BreakObject); ok {
+			return qp.breakObject
 		}
 	}
 	return val
 }
 
-func (ifStm *IfStatement) Invoke() Expression {
+func (ifStm *IfStatement) Invoke() qp.Expression {
 	check := ifStm.check.Invoke()
-	if _, ok := check.(Bool); ok == false {
+	if _, ok := check.(qp.Bool); ok == false {
 		log.Panic("if statement check require boolObject", reflect.TypeOf(check).String())
 	}
-	if check.(Bool) {
+	if check.(qp.Bool) {
 		ifStm.vm.pushStackFrame(false) //make  if brock stack
 		val := ifStm.statement.Invoke()
 		ifStm.vm.popStackFrame() //release  if brock stack
@@ -597,10 +599,10 @@ func (ifStm *IfStatement) Invoke() Expression {
 	} else {
 		for _, stm := range ifStm.elseIfStatements {
 			elseIf := stm.check.Invoke()
-			if _, ok := elseIf.(Bool); ok == false {
+			if _, ok := elseIf.(qp.Bool); ok == false {
 				log.Panicln("else if require bool result")
 			}
-			if elseIf.(Bool) {
+			if elseIf.(qp.Bool) {
 				ifStm.vm.pushStackFrame(false) //make  if brock stack
 				val := stm.statement.Invoke()
 				ifStm.vm.popStackFrame() //release  if brock stack

@@ -1,7 +1,8 @@
-package qp
+package parser
 
 import (
 	"fmt"
+	"gitlab.com/akzj/qp/lexer"
 	"testing"
 )
 
@@ -47,7 +48,7 @@ if 1 == 2 && 2==4 || 3== 4 && true{
 		if index != len(testCases)-1 {
 			continue
 		}
-		p := NewParse2(testcase.data)
+		p := New(testcase.data)
 		p.initTokens()
 		statement := p.Parse()
 		if statement == nil {
@@ -80,9 +81,9 @@ if 1 == 2 && 2==4 || 3== 4 && true{
 	}
 
 	for _, testcase := range testTypeObjects {
-		p := NewParse2(testcase.data)
+		p := New(testcase.data)
 		p.initTokens()
-		p.expectType(p.nextToken(), TypeType)
+		p.expectType(p.nextToken(), lexer.TypeType)
 		statement := p.parseTypeStatement()
 		if str := statement.String(); str != testcase.expect {
 			t.Logf("parse %s failed,result \n%s\n expect\n%s", testcase.data, str, testcase.expect)
@@ -92,7 +93,7 @@ if 1 == 2 && 2==4 || 3== 4 && true{
 }
 
 func TestIfElseIF(t *testing.T) {
-	for _, token := range NewParse2(`if 1==1{}else if 1==2{}else{}`).initTokens().tokens {
+	for _, token := range New(`if 1==1{}else if 1==2{}else{}`).initTokens().tokens {
 		fmt.Println(token)
 	}
 }
@@ -114,7 +115,7 @@ user.hello()
 println(user.info.id)
 
 `
-	NewParse2(data).Parse().Invoke()
+	New(data).Parse().Invoke()
 }
 
 func TestNewParse2Invoke(t *testing.T) {
@@ -141,7 +142,7 @@ func TestNewParse2Invoke(t *testing.T) {
 func(){
 	var c  =func(){
 		var a = func(){
-			println("func c call")
+			println("func c Call")
 		}
 		if a == nil{
 			println("a nil????")
@@ -155,7 +156,7 @@ func(){
 		},
 	}
 	for _, testcase := range testcases {
-		statements := NewParse2(testcase.data).Parse()
+		statements := New(testcase.data).Parse()
 		fmt.Println("--------")
 		statements.Invoke()
 	}

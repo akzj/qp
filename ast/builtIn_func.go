@@ -1,16 +1,17 @@
-package qp
+package ast
 
 import (
 	"fmt"
+	"gitlab.com/akzj/qp/vm"
 	"log"
 	"reflect"
 	"time"
 )
 
 var (
-	BuiltInFunctions       = map[string]*Object{}
-	ArrayBuiltInFunctions  = map[string]*Object{}
-	StringBuiltInFunctions = map[string]*Object{}
+	Functions       = map[string]*vm.Object{}
+	ArrayFunctions  = map[string]*vm.Object{}
+	StringFunctions = map[string]*vm.Object{}
 )
 
 func init() {
@@ -20,7 +21,7 @@ func init() {
 }
 
 func RegisterGlobalFunction() {
-	registerBuiltInFunc(BuiltInFunctions, "println", func(arguments ...Expression) Expression {
+	RegisterBuiltInFunc(Functions, "println", func(arguments ...Expression) Expression {
 		for index, argument := range arguments {
 			if stringer, ok := argument.(fmt.Stringer); ok {
 				fmt.Print(stringer)
@@ -35,7 +36,7 @@ func RegisterGlobalFunction() {
 		return nil
 	})
 
-	registerBuiltInFunc(BuiltInFunctions, "now", func(arguments ...Expression) Expression {
+	RegisterBuiltInFunc(Functions, "now", func(arguments ...Expression) Expression {
 		return TimeObject(time.Now())
 	})
 }

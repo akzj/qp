@@ -1,4 +1,4 @@
-package qp
+package lexer
 
 import (
 	"fmt"
@@ -204,43 +204,43 @@ const TimeObjectType Type = 10008              // DurationObjectType
 const BuiltInFunctionType = 10009              // built in function
 
 type Token struct {
-	typ  Type
-	val  string
-	line int
+	Typ  Type
+	Val  string
+	Line int
 }
 
 func (t Token) String() string {
-	if t.val == "" {
-		return fmt.Sprintf("line:%d type`%s`", t.line, t.typ.String())
+	if t.Val == "" {
+		return fmt.Sprintf("Line:%d type`%s`", t.Line, t.Typ.String())
 	}
-	return fmt.Sprintf("line:%d type`%s` val `%s`", t.line, t.typ.String(), t.val)
+	return fmt.Sprintf("Line:%d type`%s` Val `%s`", t.Line, t.Typ.String(), t.Val)
 }
 
 var (
-	EmptyToken            = Token{typ: EOFType}
-	AddOperatorToken      = Token{typ: AddType}
-	MulOperatorToken      = Token{typ: MulOpType}
-	LeftParenthesisToken  = Token{typ: LeftParenthesisType}
-	RightParenthesisToken = Token{typ: RightParenthesisType}
-	LeftBraceToken        = Token{typ: LeftBraceType}
-	RightBraceToken       = Token{typ: RightBraceType}
-	LessToken             = Token{typ: LessType}
-	LessEqualToken        = Token{typ: LessEqualType}
-	GreaterToken          = Token{typ: GreaterType}
-	GreaterEqualToken     = Token{typ: GreaterEqualType}
-	AssignToken           = Token{typ: AssignType}
-	CommaToken            = Token{typ: CommaType}
-	IncOperatorToken      = Token{typ: IncType}
-	SemicolonToken        = Token{typ: SemicolonType}
-	ColonToken            = Token{typ: ColonType}
-	PeriodToken           = Token{typ: PeriodType}
-	EqualToken            = Token{typ: EqualType}
-	LeftBracketToken      = Token{typ: LeftBracketType}
-	RightBracketToken     = Token{typ: RightBracketType}
-	NoEqualToken          = Token{typ: NoEqualType}
-	SubOperatorToken      = Token{typ: SubType}
-	OrToken               = Token{typ: OrType}
-	AndToken              = Token{typ: AndType}
+	EmptyToken            = Token{Typ: EOFType}
+	AddOperatorToken      = Token{Typ: AddType}
+	MulOperatorToken      = Token{Typ: MulOpType}
+	LeftParenthesisToken  = Token{Typ: LeftParenthesisType}
+	RightParenthesisToken = Token{Typ: RightParenthesisType}
+	LeftBraceToken        = Token{Typ: LeftBraceType}
+	RightBraceToken       = Token{Typ: RightBraceType}
+	LessToken             = Token{Typ: LessType}
+	LessEqualToken        = Token{Typ: LessEqualType}
+	GreaterToken          = Token{Typ: GreaterType}
+	GreaterEqualToken     = Token{Typ: GreaterEqualType}
+	AssignToken           = Token{Typ: AssignType}
+	CommaToken            = Token{Typ: CommaType}
+	IncOperatorToken      = Token{Typ: IncType}
+	SemicolonToken        = Token{Typ: SemicolonType}
+	ColonToken            = Token{Typ: ColonType}
+	PeriodToken           = Token{Typ: PeriodType}
+	EqualToken            = Token{Typ: EqualType}
+	LeftBracketToken      = Token{Typ: LeftBracketType}
+	RightBracketToken     = Token{Typ: RightBracketType}
+	NoEqualToken          = Token{Typ: NoEqualType}
+	SubOperatorToken      = Token{Typ: SubType}
+	OrToken               = Token{Typ: OrType}
+	AndToken              = Token{Typ: AndType}
 )
 
 var Keywords = []string{

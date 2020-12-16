@@ -1,12 +1,14 @@
-package qp
+package ast
 
 import (
 	"fmt"
+	"gitlab.com/akzj/qp"
+	"gitlab.com/akzj/qp/lexer"
 	"log"
 )
 
 type Array struct {
-	data   []Expression
+	data   []qp.Expression
 	object map[string]*Object
 }
 
@@ -14,16 +16,16 @@ func (a *Array) String() string {
 	return fmt.Sprintf("%+v", a.data)
 }
 
-func (a *Array) Invoke() Expression {
+func (a *Array) Invoke() qp.Expression {
 	return a
 }
 
-func (a *Array) GetType() Type {
-	return ArrayObjectType
+func (a *Array) GetType() lexer.Type {
+	return lexer.ArrayObjectType
 }
 
 func (a *Array) getObject(label string) *Object {
-	return ArrayBuiltInFunctions[label]
+	return qp.ArrayBuiltInFunctions[label]
 }
 
 func (a *Array) allocObject(label string) *Object {
@@ -34,30 +36,30 @@ func (a *Array) allocObject(label string) *Object {
 		a.object = map[string]*Object{}
 	}
 	obj := &Object{
-		inner: nilObject,
+		inner: qp.nilObject,
 		label: label,
-		typ:   NilType,
+		typ:   lexer.NilType,
 	}
 	a.object[label] = obj
 	return obj
 }
 
-func (a *Array) clone() BaseObject {
-	var data = make([]Expression, len(a.data))
+func (a *Array) clone() qp.BaseObject {
+	var data = make([]qp.Expression, len(a.data))
 	copy(data, a.data)
 	return &Array{data: data}
 }
 
 func RegisterArrayFunction() {
-	registerBuiltInFunc(ArrayBuiltInFunctions, "append", func(arguments ...Expression) Expression {
+	qp.registerBuiltInFunc(qp.ArrayBuiltInFunctions, "append", func(arguments ...qp.Expression) qp.Expression {
 		array := arguments[0].Invoke().(*Array)
 		for _, exp := range arguments[1:] {
 			array.data = append(array.data, exp.Invoke())
 		}
 		return array
-	})("size", func(arguments ...Expression) Expression {
-		return Int(len(arguments[0].Invoke().(*Array).data))
-	})("Get", func(arguments ...Expression) Expression {
+	})("size", func(arguments ...qp.Expression) qp.Expression {
+		return qp.Int(len(arguments[0].Invoke().(*Array).data))
+	})("Get", func(arguments ...qp.Expression) qp.Expression {
 		if len(arguments) != 2 {
 			log.Panic("array Get() arguments error")
 		}
@@ -65,7 +67,7 @@ func RegisterArrayFunction() {
 		if ok == false {
 			log.Panic("object not array type")
 		}
-		i, ok := arguments[1].(Int)
+		i, ok := arguments[1].(qp.Int)
 		if ok == false {
 			log.Panic("is not array arguments error")
 		}

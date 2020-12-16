@@ -1,6 +1,9 @@
-package qp
+package ast
 
-import "time"
+import (
+	"gitlab.com/akzj/qp/lexer"
+	"time"
+)
 
 type TimeObject time.Time
 
@@ -12,8 +15,8 @@ func (t TimeObject) Invoke() Expression {
 	return t
 }
 
-func (t TimeObject) GetType() Type {
-	return TimeObjectType
+func (t TimeObject) GetType() lexer.Type {
+	return lexer.TimeObjectType
 }
 
 type DurationObject time.Duration
@@ -22,8 +25,8 @@ func (d DurationObject) Invoke() Expression {
 	return d
 }
 
-func (d DurationObject) GetType() Type {
-	return DurationObjectType
+func (d DurationObject) GetType() lexer.Type {
+	return lexer.DurationObjectType
 }
 
 func (d DurationObject) String() string {

@@ -1,8 +1,10 @@
-package qp
+package parser
 
 import (
 	"bytes"
 	"fmt"
+	"gitlab.com/akzj/qp/ast"
+	"gitlab.com/akzj/qp/lexer"
 	"testing"
 )
 
@@ -19,14 +21,14 @@ func TestBuffer(t *testing.T) {
 			break
 		}
 		fmt.Println(string(c))
-		fmt.Println(isLetter(c))
+		fmt.Println(lexer.IsLetter(c))
 		fmt.Println(c, 'a')
 		fmt.Println(c, 'i')
 	}
 }
 
 func TestLexer(t *testing.T) {
-	lexer := newLexer(bytes.NewReader([]byte(`
+	lexer := lexer.New(bytes.NewReader([]byte(`
 if 2 > 1{
 	3+3 
 return 1
@@ -35,7 +37,7 @@ a ++
 for
 a//hello world
 "hello"
-` + "` multi-line hello\n\nworld`" + `
+` + "` multi-Line hello\n\nworld`" + `
 var a = nil
 ==
 `)))
@@ -45,7 +47,7 @@ var a = nil
 	var count = 1000
 	for lexer.Finish() == false && count > 0 {
 		fmt.Println(lexer.Peek().String())
-		lexer.next()
+		lexer.Next()
 		count--
 	}
 }
@@ -66,7 +68,7 @@ if (1 > (1+2)) == false{
 }
 
 func TestNumAddParse(t *testing.T) {
-	parser := NewParse2("1*(5+5+5)*2")
+	parser := New("1*(5+5+5)*2")
 	parser.initTokens()
 	expression := parser.parseFactor(0)
 	if expression == nil {
@@ -137,8 +139,8 @@ if 2 > 1{
 			t.Fatal("Parse failed")
 		}
 		if val := statements.Invoke(); val != nil {
-			if int64(val.(ReturnStatement).returnVal.(Int)) != Case.val {
-				t.Fatalf("no match %+v %+v", int64(val.(Int)), Case.val)
+			if int64(val.(ast.ReturnStatement).Val.(ast.Int)) != Case.val {
+				t.Fatalf("no match %+v %+v", int64(val.(ast.Int)), Case.val)
 			}
 		}
 	}
@@ -376,7 +378,7 @@ user.a = func(){
 
 user.a()
 
-//call lambda function objects
+//Call lambda function objects
 `
 	statements := Parse(data)
 	if statements == nil {
@@ -407,7 +409,7 @@ var u = user{
 // Get field
 println(u.id) // 1 
 
-//call user function
+//Call user function
 u.id = 100
 u.print() //print(u)
 
@@ -426,7 +428,7 @@ u.incB = func(b){
 	b++
 }
 
-// call function objects
+// Call function objects
 println(b) //1
 u.incB(b)
 println(b) //2
@@ -593,7 +595,7 @@ func List.insert(left){
     if this.head == nil {
         this.head = item
     }else{
-        item.next = this.head
+        item.Next = this.head
         this.head = item
     }
 }
@@ -606,7 +608,7 @@ for var count = 0;count < 10;count++{
 }
 
 
-for var head =list.head ;head != nil; head = head.next{
+for var head =list.head ;head != nil; head = head.Next{
 	println(head.value)
 }
 
@@ -659,7 +661,7 @@ for var num = 20; num < 30; num++ {
 println("")
 `
 
-	if statement := NewParse2(data).Parse(); statement == nil {
+	if statement := New(data).Parse(); statement == nil {
 		panic("parse failed")
 	} else {
 		statement.Invoke()

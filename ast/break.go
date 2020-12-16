@@ -1,4 +1,8 @@
-package qp
+package ast
+
+import (
+	"gitlab.com/akzj/qp/lexer"
+)
 
 var breakObject = &BreakObject{}
 
@@ -13,6 +17,6 @@ func (b *BreakObject) Invoke() Expression {
 	return b
 }
 
-func (b *BreakObject) GetType() Type {
-	return BreakType
+func (b *BreakObject) GetType() lexer.Type {
+	return lexer.BreakType
 }

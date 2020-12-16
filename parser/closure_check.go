@@ -1,4 +1,4 @@
-package qp
+package parser
 
 type ClosureCheck struct {
 	vars     map[string]bool
