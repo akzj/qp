@@ -37,14 +37,3 @@ func (obj *Object) InitType() {
 		obj.Typ = lexer.IntType
 	}
 }
-
-func (obj *Object) UnwrapFunction() Function {
-	var object = obj
-	if object.Inner == nil {
-		panic(object.Inner)
-	}
-	if function, ok := object.Inner.(Function); ok {
-		return function
-	}
-	panic("unknown type" + reflect.TypeOf(object.Inner).String())
-}

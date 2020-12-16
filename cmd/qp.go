@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/akzj/qp"
+	"gitlab.com/akzj/qp/parser"
 	"io/ioutil"
 	"os"
 )
@@ -23,5 +23,5 @@ func main() {
 		os.Exit(1)
 		return
 	}
-	qp.NewParse2(string(data)).Parse().Invoke()
+	parser.New(string(data)).Parse().Invoke()
 }

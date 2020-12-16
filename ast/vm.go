@@ -4,6 +4,12 @@ import (
 	"log"
 )
 
+var (
+	Functions       = map[string]*Object{}
+	ArrayFunctions  = map[string]*Object{}
+	StringFunctions = map[string]*Object{}
+)
+
 type StackFrame struct {
 	stackTopPointer    int
 	stackBottomPointer int
@@ -119,7 +125,7 @@ func (ctx *VMContext) PopStackFrame() {
 
 func (ctx *VMContext) AddGlobalFunction(object *Object) {
 	if _, ok := ctx.GlobalFunctions[object.Label]; ok {
-		log.Panic("object name repeated")
+		log.Panic("Object name repeated")
 	}
 	ctx.GlobalFunctions[object.Label] = object
 }

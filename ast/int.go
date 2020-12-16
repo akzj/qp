@@ -1,14 +1,13 @@
-package qp
+package ast
 
 import (
-	"gitlab.com/akzj/qp/ast"
 	"gitlab.com/akzj/qp/lexer"
 	"strconv"
 )
 
 type Int int64
 
-func (i Int) Invoke() ast.Expression {
+func (i Int) Invoke() Expression {
 	return i
 }
 

@@ -2,7 +2,6 @@ package ast
 
 import (
 	"fmt"
-	"gitlab.com/akzj/qp"
 	"gitlab.com/akzj/qp/lexer"
 	"reflect"
 	"time"
@@ -21,11 +20,11 @@ func (expressions Expressions) String() string {
 }
 
 type ParenthesisExpression struct {
-	exp Expression
+	Exp Expression
 }
 
 func (p ParenthesisExpression) Invoke() Expression {
-	return p.exp.Invoke()
+	return p.Exp.Invoke()
 }
 
 func (p ParenthesisExpression) GetType() lexer.Type {
@@ -33,7 +32,7 @@ func (p ParenthesisExpression) GetType() lexer.Type {
 }
 
 func (p ParenthesisExpression) String() string {
-	return "(" + p.exp.String() + ")"
+	return "(" + p.Exp.String() + ")"
 }
 
 func (Expressions) GetType() lexer.Type {
@@ -59,21 +58,21 @@ func (s SubExpression) String() string {
 }
 
 type BinaryBoolExpression struct {
-	opType lexer.Type
-	Left   Expression
-	right  Expression
+	OP    lexer.Type
+	Left  Expression
+	Right Expression
 }
 
 func (b BinaryBoolExpression) String() string {
 	return "(" + b.Left.String() +
-		b.opType.String() +
-		b.right.String() + ")"
+		b.OP.String() +
+		b.Right.String() + ")"
 }
 
 func unwrapObject(expression Expression) Expression {
 	for {
 		if obj, ok := expression.(*Object); ok {
-			expression = obj.inner
+			expression = obj.Inner
 		} else {
 			return expression
 		}
@@ -82,9 +81,9 @@ func unwrapObject(expression Expression) Expression {
 
 func (b BinaryBoolExpression) Invoke() Expression {
 	return BinaryOpExpression{
-		Left:   b.Left,
-		right:  b.right,
-		opType: b.opType,
+		Left:  b.Left,
+		Right: b.Right,
+		OP:    b.OP,
 	}.Invoke()
 }
 
@@ -93,23 +92,23 @@ func (b BinaryBoolExpression) GetType() lexer.Type {
 }
 
 type BinaryOpExpression struct {
-	opType lexer.Type
-	Left   Expression
-	right  Expression
+	OP    lexer.Type
+	Left  Expression
+	Right Expression
 }
 
 func (b BinaryOpExpression) String() string {
-	return b.Left.String() + b.opType.String() + b.right.String()
+	return b.Left.String() + b.OP.String() + b.Right.String()
 }
 
 func (b BinaryOpExpression) Invoke() Expression {
 	var left = unwrapObject(b.Left.Invoke())
-	var right = unwrapObject(b.right.Invoke())
+	var right = unwrapObject(b.Right.Invoke())
 	switch lVal := left.(type) {
-	case qp.Int:
+	case Int:
 		switch rVal := right.(type) {
-		case qp.Int:
-			switch b.opType {
+		case Int:
+			switch b.OP {
 			case lexer.AddType:
 				return lVal + rVal
 			case lexer.SubType:
@@ -119,76 +118,76 @@ func (b BinaryOpExpression) Invoke() Expression {
 			case lexer.DivOpType:
 				return lVal / rVal
 			case lexer.LessType:
-				return qp.Bool(lVal < rVal)
+				return Bool(lVal < rVal)
 			case lexer.LessEqualType:
-				return qp.Bool(lVal < rVal)
+				return Bool(lVal < rVal)
 			case lexer.GreaterType:
-				return qp.Bool(lVal > rVal)
+				return Bool(lVal > rVal)
 			case lexer.GreaterEqualType:
-				return qp.Bool(lVal >= rVal)
+				return Bool(lVal >= rVal)
 			case lexer.EqualType:
-				return qp.Bool(lVal == rVal)
+				return Bool(lVal == rVal)
 			case lexer.NoEqualType:
-				return qp.Bool(lVal != rVal)
+				return Bool(lVal != rVal)
 			}
 		default:
 			panic("no support type " + reflect.TypeOf(lVal).String() +
-				"\n" + reflect.TypeOf(rVal).String() + " op type" + b.opType.String())
+				"\n" + reflect.TypeOf(rVal).String() + " op type" + b.OP.String())
 		}
-	case qp.Bool:
+	case Bool:
 		switch rVal := right.(type) {
-		case qp.Bool:
-			switch b.opType {
+		case Bool:
+			switch b.OP {
 			case lexer.EqualType:
-				return qp.Bool(lVal == rVal)
+				return Bool(lVal == rVal)
 			case lexer.NoEqualType:
-				return !qp.Bool(lVal == rVal)
+				return !Bool(lVal == rVal)
 			}
 		}
-	case qp.TimeObject:
+	case TimeObject:
 		switch rVal := right.(type) {
-		case qp.TimeObject:
-			switch b.opType {
+		case TimeObject:
+			switch b.OP {
 			case lexer.SubType:
-				return qp.DurationObject(time.Time(lVal).Sub(time.Time(rVal)))
+				return DurationObject(time.Time(lVal).Sub(time.Time(rVal)))
 			}
 		}
 	case *FuncStatement:
 		switch right.(type) {
-		case qp.NilObject:
-			switch b.opType {
+		case NilObject:
+			switch b.OP {
 			case lexer.EqualType:
-				return qp.falseObject
+				return FalseObject
 			case lexer.NoEqualType:
-				return qp.trueObject
+				return TrueObject
 			}
 		}
-	case *qp.TypeObject:
+	case *TypeObject:
 		switch right.(type) {
-		case qp.NilObject:
-			switch b.opType {
+		case NilObject:
+			switch b.OP {
 			case lexer.NoEqualType:
-				return qp.trueObject
+				return TrueObject
 			case lexer.EqualType:
-				return qp.falseObject
+				return FalseObject
 			}
 		}
-	case qp.NilObject:
+	case NilObject:
 		switch right.(type) {
-		case qp.NilObject:
-			switch b.opType {
+		case NilObject:
+			switch b.OP {
 			case lexer.EqualType:
-				return qp.trueObject
+				return TrueObject
 			case lexer.NoEqualType:
-				return qp.falseObject
+				return FalseObject
 			}
 		}
 	default:
 		panic("no support type " + reflect.TypeOf(lVal).String() +
-			"\n" + reflect.TypeOf(b.right).String() + b.opType.String())
+			"\n" + reflect.TypeOf(b.Right).String() + b.OP.String())
 	}
 	panic("no support type\n" + reflect.TypeOf(left).String() +
-		"\n" + reflect.TypeOf(right).String() + "\n" + b.opType.String())
+		"\n" + reflect.TypeOf(right).String() + "\n" + b.OP.String())
 }
 
 func (b BinaryOpExpression) GetType() lexer.Type {
@@ -264,11 +263,11 @@ func (n NoEqualExpression) String() string {
 
 type SelectorStatement struct {
 	IDs []string
-	vm  *qp.VMContext
+	vm  *VMContext
 }
 
 type NoStatement struct {
-	exp Expression
+	Exp Expression
 }
 
 func (n NoStatement) String() string {
@@ -276,7 +275,7 @@ func (n NoStatement) String() string {
 }
 
 func (n NoStatement) Invoke() Expression {
-	return !n.exp.Invoke().(qp.Bool)
+	return !n.Exp.Invoke().(Bool)
 }
 
 func (n NoStatement) GetType() lexer.Type {
@@ -307,7 +306,7 @@ func (n NoEqualExpression) Invoke() Expression {
 		Left:  n.Left,
 		right: n.right,
 	}
-	val := !equal.Invoke().(qp.Bool)
+	val := !equal.Invoke().(Bool)
 	return val
 }
 
@@ -320,41 +319,41 @@ func (expression EqualExpression) Invoke() Expression {
 	right := expression.right.Invoke()
 	var val bool
 	switch lVal := left.(type) {
-	case qp.Int:
+	case Int:
 		switch rVal := right.(type) {
-		case qp.Int:
+		case Int:
 			val = lVal == rVal
 		}
-	case qp.String:
+	case String:
 		switch e := right.(type) {
-		case qp.String:
+		case String:
 			val = lVal == e
 		}
-	case qp.NilObject:
+	case NilObject:
 		switch right.(type) {
-		case qp.NilObject:
+		case NilObject:
 			val = true
 		}
-	case qp.Bool:
+	case Bool:
 		switch rVal := right.(type) {
-		case qp.Bool:
+		case Bool:
 			val = lVal == rVal
 		}
-	case *qp.TypeObject:
+	case *TypeObject:
 		switch right.(type) {
-		case qp.NilObject:
+		case NilObject:
 			val = false
 		}
 	case *FuncStatement:
 		switch right.(type) {
-		case qp.NilObject:
+		case NilObject:
 			val = false
 		}
 	default:
 		panic(reflect.TypeOf(left).String() + "\n" +
 			reflect.TypeOf(right).String())
 	}
-	return qp.Bool(val)
+	return Bool(val)
 }
 
 func (EqualExpression) GetType() lexer.Type {
@@ -385,17 +384,17 @@ func (expression GreaterExpression) Invoke() Expression {
 	right := expression.right.Invoke()
 	var val = false
 	switch lVal := left.(type) {
-	case qp.Int:
+	case Int:
 		switch rVal := right.(type) {
-		case qp.Int:
+		case Int:
 			val = lVal > rVal
-			return (qp.Bool)(val)
+			return (Bool)(val)
 		}
-	case qp.String:
+	case String:
 		switch rVal := right.(type) {
-		case qp.String:
+		case String:
 			val = lVal > rVal
-			return qp.Bool(val)
+			return Bool(val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
@@ -407,17 +406,17 @@ func (expression GreaterEqualExpression) Invoke() Expression {
 	right := expression.right.Invoke()
 	var val = false
 	switch lVal := left.(type) {
-	case qp.Int:
+	case Int:
 		switch rVal := right.(type) {
-		case qp.Int:
+		case Int:
 			val = lVal >= rVal
-			return (qp.Bool)(val)
+			return (Bool)(val)
 		}
-	case qp.String:
+	case String:
 		switch rVal := right.(type) {
-		case qp.String:
+		case String:
 			val = lVal >= rVal
-			return (qp.Bool)(val)
+			return (Bool)(val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
@@ -429,17 +428,17 @@ func (expression LessEqualExpression) Invoke() Expression {
 	right := expression.right.Invoke()
 	var val = false
 	switch lVal := left.(type) {
-	case qp.Int:
+	case Int:
 		switch rVal := right.(type) {
-		case qp.Int:
+		case Int:
 			val = lVal <= rVal
-			return (qp.Bool)(val)
+			return (Bool)(val)
 		}
-	case qp.String:
+	case String:
 		switch rVal := right.(type) {
-		case qp.String:
+		case String:
 			val = lVal <= rVal
-			return (qp.Bool)(val)
+			return (Bool)(val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
@@ -451,17 +450,17 @@ func (expression LessExpression) Invoke() Expression {
 	right := expression.right.Invoke()
 	var val = false
 	switch lVal := left.(type) {
-	case qp.Int:
+	case Int:
 		switch rVal := right.(type) {
-		case qp.Int:
+		case Int:
 			val = lVal < rVal
-			return (qp.Bool)(val)
+			return (Bool)(val)
 		}
-	case qp.String:
+	case String:
 		switch rVal := right.(type) {
-		case qp.String:
+		case String:
 			val = lVal < rVal
-			return (qp.Bool)(val)
+			return (Bool)(val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
@@ -472,11 +471,11 @@ func (expression MulExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	switch lVal := left.(type) {
-	case qp.Int:
+	case Int:
 		switch rVal := right.(type) {
-		case qp.Int:
+		case Int:
 			var val = (lVal) * (rVal)
-			return (qp.Int)(val)
+			return (Int)(val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
@@ -487,17 +486,17 @@ func (s SubExpression) Invoke() Expression {
 	left := s.Left.Invoke()
 	right := s.right.Invoke()
 	switch lVal := left.(type) {
-	case qp.Int:
+	case Int:
 		switch rVal := right.(type) {
-		case qp.Int:
+		case Int:
 			val := lVal - rVal
-			return (qp.Int)(val)
+			return (Int)(val)
 		}
-	case qp.TimeObject:
+	case TimeObject:
 		switch rVal := right.(type) {
-		case qp.TimeObject:
+		case TimeObject:
 			val := time.Time(lVal).Sub(time.Time(rVal))
-			return qp.DurationObject(val)
+			return DurationObject(val)
 		}
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
@@ -512,9 +511,9 @@ func (expression AddExpression) Invoke() Expression {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	if left.GetType() == lexer.IntType && right.GetType() == lexer.IntType {
-		return left.(qp.Int) + right.(qp.Int)
+		return left.(Int) + right.(Int)
 	} else if left.GetType() == lexer.StringType && right.GetType() == lexer.StringType {
-		return left.(qp.String) + right.(qp.String)
+		return left.(String) + right.(String)
 	}
 	panic(reflect.TypeOf(left).String() + "\n" +
 		reflect.TypeOf(right).String())

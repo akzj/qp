@@ -1,20 +1,19 @@
-package qp
+package ast
 
 import (
-	"gitlab.com/akzj/qp/ast"
 	"gitlab.com/akzj/qp/lexer"
 )
 
 type NilObject struct {
 }
 
-var nilObject = NilObject{}
+var NilObj = NilObject{}
 
 func (NilObject) String() string {
 	return "nil"
 }
 
-func (n NilObject) Invoke() ast.Expression {
+func (n NilObject) Invoke() Expression {
 	return n
 }
 

@@ -1,24 +1,20 @@
-package qp
+package ast
 
 import (
-	"gitlab.com/akzj/qp/ast"
 	"gitlab.com/akzj/qp/lexer"
-	"log"
-	"reflect"
-	"strings"
 )
 
 type String string
 
-func (s String) getObject(label string) *ast.Object {
-	return StringBuiltInFunctions[label]
+func (s String) GetObject(label string) *Object {
+	return StringFunctions[label]
 }
 
-func (s String) allocObject(label string) *ast.Object {
-	return StringBuiltInFunctions[label]
+func (s String) AllocObject(label string) *Object {
+	return StringFunctions[label]
 }
 
-func (s String) addObject(k string, v *ast.Object) {
+func (s String) AddObject(k string, v *Object) {
 	panic("implement me")
 }
 
@@ -26,45 +22,14 @@ func (s String) String() string {
 	return string(s)
 }
 
-func (s String) Invoke() ast.Expression {
+func (s String) Invoke() Expression {
 	return s
 }
 
-func (s String) clone() BaseObject {
+func (s String) Clone() BaseObject {
 	return String(string(s))
 }
 
 func (s String) GetType() lexer.Type {
 	return lexer.StringType
-}
-
-func RegisterStringFunction() {
-	registerBuiltInFunc(StringBuiltInFunctions, "to_lower", func(arguments ...ast.Expression) ast.Expression {
-		if len(arguments) > 1 {
-			log.Panicln("only one arguments")
-		}
-		for {
-			switch inner := arguments[0].(type) {
-			case String:
-				inner = String(strings.ToLower(string(inner)))
-				return inner
-			default:
-				log.Panicln("type error", reflect.TypeOf(arguments[0]).String())
-			}
-		}
-	})
-
-	registerBuiltInFunc(StringBuiltInFunctions, "clone", func(arguments ...ast.Expression) ast.Expression {
-		if len(arguments) > 1 {
-			log.Panicln("only one arguments")
-		}
-		for {
-			switch inner := arguments[0].(type) {
-			case String:
-				return inner.clone()
-			default:
-				log.Panicln("type error", reflect.TypeOf(arguments[0]).String())
-			}
-		}
-	})
 }

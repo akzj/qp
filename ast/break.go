@@ -4,7 +4,7 @@ import (
 	"gitlab.com/akzj/qp/lexer"
 )
 
-var breakObject = &BreakObject{}
+var BreakObj = &BreakObject{}
 
 type BreakObject struct {
 }

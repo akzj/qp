@@ -1,14 +1,13 @@
-package qp
+package ast
 
 import (
-	"gitlab.com/akzj/qp/ast"
 	"gitlab.com/akzj/qp/lexer"
 )
 
 type Bool bool
 
-var trueObject = Bool(true)
-var falseObject = Bool(false)
+var TrueObject = Bool(true)
+var FalseObject = Bool(false)
 
 func (b Bool) String() string {
 	if b {
@@ -17,7 +16,7 @@ func (b Bool) String() string {
 	return "false"
 }
 
-func (b Bool) Invoke() ast.Expression {
+func (b Bool) Invoke() Expression {
 	return b
 }
 

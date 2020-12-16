@@ -3,6 +3,7 @@ package parser
 import (
 	"bytes"
 	"gitlab.com/akzj/qp/ast"
+	_ "gitlab.com/akzj/qp/builtin"
 	"gitlab.com/akzj/qp/lexer"
 	"log"
 	"strconv"

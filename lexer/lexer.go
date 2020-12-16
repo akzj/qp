@@ -3,7 +3,6 @@ package lexer
 import (
 	"bufio"
 	"bytes"
-	"gitlab.com/akzj/qp"
 	"io"
 	"log"
 )
@@ -11,12 +10,12 @@ import (
 type Lexer struct {
 	reader *bufio.Reader
 	line   int
-	token  qp.Token
+	token  Token
 	err    error
 }
 
 func (l *Lexer) Finish() bool {
-	return l.err != nil && l.token.Typ == qp.EOFType
+	return l.err != nil && l.token.Typ == EOFType
 }
 
 func IsSpace(c byte) bool {
@@ -46,16 +45,16 @@ func (l *Lexer) Get() (byte, error) {
 	return c, nil
 }
 
-func (l *Lexer) Peek() qp.Token {
-	if l.token.Typ != qp.EOFType {
+func (l *Lexer) Peek() Token {
+	if l.token.Typ != EOFType {
 		return l.token
 	}
 	for {
 		c, err := l.Get()
 		if err != nil {
-			return qp.EmptyToken
+			return EmptyToken
 		}
-		var token qp.Token
+		var token Token
 		switch {
 		case IsSpace(c):
 			if c == '\n' {
@@ -67,63 +66,63 @@ func (l *Lexer) Peek() qp.Token {
 		case c == '+':
 			if a, _ := l.ahead(); a == '+' {
 				_, _ = l.Get()
-				token = qp.IncOperatorToken
+				token = IncOperatorToken
 			} else {
-				token = qp.AddOperatorToken
+				token = AddOperatorToken
 			}
 		case c == '(':
-			token = qp.LeftParenthesisToken
+			token = LeftParenthesisToken
 		case c == ')':
-			token = qp.RightParenthesisToken
+			token = RightParenthesisToken
 		case c == '{':
-			token = qp.LeftBraceToken
+			token = LeftBraceToken
 		case c == '}':
-			token = qp.RightBraceToken
+			token = RightBraceToken
 		case c == '[':
-			token = qp.LeftBracketToken
+			token = LeftBracketToken
 		case c == ']':
-			token = qp.RightBracketToken
+			token = RightBracketToken
 		case c == '<':
 			if ahead, _ := l.ahead(); ahead == '=' {
 				_, _ = l.Get()
-				token = qp.LessEqualToken
+				token = LessEqualToken
 			} else {
-				token = qp.LessToken
+				token = LessToken
 			}
 		case c == '>':
 			if ahead, _ := l.ahead(); ahead == '=' {
 				_, _ = l.Get()
-				token = qp.GreaterEqualToken
+				token = GreaterEqualToken
 			} else {
-				token = qp.GreaterToken
+				token = GreaterToken
 			}
 		case c == '*':
-			token = qp.MulOperatorToken
+			token = MulOperatorToken
 		case '0' <= c && c <= '9':
 			token = l.parseNumToken(c)
 		case c == '!':
 			if c, _ = l.ahead(); c == '=' {
 				_, _ = l.Get()
-				token = qp.NoEqualToken
+				token = NoEqualToken
 			} else {
 				log.Panicf("unknown token`%s`", string(c))
 			}
 		case c == '-':
-			token = qp.SubOperatorToken
+			token = SubOperatorToken
 		case c == '=':
-			token = qp.AssignToken
+			token = AssignToken
 			if c, _ = l.ahead(); c == '=' {
 				_, _ = l.Get()
-				token = qp.EqualToken
+				token = EqualToken
 			}
 		case c == ',':
-			token = qp.CommaToken
+			token = CommaToken
 		case c == ';':
-			token = qp.SemicolonToken
+			token = SemicolonToken
 		case c == ':':
-			token = qp.ColonToken
+			token = ColonToken
 		case c == '.':
-			token = qp.PeriodToken
+			token = PeriodToken
 		case c == '"':
 			token = l.parseString(false)
 		case c == '`':
@@ -131,8 +130,8 @@ func (l *Lexer) Peek() qp.Token {
 		case c == '/':
 			if ahead, _ := l.ahead(); ahead == '/' { //
 				_, _ = l.Get()
-				token = qp.Token{
-					Typ:  qp.CommentType,
+				token = Token{
+					Typ:  CommentType,
 					Val:  l.readline(),
 					Line: l.line,
 				}
@@ -140,12 +139,12 @@ func (l *Lexer) Peek() qp.Token {
 		case c == '|':
 			if c, _ := l.ahead(); c == '|' {
 				l.Get()
-				token = qp.OrToken
+				token = OrToken
 			}
 		case c == '&':
 			if c, _ := l.ahead(); c == '&' {
 				l.Get()
-				token = qp.AndToken
+				token = AndToken
 			}
 		default:
 			log.Panicln(string(c), l.line)
@@ -156,7 +155,7 @@ func (l *Lexer) Peek() qp.Token {
 	}
 }
 
-func (l *Lexer) parseString(multiline bool) qp.Token {
+func (l *Lexer) parseString(multiline bool) Token {
 	var buffer bytes.Buffer
 	for {
 		c, err := l.Get()
@@ -190,14 +189,14 @@ func (l *Lexer) parseString(multiline bool) qp.Token {
 		}
 		buffer.WriteByte(c)
 	}
-	return qp.Token{
-		Typ:  qp.StringType,
+	return Token{
+		Typ:  StringType,
 		Val:  buffer.String(),
 		Line: 0,
 	}
 }
 
-func (l *Lexer) parseNumToken(c byte) qp.Token {
+func (l *Lexer) parseNumToken(c byte) Token {
 	var buf bytes.Buffer
 	buf.WriteByte(c)
 	for {
@@ -215,17 +214,17 @@ func (l *Lexer) parseNumToken(c byte) qp.Token {
 			break
 		}
 	}
-	return qp.Token{
-		Typ: qp.IntType,
+	return Token{
+		Typ: IntType,
 		Val: buf.String(),
 	}
 }
 
 func (l *Lexer) Next() {
-	l.token = qp.EmptyToken
+	l.token = EmptyToken
 }
 
-func (l *Lexer) parseLabel(c byte) qp.Token {
+func (l *Lexer) parseLabel(c byte) Token {
 	var buf bytes.Buffer
 	buf.WriteByte(c)
 	for {
@@ -243,16 +242,16 @@ func (l *Lexer) parseLabel(c byte) qp.Token {
 			break
 		}
 	}
-	for _, keyword := range qp.Keywords {
+	for _, keyword := range Keywords {
 		if keyword == buf.String() {
-			return qp.Token{
-				Typ: qp.KeywordType[keyword],
+			return Token{
+				Typ: KeywordType[keyword],
 			}
 		}
 	}
 
-	return qp.Token{
-		Typ: qp.IDType,
+	return Token{
+		Typ: IDType,
 		Val: buf.String(),
 	}
 }
@@ -283,7 +282,7 @@ func IsDigit(c byte) bool {
 
 func New(reader io.Reader) *Lexer {
 	return &Lexer{
-		token:  qp.EmptyToken,
+		token:  EmptyToken,
 		reader: bufio.NewReader(reader),
 	}
 }
