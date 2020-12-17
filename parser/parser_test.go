@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"container/list"
 	"fmt"
 	"gitlab.com/akzj/qp/lexer"
 	"testing"
@@ -96,6 +97,44 @@ func TestIfElseIF(t *testing.T) {
 	for _, token := range New(`if 1==1{}else if 1==2{}else{}`).initTokens().tokens {
 		fmt.Println(token)
 	}
+}
+
+func TestPeriod(t *testing.T) {
+	data := `
+
+type Item {
+}
+
+type User{
+}
+
+func User.insert(val){
+	var item = Item{value:val}
+	if this.head==nil{
+		this.head = item
+	}else{
+		item.next = this.head
+		this.head = item
+	}
+}
+
+
+func User.getFirst(){
+	return this.head.value
+}
+
+var user = User{}
+
+user.insert(1)
+var value = user.getFirst()
+if value == nil{
+	println("value is nil")
+}
+println(value)
+
+`
+	New(data).Parse().Invoke()
+	list.New()
 }
 
 func TestTypeStruct(t *testing.T) {

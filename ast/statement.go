@@ -66,8 +66,8 @@ type PeriodStatement struct {
 }
 
 func (p PeriodStatement) Invoke() Expression {
-	object := p.Exp.Invoke().(*Object)
-	switch obj := object.Inner.(type) {
+	object := unwrapObject(p.Exp.Invoke())
+	switch obj := object.(type) {
 	case BaseObject:
 		return obj.AllocObject(p.Val)
 	default:
@@ -482,8 +482,14 @@ func (f *FuncCallStatement) Invoke() Expression {
 		f.ParentExp != nil && (ok == false || Func.Closure == false) {
 		switch argument := f.ParentExp.Invoke().(type) {
 		case *Object:
+			if argument.Inner == nil{
+				panic(argument.Label)
+			}
 			arguments = append(arguments, argument.Inner)
 		default:
+			if argument == nil{
+				panic("argument nil")
+			}
 			arguments = append(arguments, argument)
 		}
 	}
@@ -492,8 +498,14 @@ func (f *FuncCallStatement) Invoke() Expression {
 		for _, argument := range f.Arguments {
 			switch job := argument.Invoke().(type) {
 			case *Object:
+				if job.Inner == nil{
+					panic(job.Label+" "+f.Function.String())
+				}
 				arguments = append(arguments, job.Inner)
 			default:
+				if job == nil{
+					panic("argument nil")
+				}
 				arguments = append(arguments, job)
 			}
 		}

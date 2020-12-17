@@ -21,7 +21,7 @@ type Memory struct {
 	stackBottomPointer int
 	stackGCPointer     int
 	stackSize          int
-	stack              []Object
+	stack              []*Object
 	stackFrames        []StackFrame
 }
 
@@ -30,19 +30,20 @@ func NewMemory() *Memory {
 		stackTopPointer:    0,
 		stackBottomPointer: 0,
 		stackSize:          1024,
-		stack:              make([]Object, 1024),
+		stack:              make([]*Object, 1024),
 		stackFrames:        make([]StackFrame, 0, 1024),
 	}
 }
 
 func (m *Memory) Alloc(label string) *Object {
 	if m.stackSize-1 <= m.stackTopPointer {
-		newStack := make([]Object, m.stackSize*2)
+		newStack := make([]*Object, m.stackSize*2)
 		copy(newStack, m.stack[:m.stackTopPointer])
 		m.stack = newStack
 		m.stackSize = m.stackSize * 2
 	}
-	object := &m.stack[m.stackTopPointer]
+	object := &Object{}
+	m.stack[m.stackTopPointer] = object
 	object.Label = label
 	m.stackTopPointer++
 	return object
@@ -51,7 +52,7 @@ func (m *Memory) Alloc(label string) *Object {
 func (m *Memory) GetObject(label string) *Object {
 	for index := m.stackTopPointer - 1; index >= m.stackBottomPointer; index-- {
 		if m.stack[index].Label == label {
-			return &m.stack[index]
+			return m.stack[index]
 		}
 	}
 	return nil
@@ -80,7 +81,7 @@ func (m *Memory) popStackFrame() {
 	m.stackBottomPointer = frame.stackBottomPointer
 	m.stackGCPointer = frame.stackGCPointer
 	for i := range toGc {
-		toGc[i].Inner = nil
+		toGc[i] = nil
 	}
 }
 

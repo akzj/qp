@@ -17,6 +17,9 @@ func init() {
 func registerGlobalFunction() {
 	register(ast.Functions, "println", func(arguments ...ast.Expression) ast.Expression {
 		for index, argument := range arguments {
+			if argument == nil{
+				panic("argument")
+			}
 			if stringer, ok := argument.(fmt.Stringer); ok {
 				fmt.Print(stringer)
 			} else {

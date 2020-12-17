@@ -1,25 +1,43 @@
 
-type Item {}
+type Element {}
 
-type List {}
 
-func List.insert(val){
-    var item =Item{}
-    item.value = val
-    if this.head == nil{
-        this.head = item
-    }else{
-        item.next = this.head
-        this.head = item
+func Element.Next(){
+    var p = this.next
+    if this.list != nil && this.list.root != p{
+        return p
     }
-    println(this.head.value)
+    return nil
 }
 
 
+type List {}
+
+func List.init(){
+    this.root = Element{}
+    this.root.next = this.root
+    this.root.prev = this.root
+    this.len = 0
+}
+
+func List.insertElement(e,at){
+    e.prev = at
+    e.next = at.next
+    e.prev.next = e
+    e.next.prev = e
+    e.list = this
+}
+
+
+
 var list = List{}
+list.init()
+
 
 list.insert(1)
 list.insert(2)
 list.insert(3)
 list.insert(4)
 list.insert(5)
+
+println(list.first().value)

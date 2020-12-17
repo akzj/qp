@@ -130,6 +130,13 @@ func (b BinaryOpExpression) Invoke() Expression {
 			case lexer.NoEqualType:
 				return Bool(lVal != rVal)
 			}
+		case NilObject:
+			switch b.OP {
+			case lexer.EqualType:
+				return FalseObject
+			case lexer.NoEqualType:
+				return TrueObject
+			}
 		default:
 			panic("no support type " + reflect.TypeOf(lVal).String() +
 				"\n" + reflect.TypeOf(rVal).String() + " op type" + b.OP.String())
