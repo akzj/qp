@@ -2,12 +2,13 @@ package ast
 
 import (
 	"gitlab.com/akzj/qp/lexer"
+	"gitlab.com/akzj/qp/runtime"
 	"strconv"
 )
 
 type Int int64
 
-func (i Int) Invoke() Expression {
+func (i Int) Invoke() runtime.Invokable {
 	return i
 }
 

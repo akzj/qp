@@ -3,6 +3,7 @@ package builtin
 import (
 	"fmt"
 	"gitlab.com/akzj/qp/ast"
+	"gitlab.com/akzj/qp/runtime"
 	"log"
 	"reflect"
 	"time"
@@ -15,7 +16,7 @@ func init() {
 }
 
 func registerGlobalFunction() {
-	register(ast.Functions, "println", func(arguments ...ast.Expression) ast.Expression {
+	register(runtime.Functions, "println", func(arguments ...runtime.Invokable) runtime.Invokable {
 		for index, argument := range arguments {
 			if argument == nil{
 				panic("argument")
@@ -33,7 +34,7 @@ func registerGlobalFunction() {
 		return nil
 	})
 
-	register(ast.Functions, "now", func(arguments ...ast.Expression) ast.Expression {
+	register(runtime.Functions, "now", func(arguments ...runtime.Invokable) runtime.Invokable {
 		return ast.TimeObject(time.Now())
 	})
 }

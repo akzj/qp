@@ -1,8 +1,8 @@
 package builtin
 
 import (
-	"gitlab.com/akzj/qp/ast"
 	"gitlab.com/akzj/qp/lexer"
+	"gitlab.com/akzj/qp/runtime"
 )
 
 
@@ -12,16 +12,16 @@ type funcWrap struct {
 	callFunc CallFunc
 }
 
-type CallFunc func(arguments ...ast.Expression) ast.Expression
-type FuncObjectMap map[string]*ast.Object
+type CallFunc func(arguments ...runtime.Invokable) runtime.Invokable
+type FuncObjectMap map[string]*runtime.Object
 type RegisterBuiltInFuncHelper func(name string, callFunc CallFunc) RegisterBuiltInFuncHelper
 
 func register(funcObjectMap FuncObjectMap, name string, callFunc CallFunc) RegisterBuiltInFuncHelper {
 	var helper RegisterBuiltInFuncHelper
 	helper = func(name string, callFunc CallFunc) RegisterBuiltInFuncHelper {
-		funcObjectMap[name] = &ast.Object{
+		funcObjectMap[name] = &runtime.Object{
 			Label: name,
-			Inner: &funcWrap{
+			Pointer: &funcWrap{
 				name:     name,
 				callFunc: callFunc,
 			},
@@ -31,7 +31,7 @@ func register(funcObjectMap FuncObjectMap, name string, callFunc CallFunc) Regis
 	return helper(name, callFunc)
 }
 
-func (b *funcWrap) Call(arguments ...ast.Expression) ast.Expression {
+func (b *funcWrap) Call(arguments ...runtime.Invokable) runtime.Invokable {
 	return b.callFunc(arguments...)
 }
 
@@ -39,7 +39,7 @@ func (b *funcWrap) String() string {
 	return b.name
 }
 
-func (b *funcWrap) Invoke() ast.Expression {
+func (b *funcWrap) Invoke() runtime.Invokable {
 	return b
 }
 

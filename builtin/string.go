@@ -2,13 +2,14 @@ package builtin
 
 import (
 	"gitlab.com/akzj/qp/ast"
+	"gitlab.com/akzj/qp/runtime"
 	"log"
 	"reflect"
 	"strings"
 )
 
 func registerStringFunction() {
-	register(ast.StringFunctions, "to_lower", func(arguments ...ast.Expression) ast.Expression {
+	register(runtime.StringFunctions, "to_lower", func(arguments ...runtime.Invokable) runtime.Invokable {
 		if len(arguments) > 1 {
 			log.Panicln("only one Arguments")
 		}
@@ -22,7 +23,7 @@ func registerStringFunction() {
 			}
 		}
 	})
-	register(ast.StringFunctions,"clone", func(arguments ...ast.Expression) ast.Expression {
+	register(runtime.StringFunctions,"clone", func(arguments ...runtime.Invokable) runtime.Invokable {
 		if len(arguments) > 1 {
 			log.Panicln("only one Arguments")
 		}

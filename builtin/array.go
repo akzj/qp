@@ -2,19 +2,20 @@ package builtin
 
 import (
 	"gitlab.com/akzj/qp/ast"
+	"gitlab.com/akzj/qp/runtime"
 	"log"
 )
 
 func registerArrayFunction() {
-	register(ast.ArrayFunctions, "append", func(arguments ...ast.Expression) ast.Expression {
+	register(runtime.ArrayFunctions, "append", func(arguments ...runtime.Invokable) runtime.Invokable {
 		array := arguments[0].Invoke().(*ast.Array)
 		for _, exp := range arguments[1:] {
 			array.Data = append(array.Data, exp.Invoke())
 		}
 		return array
-	})("size", func(arguments ...ast.Expression) ast.Expression {
+	})("size", func(arguments ...runtime.Invokable) runtime.Invokable {
 		return ast.Int(len(arguments[0].Invoke().(*ast.Array).Data))
-	})("Get", func(arguments ...ast.Expression) ast.Expression {
+	})("Get", func(arguments ...runtime.Invokable) runtime.Invokable {
 		if len(arguments) != 2 {
 			log.Panic("array Get() Arguments error")
 		}

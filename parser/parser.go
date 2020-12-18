@@ -5,15 +5,16 @@ import (
 	"gitlab.com/akzj/qp/ast"
 	_ "gitlab.com/akzj/qp/builtin"
 	"gitlab.com/akzj/qp/lexer"
+	"gitlab.com/akzj/qp/runtime"
 	"log"
 	"strconv"
 	"strings"
 )
 
 /*
-   Expression:Expression+Expression
-		|Expression-Expression
-   		|Expression
+   Invokable:Invokable+Invokable
+		|Invokable-Invokable
+   		|Invokable
 		|Factor
 
 
@@ -23,8 +24,8 @@ import (
 
    lambda:func(Expressions)BlockStatement
 
-   Expressions:Expression,Expression
-   		|Expressions,Expression
+   Expressions:Invokable,Invokable
+   		|Expressions,Invokable
 
    BlockStatement:{Statements}
 
@@ -37,10 +38,10 @@ Statements:IfStatement
 		|breakStatement
 		|varStatement
 
-varStatement:var ID = Expression
+varStatement:var ID = Invokable
 
-assignStatement:ID = Expression
-		|Selector = Expression
+assignStatement:ID = Invokable
+		|Selector = Invokable
 
 
 
@@ -72,7 +73,7 @@ BoolExpression:Factor BoolOperator Factor
 */
 
 type Parser struct {
-	vm           *ast.VMContext
+	vm           *runtime.VMContext
 	lexer        *lexer.Lexer
 	tokens       []lexer.Token
 	hTokens      []lexer.Token
@@ -112,7 +113,7 @@ func New(buffer string) *Parser {
 	return &Parser{
 		status: []PStatus{GlobalStatus},
 		lexer:  lexer.New(bytes.NewReader([]byte(buffer))),
-		vm:     ast.New(),
+		vm:     runtime.New(),
 	}
 }
 
@@ -166,8 +167,8 @@ func (p *Parser) Parse() ast.Statements {
 
 /*
 	AssignStatement:
-		|ID = Expression
-		|selector = Expression
+		|ID = Invokable
+		|selector = Invokable
 
 	FunctionCallStatement:
 		|ID()
@@ -176,11 +177,11 @@ func (p *Parser) Parse() ast.Statements {
 		|lambda
 */
 func (p *Parser) ParseIDPrefixStatement(token lexer.Token) ast.Statement {
-	var exp ast.Expression = ast.GetVarStatement{
+	var exp runtime.Invokable = ast.GetVarStatement{
 		VM:    p.vm,
 		Label: token.Val,
 	}
-	var parentExp ast.Expression
+	var parentExp runtime.Invokable
 	for {
 		token := p.nextToken()
 		switch token.Typ {
@@ -220,9 +221,9 @@ func (p *Parser) ParseStatement() ast.Statement {
 		switch token.Typ {
 		case lexer.TypeType:
 			typeObject := p.parseTypeStatement()
-			p.vm.AddStructObject(&ast.Object{
-				Inner: typeObject,
-				Label: typeObject.Label,
+			p.vm.AddStructObject(&runtime.Object{
+				Pointer: typeObject,
+				Label:   typeObject.Label,
 			})
 		case lexer.FuncType:
 			//function
@@ -397,9 +398,9 @@ func (p *Parser) parseLambdaStatement() ast.Statement {
 	return &funcS
 }
 
-func (p *Parser) parseFactor(pre int) ast.Expression {
-	var exp ast.Expression
-	var parentExp ast.Expression
+func (p *Parser) parseFactor(pre int) runtime.Invokable {
+	var exp runtime.Invokable
+	var parentExp runtime.Invokable
 	for {
 		token := p.nextToken()
 		switch token.Typ {
@@ -550,7 +551,7 @@ func (p *Parser) parseFactor(pre int) ast.Expression {
 
 */
 
-func (p *Parser) parseBracketStatement(exp ast.Expression) ast.Expression {
+func (p *Parser) parseBracketStatement(exp runtime.Invokable) runtime.Invokable {
 	//init array object
 	if exp == nil {
 		var arrayStatement ast.MakeArrayStatement
@@ -581,7 +582,7 @@ func (p *Parser) ahead(index int) lexer.Token {
 	return p.tokens[index]
 }
 
-func (p *Parser) parseCallStatement(parentExp, function ast.Expression) ast.Expression {
+func (p *Parser) parseCallStatement(parentExp, function runtime.Invokable) runtime.Invokable {
 	var call ast.FuncCallStatement
 	call.Function = function
 	call.ParentExp = parentExp
@@ -673,8 +674,8 @@ func (p *Parser) parseFuncParameters() []string {
 	return parameters
 }
 
-func (p *Parser) parseBoolExpression(pre int) ast.Expression {
-	var exp ast.Expression
+func (p *Parser) parseBoolExpression(pre int) runtime.Invokable {
+	var exp runtime.Invokable
 	exp = p.parseFactor(0)
 	if _, ok := exp.(ast.BinaryBoolExpression); ok {
 		return exp
@@ -722,13 +723,13 @@ func (p *Parser) parseIfStatement(elseif bool) *ast.IfStatement {
 	return &ifS
 
 }
-func (p *Parser) assertNil(exp ast.Expression) {
+func (p *Parser) assertNil(exp runtime.Invokable) {
 	if exp != nil {
 		log.Panicf("expect nil")
 	}
 }
 
-func (p *Parser) assertNoNil(exp ast.Expression) {
+func (p *Parser) assertNoNil(exp runtime.Invokable) {
 	if exp == nil {
 		log.Panicf("expect nil")
 	}
@@ -877,7 +878,7 @@ func (p *Parser) ParseStatements() ast.Statements {
 	}
 }
 
-func (p *Parser) ParseObjInitStatement(exp ast.Expression) ast.Expression {
+func (p *Parser) ParseObjInitStatement(exp runtime.Invokable) runtime.Invokable {
 	var statement ast.ObjectInitStatement
 	statement.Exp = exp
 	statement.VM = p.vm
@@ -935,7 +936,7 @@ func (p *Parser) parseBreakStatement() ast.Statement {
 	return ast.BreakObj
 }
 
-func (p *Parser) parseAssignStatement(exp ast.Expression) ast.AssignStatement {
+func (p *Parser) parseAssignStatement(exp runtime.Invokable) ast.AssignStatement {
 	return ast.AssignStatement{
 		Exp:  p.parseFactor(0),
 		Left: exp,
@@ -948,18 +949,17 @@ func (p *Parser) addUserFunction(function *ast.FuncStatement) {
 		if structObject == nil { //todo fixme
 			log.Panic("no find structObject", function.Labels[0])
 		}
-		structObject.Inner.(*ast.TypeObject).AddObject(function.Labels[1], &ast.Object{
-			Inner: function,
-			Label: strings.Join(function.Labels, "."),
-			Typ:   lexer.FuncStatementType,
+		structObject.Pointer.(*ast.TypeObject).AddObject(function.Labels[1], &runtime.Object{
+			Pointer: function,
+			Label:   strings.Join(function.Labels, "."),
 		})
 		return
 	}
-	if _, ok := ast.Functions[function.Label]; ok {
+	if _, ok := runtime.Functions[function.Label]; ok {
 		log.Panic("function name conflict with built in function", function.Label)
 	}
-	p.vm.AddGlobalFunction(&ast.Object{
-		Inner: function,
-		Label: function.Label,
+	p.vm.AddGlobalFunction(&runtime.Object{
+		Pointer: function,
+		Label:   function.Label,
 	})
 }

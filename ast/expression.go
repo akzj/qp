@@ -1,29 +1,25 @@
 package ast
 
 import (
-	"fmt"
 	"gitlab.com/akzj/qp/lexer"
+	"gitlab.com/akzj/qp/runtime"
 	"reflect"
 	"time"
 )
 
-type Expression interface {
-	Invoke() Expression
-	GetType() lexer.Type
-	fmt.Stringer
-}
 
-type Expressions []Expression
+
+type Expressions []runtime.Invokable
 
 func (expressions Expressions) String() string {
 	panic("implement me")
 }
 
 type ParenthesisExpression struct {
-	Exp Expression
+	Exp runtime.Invokable
 }
 
-func (p ParenthesisExpression) Invoke() Expression {
+func (p ParenthesisExpression) Invoke() runtime.Invokable {
 	return p.Exp.Invoke()
 }
 
@@ -40,8 +36,8 @@ func (Expressions) GetType() lexer.Type {
 }
 
 type AddExpression struct {
-	Left  Expression
-	right Expression
+	Left  runtime.Invokable
+	right runtime.Invokable
 }
 
 func (expression AddExpression) String() string {
@@ -49,8 +45,8 @@ func (expression AddExpression) String() string {
 }
 
 type SubExpression struct {
-	Left  Expression
-	right Expression
+	Left  runtime.Invokable
+	right runtime.Invokable
 }
 
 func (s SubExpression) String() string {
@@ -59,8 +55,8 @@ func (s SubExpression) String() string {
 
 type BinaryBoolExpression struct {
 	OP    lexer.Type
-	Left  Expression
-	Right Expression
+	Left  runtime.Invokable
+	Right runtime.Invokable
 }
 
 func (b BinaryBoolExpression) String() string {
@@ -69,17 +65,17 @@ func (b BinaryBoolExpression) String() string {
 		b.Right.String() + ")"
 }
 
-func unwrapObject(expression Expression) Expression {
+func unwrapObject(expression runtime.Invokable) runtime.Invokable {
 	for {
-		if obj, ok := expression.(*Object); ok {
-			expression = obj.Inner
+		if obj, ok := expression.(*runtime.Object); ok {
+			expression = obj.Pointer
 		} else {
 			return expression
 		}
 	}
 }
 
-func (b BinaryBoolExpression) Invoke() Expression {
+func (b BinaryBoolExpression) Invoke() runtime.Invokable {
 	return BinaryOpExpression{
 		Left:  b.Left,
 		Right: b.Right,
@@ -93,15 +89,15 @@ func (b BinaryBoolExpression) GetType() lexer.Type {
 
 type BinaryOpExpression struct {
 	OP    lexer.Type
-	Left  Expression
-	Right Expression
+	Left  runtime.Invokable
+	Right runtime.Invokable
 }
 
 func (b BinaryOpExpression) String() string {
 	return b.Left.String() + b.OP.String() + b.Right.String()
 }
 
-func (b BinaryOpExpression) Invoke() Expression {
+func (b BinaryOpExpression) Invoke() runtime.Invokable {
 	var left = unwrapObject(b.Left.Invoke())
 	var right = unwrapObject(b.Right.Invoke())
 	switch lVal := left.(type) {
@@ -202,8 +198,8 @@ func (b BinaryOpExpression) GetType() lexer.Type {
 }
 
 type MulExpression struct {
-	Left  Expression
-	right Expression
+	Left  runtime.Invokable
+	right runtime.Invokable
 }
 
 func (expression MulExpression) String() string {
@@ -215,8 +211,8 @@ func (MulExpression) GetType() lexer.Type {
 }
 
 type LessExpression struct {
-	Left  Expression
-	right Expression
+	Left  runtime.Invokable
+	right runtime.Invokable
 }
 
 func (expression LessExpression) String() string {
@@ -224,8 +220,8 @@ func (expression LessExpression) String() string {
 }
 
 type LessEqualExpression struct {
-	Left  Expression
-	right Expression
+	Left  runtime.Invokable
+	right runtime.Invokable
 }
 
 func (expression LessEqualExpression) String() string {
@@ -233,8 +229,8 @@ func (expression LessEqualExpression) String() string {
 }
 
 type GreaterExpression struct {
-	Left  Expression
-	right Expression
+	Left  runtime.Invokable
+	right runtime.Invokable
 }
 
 func (expression GreaterExpression) String() string {
@@ -242,8 +238,8 @@ func (expression GreaterExpression) String() string {
 }
 
 type GreaterEqualExpression struct {
-	Left  Expression
-	right Expression
+	Left  runtime.Invokable
+	right runtime.Invokable
 }
 
 func (expression GreaterEqualExpression) String() string {
@@ -251,8 +247,8 @@ func (expression GreaterEqualExpression) String() string {
 }
 
 type EqualExpression struct {
-	Left  Expression
-	right Expression
+	Left  runtime.Invokable
+	right runtime.Invokable
 }
 
 func (expression EqualExpression) String() string {
@@ -260,8 +256,8 @@ func (expression EqualExpression) String() string {
 }
 
 type NoEqualExpression struct {
-	Left  Expression
-	right Expression
+	Left  runtime.Invokable
+	right runtime.Invokable
 }
 
 func (n NoEqualExpression) String() string {
@@ -270,18 +266,18 @@ func (n NoEqualExpression) String() string {
 
 type SelectorStatement struct {
 	IDs []string
-	vm  *VMContext
+	vm  *runtime.VMContext
 }
 
 type NoStatement struct {
-	Exp Expression
+	Exp runtime.Invokable
 }
 
 func (n NoStatement) String() string {
 	panic("implement me")
 }
 
-func (n NoStatement) Invoke() Expression {
+func (n NoStatement) Invoke() runtime.Invokable {
 	return !n.Exp.Invoke().(Bool)
 }
 
@@ -289,7 +285,7 @@ func (n NoStatement) GetType() lexer.Type {
 	return lexer.NoType
 }
 
-func (s SelectorStatement) Invoke() Expression {
+func (s SelectorStatement) Invoke() runtime.Invokable {
 	panic("implement me")
 }
 
@@ -297,8 +293,8 @@ func (s SelectorStatement) getType() lexer.Type {
 	panic("implement me")
 }
 
-func (expressions Expressions) Invoke() Expression {
-	var val Expression
+func (expressions Expressions) Invoke() runtime.Invokable {
+	var val runtime.Invokable
 	for _, expression := range expressions {
 		val = expression.Invoke()
 		if _, ok := val.(ReturnStatement); ok {
@@ -308,7 +304,7 @@ func (expressions Expressions) Invoke() Expression {
 	return val
 }
 
-func (n NoEqualExpression) Invoke() Expression {
+func (n NoEqualExpression) Invoke() runtime.Invokable {
 	equal := EqualExpression{
 		Left:  n.Left,
 		right: n.right,
@@ -321,7 +317,7 @@ func (n NoEqualExpression) GetType() lexer.Type {
 	return lexer.NoEqualType
 }
 
-func (expression EqualExpression) Invoke() Expression {
+func (expression EqualExpression) Invoke() runtime.Invokable {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	var val bool
@@ -386,7 +382,7 @@ func (GreaterExpression) GetType() lexer.Type {
 func (GreaterEqualExpression) GetType() lexer.Type {
 	return lexer.GreaterEqualType
 }
-func (expression GreaterExpression) Invoke() Expression {
+func (expression GreaterExpression) Invoke() runtime.Invokable {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	var val = false
@@ -408,7 +404,7 @@ func (expression GreaterExpression) Invoke() Expression {
 		reflect.TypeOf(right).String())
 }
 
-func (expression GreaterEqualExpression) Invoke() Expression {
+func (expression GreaterEqualExpression) Invoke() runtime.Invokable {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	var val = false
@@ -430,7 +426,7 @@ func (expression GreaterEqualExpression) Invoke() Expression {
 		reflect.TypeOf(right).String())
 }
 
-func (expression LessEqualExpression) Invoke() Expression {
+func (expression LessEqualExpression) Invoke() runtime.Invokable {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	var val = false
@@ -452,7 +448,7 @@ func (expression LessEqualExpression) Invoke() Expression {
 		reflect.TypeOf(right).String())
 }
 
-func (expression LessExpression) Invoke() Expression {
+func (expression LessExpression) Invoke() runtime.Invokable {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	var val = false
@@ -474,7 +470,7 @@ func (expression LessExpression) Invoke() Expression {
 		reflect.TypeOf(right).String())
 }
 
-func (expression MulExpression) Invoke() Expression {
+func (expression MulExpression) Invoke() runtime.Invokable {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	switch lVal := left.(type) {
@@ -489,7 +485,7 @@ func (expression MulExpression) Invoke() Expression {
 		reflect.TypeOf(right).String())
 }
 
-func (s SubExpression) Invoke() Expression {
+func (s SubExpression) Invoke() runtime.Invokable {
 	left := s.Left.Invoke()
 	right := s.right.Invoke()
 	switch lVal := left.(type) {
@@ -514,7 +510,7 @@ func (s SubExpression) GetType() lexer.Type {
 	return lexer.SubType
 }
 
-func (expression AddExpression) Invoke() Expression {
+func (expression AddExpression) Invoke() runtime.Invokable {
 	left := expression.Left.Invoke()
 	right := expression.right.Invoke()
 	if left.GetType() == lexer.IntType && right.GetType() == lexer.IntType {

@@ -2,18 +2,19 @@ package ast
 
 import (
 	"gitlab.com/akzj/qp/lexer"
+	"gitlab.com/akzj/qp/runtime"
 )
 
 type BaseObject interface {
-	Expression
-	GetObject(label string) *Object
-	AllocObject(label string) *Object
+	runtime.Invokable
+	GetObject(label string) *runtime.Object
+	AllocObject(label string) *runtime.Object
 	Clone() BaseObject
 }
 
 type TypeObjectPropTemplate struct {
 	Name string
-	Exp  Expression
+	Exp  runtime.Invokable
 }
 
 func (t TypeObjectPropTemplate) String() string {
@@ -21,13 +22,13 @@ func (t TypeObjectPropTemplate) String() string {
 }
 
 type TypeObject struct {
-	VM    *VMContext
+	VM    *runtime.VMContext
 	Label string
 	//Init Statement when create objects
 	Init                    bool
 	TypeObjectPropTemplates []TypeObjectPropTemplate
 	//user define Function
-	objects map[string]*Object
+	objects map[string]*runtime.Object
 }
 
 func (sObj *TypeObject) String() string {
@@ -42,7 +43,7 @@ func (sObj *TypeObject) String() string {
 	return str + "}"
 }
 
-func (sObj *TypeObject) Invoke() Expression {
+func (sObj *TypeObject) Invoke() runtime.Invokable {
 	return sObj
 }
 
@@ -50,7 +51,7 @@ func (sObj *TypeObject) GetType() lexer.Type {
 	return lexer.TypeObjectType
 }
 
-func (sObj *TypeObject) GetObject(label string) *Object {
+func (sObj *TypeObject) GetObject(label string) *runtime.Object {
 	object, ok := sObj.objects[label]
 	if ok {
 		return object
@@ -58,17 +59,17 @@ func (sObj *TypeObject) GetObject(label string) *Object {
 	return nil
 }
 
-func (sObj *TypeObject) AllocObject(label string) *Object {
+func (sObj *TypeObject) AllocObject(label string) *runtime.Object {
 	if sObj.objects == nil {
-		sObj.objects = map[string]*Object{}
+		sObj.objects = map[string]*runtime.Object{}
 	}
 	object, ok := sObj.objects[label]
 	if ok {
 		return object
 	} else {
-		object = &Object{
-			Inner: NilObj,
-			Label: label,
+		object = &runtime.Object{
+			Pointer: NilObj,
+			Label:   label,
 		}
 		sObj.objects[label] = object
 	}
@@ -87,12 +88,12 @@ func (sObj *TypeObject) Clone() BaseObject {
 	return &clone
 }
 
-func (sObj *TypeObject) AddObject(k string, v *Object) {
+func (sObj *TypeObject) AddObject(k string, v *runtime.Object) {
 	if v == nil {
 		panic(v)
 	}
 	if sObj.objects == nil {
-		sObj.objects = map[string]*Object{}
+		sObj.objects = map[string]*runtime.Object{}
 	}
 	sObj.objects[k] = v
 }

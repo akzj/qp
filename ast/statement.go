@@ -2,6 +2,7 @@ package ast
 
 import (
 	"gitlab.com/akzj/qp/lexer"
+	"gitlab.com/akzj/qp/runtime"
 	"log"
 	"reflect"
 	"strings"
@@ -21,12 +22,12 @@ func (statements Statements) String() string {
 }
 
 type Statement interface {
-	Expression
+	runtime.Invokable
 }
 
 type IfStatement struct {
-	VM         *VMContext
-	Check      Expression
+	VM         *runtime.VMContext
+	Check      runtime.Invokable
 	Statements Statements
 	ElseIf     []*IfStatement
 	Else       Statements
@@ -37,8 +38,8 @@ func (ifStm IfStatement) String() string {
 }
 
 type ReturnStatement struct {
-	Exp Expression
-	Val Expression
+	Exp runtime.Invokable
+	Val runtime.Invokable
 }
 
 func (r ReturnStatement) String() string {
@@ -51,9 +52,9 @@ func (r ReturnStatement) String() string {
 
 //just new Object
 type VarStatement struct {
-	VM    *VMContext
+	VM    *runtime.VMContext
 	Label string
-	Exp   Expression
+	Exp   runtime.Invokable
 }
 
 func (v VarStatement) String() string {
@@ -62,10 +63,10 @@ func (v VarStatement) String() string {
 
 type PeriodStatement struct {
 	Val string
-	Exp Expression
+	Exp runtime.Invokable
 }
 
-func (p PeriodStatement) Invoke() Expression {
+func (p PeriodStatement) Invoke() runtime.Invokable {
 	object := unwrapObject(p.Exp.Invoke())
 	switch obj := object.(type) {
 	case BaseObject:
@@ -85,7 +86,7 @@ func (p PeriodStatement) String() string {
 }
 
 type GetVarStatement struct {
-	VM    *VMContext
+	VM    *runtime.VMContext
 	Label string
 }
 
@@ -104,13 +105,13 @@ func (g *getObjectPropStatement) String() string {
 }
 
 type getObjectObjectStatement struct {
-	vmContext *VMContext
+	vmContext *runtime.VMContext
 	labels    []string
 }
 
 type FuncCallStatement struct {
-	ParentExp Expression
-	Function  Expression
+	ParentExp runtime.Invokable
+	Function  runtime.Invokable
 	Arguments Expressions
 }
 
@@ -126,8 +127,8 @@ func (f *FuncCallStatement) String() string {
 }
 
 type AssignStatement struct {
-	Exp  Expression
-	Left Expression
+	Exp  runtime.Invokable
+	Left runtime.Invokable
 }
 
 func (expression AssignStatement) String() string {
@@ -135,9 +136,9 @@ func (expression AssignStatement) String() string {
 }
 
 type VarAssignStatement struct {
-	Ctx  *VMContext //global or stack var
-	Name string     //var Name : var a,`a` is the Name
-	Exp  Expression // Init Exp : var a = 1+1
+	Ctx  *runtime.VMContext //global or stack var
+	Name string             //var Name : var a,`a` is the Name
+	Exp  runtime.Invokable  // Init Exp : var a = 1+1
 }
 
 func (expression VarAssignStatement) String() string {
@@ -145,7 +146,7 @@ func (expression VarAssignStatement) String() string {
 }
 
 type IncFieldStatement struct {
-	Exp Expression
+	Exp runtime.Invokable
 }
 
 func (statement IncFieldStatement) String() string {
@@ -169,9 +170,9 @@ type FuncStatement struct {
 	Parameters   []string // parameter Label
 	ClosureLabel []string // Closure Label
 	ClosureInit  bool
-	Statements   Statements // Function body
-	VM           *VMContext // VM context
-	ClosureObjs  []Expression
+	Statements   Statements         // Function body
+	VM           *runtime.VMContext // VM context
+	ClosureObjs  []runtime.Invokable
 }
 
 func (f *FuncStatement) String() string {
@@ -190,16 +191,16 @@ func (f *FuncStatement) String() string {
 	return str
 }
 
-func (f *FuncStatement) Invoke() Expression {
+func (f *FuncStatement) Invoke() runtime.Invokable {
 	f.doClosureInit()
 	return f
 }
 
 type ForStatement struct {
-	VM         *VMContext
-	Pre        Expression
-	Check      Expression
-	Post       Expression
+	VM         *runtime.VMContext
+	Pre        runtime.Invokable
+	Check      runtime.Invokable
+	Post       runtime.Invokable
 	Statements Statements
 }
 
@@ -208,8 +209,8 @@ func (f *ForStatement) String() string {
 }
 
 type ObjectInitStatement struct {
-	VM            *VMContext
-	Exp           Expression
+	VM            *runtime.VMContext
+	Exp           runtime.Invokable
 	PropTemplates []TypeObjectPropTemplate
 }
 
@@ -222,11 +223,11 @@ func (statement *ObjectInitStatement) String() string {
 }
 
 type ArrayGetElement struct {
-	Exp   Expression
-	Index Expression
+	Exp   runtime.Invokable
+	Index runtime.Invokable
 }
 
-func (g ArrayGetElement) Invoke() Expression {
+func (g ArrayGetElement) Invoke() runtime.Invokable {
 	panic("implement me")
 }
 
@@ -239,7 +240,7 @@ func (g ArrayGetElement) String() string {
 }
 
 type MakeArrayStatement struct {
-	vm    *VMContext
+	vm    *runtime.VMContext
 	Inits Statements
 }
 
@@ -254,7 +255,7 @@ func (m *MakeArrayStatement) String() string {
 	return str + "]"
 }
 
-func (m *MakeArrayStatement) Invoke() Expression {
+func (m *MakeArrayStatement) Invoke() runtime.Invokable {
 	var array = &Array{}
 	for _, statement := range m.Inits {
 		array.Data = append(array.Data, statement.Invoke())
@@ -266,23 +267,23 @@ func (m *MakeArrayStatement) GetType() lexer.Type {
 	return lexer.ArrayObjectType
 }
 
-func (g *getObjectPropStatement) Invoke() Expression {
+func (g *getObjectPropStatement) Invoke() runtime.Invokable {
 	obj := g.getObject.Invoke()
 	if obj == NilObj {
 		return obj
 	}
-	return obj.(*Object).Inner.(Expression)
+	return obj.(*runtime.Object).Pointer.(runtime.Invokable)
 }
 
-func (g *getObjectObjectStatement) Invoke() Expression {
+func (g *getObjectObjectStatement) Invoke() runtime.Invokable {
 	object := g.vmContext.GetObject(g.labels[0])
 	if object == nil {
 		log.Panicf("Left failed `%s`", g.labels[0])
 	}
-	structObj, ok := object.Inner.(BaseObject)
+	structObj, ok := object.Pointer.(BaseObject)
 	if ok == false {
 		log.Panic("objects type no struct objects,error",
-			g.labels, reflect.TypeOf(object.Inner).String())
+			g.labels, reflect.TypeOf(object.Pointer).String())
 	}
 	/*
 	 user.id = 1 // bind 1 to user.id
@@ -294,7 +295,7 @@ func (g *getObjectObjectStatement) Invoke() Expression {
 		//last Name
 		if i != len(g.labels)-1 {
 			var ok bool
-			structObj, ok = obj.Inner.(*TypeObject)
+			structObj, ok = obj.Pointer.(*TypeObject)
 			if ok == false {
 				label := strings.Join(g.labels[:i+1], ".")
 				log.Panic("objects is no struct objects type", label)
@@ -312,8 +313,8 @@ func (g *getObjectPropStatement) GetType() lexer.Type {
 	return lexer.PropObjectStatementType
 }
 
-func (statement *ObjectInitStatement) Invoke() Expression {
-	object := statement.Exp.Invoke().(*Object).Inner.(BaseObject).Clone().(*TypeObject)
+func (statement *ObjectInitStatement) Invoke() runtime.Invokable {
+	object := statement.Exp.Invoke().(*runtime.Object).Pointer.(BaseObject).Clone().(*TypeObject)
 
 Loop:
 	for _, init := range object.TypeObjectPropTemplates {
@@ -323,12 +324,12 @@ Loop:
 			}
 		}
 		propObject := object.AllocObject(init.Name)
-		propObject.Inner = init.Exp.Invoke()
+		propObject.Pointer = init.Exp.Invoke()
 	}
 
 	for _, init := range statement.PropTemplates {
 		propObject := object.AllocObject(init.Name)
-		propObject.Inner = init.Exp.Invoke()
+		propObject.Pointer = init.Exp.Invoke()
 	}
 	return object
 }
@@ -347,16 +348,16 @@ func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) {
 	f.VM.PushStackFrame(true)
 	for index := range f.ClosureLabel {
 		// put Closure objects to stack
-		f.VM.AllocObject(f.ClosureLabel[index]).Inner = f.ClosureObjs[index]
+		f.VM.AllocObject(f.ClosureLabel[index]).Pointer = f.ClosureObjs[index]
 	}
 
 	//make stack for this Function
 	for index, result := range inArguments {
-		f.VM.AllocObject(f.Parameters[index]).Inner = result
+		f.VM.AllocObject(f.Parameters[index]).Pointer = result
 	}
 }
 
-func (f *FuncStatement) Call(arguments ...Expression) Expression {
+func (f *FuncStatement) Call(arguments ...runtime.Invokable) runtime.Invokable {
 	defer f.VM.PopStackFrame()
 	f.prepareArgumentBind(arguments)
 	for _, statement := range f.Statements {
@@ -377,7 +378,7 @@ func (f *FuncStatement) doClosureInit() {
 		return
 	}
 	f.ClosureInit = true
-	var closureObjs []Expression
+	var closureObjs []runtime.Invokable
 	var closureLabel []string
 	for _, label := range f.ClosureLabel {
 		if f.VM.IsGlobal(label) {
@@ -387,20 +388,20 @@ func (f *FuncStatement) doClosureInit() {
 		if obj == nil {
 			log.Panicf("no find obj with Name `%s`", label)
 		}
-		closureObjs = append(closureObjs, obj.Inner)
+		closureObjs = append(closureObjs, obj.Pointer)
 		closureLabel = append(closureLabel, label)
 	}
 	f.ClosureObjs = closureObjs
 	f.ClosureLabel = closureLabel
 }
 
-func (expression AssignStatement) Invoke() Expression {
+func (expression AssignStatement) Invoke() runtime.Invokable {
 	left := expression.Left.Invoke()
 	switch right := expression.Exp.Invoke().(type) {
-	case *Object:
-		left.(*Object).Inner = right.Inner
+	case *runtime.Object:
+		left.(*runtime.Object).Pointer = right.Pointer
 	default:
-		left.(*Object).Inner = right
+		left.(*runtime.Object).Pointer = right
 	}
 	return nil
 }
@@ -409,7 +410,7 @@ func (expression AssignStatement) GetType() lexer.Type {
 	return lexer.AssignStatementType
 }
 
-func (NopStatement) Invoke() Expression {
+func (NopStatement) Invoke() runtime.Invokable {
 	return NopStatement{}
 }
 
@@ -417,7 +418,7 @@ func (n NopStatement) GetType() lexer.Type {
 	return lexer.NopStatementType
 }
 
-func (f *ForStatement) Invoke() Expression {
+func (f *ForStatement) Invoke() runtime.Invokable {
 	f.VM.PushStackFrame(false) //make stack frame
 
 	//make for brock stack
@@ -452,9 +453,9 @@ func (f *ForStatement) GetType() lexer.Type {
 	return lexer.ForType
 }
 
-func (statement IncFieldStatement) Invoke() Expression {
-	object := statement.Exp.Invoke().(*Object)
-	object.Inner = object.Inner.(Int) + 1
+func (statement IncFieldStatement) Invoke() runtime.Invokable {
+	object := statement.Exp.Invoke().(*runtime.Object)
+	object.Pointer = object.Pointer.(Int) + 1
 	return nil
 }
 
@@ -466,10 +467,10 @@ func (Statements) GetType() lexer.Type {
 	return lexer.StatementsType
 }
 
-func (f *FuncCallStatement) Invoke() Expression {
+func (f *FuncCallStatement) Invoke() runtime.Invokable {
 	exp := f.Function.Invoke()
 	switch obj := exp.(type) {
-	case *Object:
+	case *runtime.Object:
 		exp = obj.Invoke()
 	case ReturnStatement:
 		exp = obj.Val
@@ -477,15 +478,15 @@ func (f *FuncCallStatement) Invoke() Expression {
 	if exp == nil {
 		log.Panic("Function nil")
 	}
-	var arguments []Expression
+	var arguments []runtime.Invokable
 	if Func, ok := exp.(*FuncStatement);
 		f.ParentExp != nil && (ok == false || Func.Closure == false) {
 		switch argument := f.ParentExp.Invoke().(type) {
-		case *Object:
-			if argument.Inner == nil{
+		case *runtime.Object:
+			if argument.Pointer == nil{
 				panic(argument.Label)
 			}
-			arguments = append(arguments, argument.Inner)
+			arguments = append(arguments, argument.Pointer)
 		default:
 			if argument == nil{
 				panic("argument nil")
@@ -497,11 +498,11 @@ func (f *FuncCallStatement) Invoke() Expression {
 	if function, ok := exp.(Function); ok {
 		for _, argument := range f.Arguments {
 			switch job := argument.Invoke().(type) {
-			case *Object:
-				if job.Inner == nil{
+			case *runtime.Object:
+				if job.Pointer == nil{
 					panic(job.Label+" "+f.Function.String())
 				}
-				arguments = append(arguments, job.Inner)
+				arguments = append(arguments, job.Pointer)
 			default:
 				if job == nil{
 					panic("argument nil")
@@ -519,7 +520,7 @@ func (f *FuncCallStatement) GetType() lexer.Type {
 	return lexer.FuncType
 }
 
-func (f GetVarStatement) Invoke() Expression {
+func (f GetVarStatement) Invoke() runtime.Invokable {
 	return f.VM.GetObject(f.Label)
 }
 
@@ -527,11 +528,11 @@ func (f GetVarStatement) GetType() lexer.Type {
 	return lexer.IDType
 }
 
-func (v VarStatement) Invoke() Expression {
+func (v VarStatement) Invoke() runtime.Invokable {
 	if v.Exp != nil {
-		v.VM.AllocObject(v.Label).Inner = v.Exp.Invoke()
+		v.VM.AllocObject(v.Label).Pointer = v.Exp.Invoke()
 	} else {
-		v.VM.AllocObject(v.Label).Inner = NilObj
+		v.VM.AllocObject(v.Label).Pointer = NilObj
 	}
 	return nil
 }
@@ -540,19 +541,18 @@ func (v VarStatement) GetType() lexer.Type {
 	return lexer.VarType
 }
 
-func (expression VarAssignStatement) Invoke() Expression {
+func (expression VarAssignStatement) Invoke() runtime.Invokable {
 	obj := expression.Exp.Invoke()
 	var object = expression.Ctx.AllocObject(expression.Name)
 	if obj == nil {
 		panic(obj)
 	}
 	switch obj := obj.(type) {
-	case *Object:
-		object.Inner = obj.Inner
+	case *runtime.Object:
+		object.Pointer = obj.Pointer
 	default:
-		object.Inner = obj
+		object.Pointer = obj
 	}
-	object.InitType()
 	return nil
 }
 
@@ -560,14 +560,14 @@ func (expression VarAssignStatement) GetType() lexer.Type {
 	return lexer.VarAssignType
 }
 
-func (r ReturnStatement) Invoke() Expression {
+func (r ReturnStatement) Invoke() runtime.Invokable {
 	if r.Val != nil {
 		return r
 	}
 	exp := r.Exp.Invoke()
 	switch obj := exp.(type) {
-	case *Object:
-		exp = obj.Inner
+	case *runtime.Object:
+		exp = obj.Pointer
 	case ReturnStatement:
 		return obj
 	}
@@ -582,8 +582,8 @@ func (IfStatement) GetType() lexer.Type {
 	return lexer.IfType
 }
 
-func (statements Statements) Invoke() Expression {
-	var val Expression
+func (statements Statements) Invoke() runtime.Invokable {
+	var val runtime.Invokable
 	for _, statement := range statements {
 		val = statement.Invoke()
 		if _, ok := val.(ReturnStatement); ok {
@@ -595,7 +595,7 @@ func (statements Statements) Invoke() Expression {
 	return val
 }
 
-func (ifStm *IfStatement) Invoke() Expression {
+func (ifStm *IfStatement) Invoke() runtime.Invokable {
 	check := ifStm.Check.Invoke()
 	if _, ok := check.(Bool); ok == false {
 		log.Panic("if Statements Check require boolObject", reflect.TypeOf(check).String())

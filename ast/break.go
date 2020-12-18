@@ -2,6 +2,7 @@ package ast
 
 import (
 	"gitlab.com/akzj/qp/lexer"
+	"gitlab.com/akzj/qp/runtime"
 )
 
 var BreakObj = &BreakObject{}
@@ -13,7 +14,7 @@ func (b *BreakObject) String() string {
 	return "break"
 }
 
-func (b *BreakObject) Invoke() Expression {
+func (b *BreakObject) Invoke() runtime.Invokable {
 	return b
 }
 

@@ -1,4 +1,4 @@
-package ast
+package runtime
 
 import (
 	"log"
@@ -105,7 +105,7 @@ func (ctx *VMContext) AllocObject(label string) *Object {
 
 func (ctx *VMContext) GetObject(label string) *Object {
 	if obj, ok := Functions[label]; ok {
-		return &Object{Inner: obj}
+		return &Object{Pointer: obj}
 	}
 	if obj, ok := ctx.GlobalFunctions[label]; ok {
 		return obj

@@ -2,6 +2,7 @@ package ast
 
 import (
 	"gitlab.com/akzj/qp/lexer"
+	"gitlab.com/akzj/qp/runtime"
 )
 
 type Bool bool
@@ -16,7 +17,7 @@ func (b Bool) String() string {
 	return "false"
 }
 
-func (b Bool) Invoke() Expression {
+func (b Bool) Invoke() runtime.Invokable {
 	return b
 }
 

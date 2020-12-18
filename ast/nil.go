@@ -2,6 +2,7 @@ package ast
 
 import (
 	"gitlab.com/akzj/qp/lexer"
+	"gitlab.com/akzj/qp/runtime"
 )
 
 type NilObject struct {
@@ -13,7 +14,7 @@ func (NilObject) String() string {
 	return "nil"
 }
 
-func (n NilObject) Invoke() Expression {
+func (n NilObject) Invoke() runtime.Invokable {
 	return n
 }
 

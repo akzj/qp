@@ -1,6 +1,8 @@
 package ast
 
+import "gitlab.com/akzj/qp/runtime"
+
 type Function interface {
-	Expression
-	Call(arguments ...Expression) Expression
+	runtime.Invokable
+	Call(arguments ...runtime.Invokable) runtime.Invokable
 }
