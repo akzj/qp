@@ -3,6 +3,7 @@ package stackmachine
 import (
 	"fmt"
 	"log"
+	"math"
 	"testing"
 )
 
@@ -29,6 +30,7 @@ const (
 	Call
 	Cmp
 	Jump
+	Ret
 
 	TRUE  = 1
 	FALSE = 0
@@ -72,7 +74,7 @@ type Machine struct {
 	stack        []ValObject
 	stackPointer int64
 	instructions []Instruction
-	pIns         int64
+	IP           int64
 	mem          map[string]ValObject
 }
 
@@ -85,14 +87,14 @@ func New() *Machine {
 		stack:        make([]ValObject, 1024*1024),
 		stackPointer: -1,
 		instructions: nil,
-		pIns:         0,
+		IP:           0,
 		mem:          map[string]ValObject{},
 	}
 }
 
 func (m *Machine) Run() {
-	for m.pIns < int64(len(m.instructions)) {
-		ins := m.instructions[m.pIns]
+	for m.IP < int64(len(m.instructions)) {
+		ins := m.instructions[m.IP]
 		//	log.Println(ins)
 		switch ins.InstTyp {
 		case Push:
@@ -158,12 +160,18 @@ func (m *Machine) Run() {
 			val := m.load(symbol)
 			m.stackPointer++
 			m.stack[m.stackPointer] = val
+		case Ret:
+			IP := m.stack[m.stackPointer]
+			m.stackPointer--
+			m.IP = IP.Val
+			continue
 		case Call:
 			arguments := m.stack[m.stackPointer]
 			m.stackPointer--
 			//log.Println(arguments.Val)
 			m.CallFunc(ins.Val, m.stack[m.stackPointer-arguments.Val+1:m.stackPointer+1]...)
 			m.stackPointer -= arguments.Val
+
 		case Jump:
 			check := m.stack[m.stackPointer]
 			m.stackPointer--
@@ -172,12 +180,12 @@ func (m *Machine) Run() {
 			}
 			if check.Val == TRUE {
 				//				log.Println("true",ins.Val)
-				m.pIns = ins.Val
+				m.IP = ins.Val
 				continue
 			}
 			log.Println("false")
 		}
-		m.pIns++
+		m.IP++
 		//log.Println(m.stack[:m.stackPointer+1])
 	}
 }
@@ -468,4 +476,88 @@ func TestFor(t *testing.T) {
 		},
 	}
 	m.Run()
+}
+
+func TestFunc(t *testing.T) {
+	/*
+		func fib(val1,val2) {
+			print(val1,val2)
+		}
+
+		fib(1,2)
+	*/
+
+	var m = New()
+	val1 := m.symbolTable.addSymbol("val1")
+	val2 := m.symbolTable.addSymbol("val2")
+	m.instructions = []Instruction{
+
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     5,
+		},
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     1,
+		},
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     2,
+		},
+		{
+			InstTyp: Push,
+			ValTyp:  Bool,
+			Val:     TRUE,
+		},
+		{
+			InstTyp: Jump, // call function
+			Val:     7,
+		},
+
+		//end of call
+
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     math.MaxInt64, //to end
+		},
+		{
+			InstTyp: Ret,
+		},
+
+
+		//function instruction
+		{
+			InstTyp: Store,
+			Val:     val1, //store `val` to mem
+		},
+		{
+			InstTyp: Store,
+			Val:     val2, //store `val` to mem
+		},
+		{
+			InstTyp: Load,
+			Val:     val1,
+		},
+		{
+			InstTyp: Load,
+			Val:     val2,
+		},
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     2,
+		},
+		{
+			InstTyp: Call,
+		},
+		{
+			InstTyp: Ret,
+		},
+	}
+	m.Run()
+
 }

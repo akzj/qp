@@ -646,10 +646,7 @@ func fib(left){
 	if left < 2 {
 		return left
 	}
-var l = fib(left-2) 
-var r = fib(left-1)
-	 var res = l+r
-	return res
+	return fib(left-2) +fib(left-1)
 }
 
 println("num|result|take time")
