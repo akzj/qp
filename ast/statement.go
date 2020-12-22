@@ -112,7 +112,7 @@ type getObjectObjectStatement struct {
 type FuncCallStatement struct {
 	ParentExp runtime.Invokable
 	Function  runtime.Invokable
-	Arguments Expressions
+	Arguments Statements
 }
 
 func (f *FuncCallStatement) String() string {
@@ -338,7 +338,7 @@ func (statement *ObjectInitStatement) GetType() lexer.Type {
 	return lexer.TypeObjectInitStatementType
 }
 
-func (f *FuncStatement) prepareArgumentBind(inArguments Expressions) {
+func (f *FuncStatement) prepareArgumentBind(inArguments []runtime.Invokable) {
 	if len(f.Parameters) != len(inArguments) {
 		if f.Closure {
 		}

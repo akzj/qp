@@ -7,11 +7,6 @@ import (
 	"time"
 )
 
-type Expressions []runtime.Invokable
-
-func (expressions Expressions) String() string {
-	panic("implement me")
-}
 
 type ParenthesisExpression struct {
 	Exp runtime.Invokable
@@ -29,9 +24,6 @@ func (p ParenthesisExpression) String() string {
 	return "(" + p.Exp.String() + ")"
 }
 
-func (Expressions) GetType() lexer.Type {
-	return lexer.ExpressionType
-}
 
 func unwrapObject(expression runtime.Invokable) runtime.Invokable {
 	for {
@@ -171,15 +163,4 @@ func (n NoStatement) Invoke() runtime.Invokable {
 
 func (n NoStatement) GetType() lexer.Type {
 	return lexer.NoType
-}
-
-func (expressions Expressions) Invoke() runtime.Invokable {
-	var val runtime.Invokable
-	for _, expression := range expressions {
-		val = expression.Invoke()
-		if _, ok := val.(ReturnStatement); ok {
-			return val
-		}
-	}
-	return val
 }
