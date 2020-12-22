@@ -488,7 +488,7 @@ func (p *Parser) parseFactor(pre int) runtime.Invokable {
 			lexer.SubType,          // -
 			lexer.AddType,          // +
 			lexer.LessType,         // <
-			lexer.AndType,          // ||
+			lexer.AndType,          // &&
 			lexer.OrType:           // ||
 			if exp == nil {
 				log.Panic("exp nil")
@@ -498,7 +498,7 @@ func (p *Parser) parseFactor(pre int) runtime.Invokable {
 				p.putToken(token)
 				return exp
 			}
-			exp = ast.BinaryBoolExpression{
+			exp = ast.BinaryOpExpression{
 				OP:    token.Typ,
 				Left:  exp,
 				Right: p.parseFactor(precedence(token.Typ)),
@@ -677,7 +677,7 @@ func (p *Parser) parseFuncParameters() []string {
 func (p *Parser) parseBoolExpression(pre int) runtime.Invokable {
 	var exp runtime.Invokable
 	exp = p.parseFactor(0)
-	if _, ok := exp.(ast.BinaryBoolExpression); ok {
+	if _, ok := exp.(ast.BinaryOpExpression); ok {
 		return exp
 	}
 	log.Printf("parse exp bool failed,%s", exp.String())
