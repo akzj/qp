@@ -15,8 +15,10 @@ type ValType byte
 type CmpType byte
 
 const (
-	Less   CmpType = 0 + iota // <
-	LessEQ                    // <=
+	Less      CmpType = 0 + iota // <
+	LessEQ                       // <=
+	Greater                      // >
+	GreaterEQ                    // >=
 
 	Push InstType = 0 + iota
 	Pop
@@ -115,15 +117,22 @@ func (m *Machine) Run() {
 					case Cmp:
 						//						log.Println(operand1, operand2)
 						result.VType = Bool
+						result.Val = FALSE
 						switch ins.CmpTyp {
 						case Less:
-							result.Val = FALSE
 							if operand1.Val < operand2.Val {
 								result.Val = TRUE
 							}
 						case LessEQ:
-							result.Val = FALSE
 							if operand1.Val <= operand2.Val {
+								result.Val = TRUE
+							}
+						case Greater:
+							if operand1.Val > operand2.Val {
+								result.Val = TRUE
+							}
+						case GreaterEQ:
+							if operand1.Val >= operand2.Val {
 								result.Val = TRUE
 							}
 						}
@@ -304,6 +313,70 @@ func TestJump(t *testing.T) {
 		{
 			InstTyp: Jump,
 			Val:     0, // jump to begin 0
+		},
+	}
+	m.Run()
+}
+
+func TestIf(t *testing.T) {
+	/*
+		var a = 1
+
+		if a > 1{
+			print(a)
+		}
+	*/
+
+	var m = New()
+	index := m.symbolTable.addSymbol("a")
+	m.instructions = []Instruction{
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     1,
+		},
+		{
+			InstTyp: Store,
+			Val:     index,
+		},
+		{
+			InstTyp: Load,
+			Val:     index,
+		},
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     0,
+		},
+		{
+			InstTyp: Cmp,
+			CmpTyp:  Greater,
+		},
+		{
+			InstTyp: Jump,
+			Val:     8,
+		},
+		{
+			InstTyp: Push,
+			ValTyp:  Bool,
+			Val:     TRUE,
+		},
+		{
+			InstTyp: Jump,
+			Val:     11,
+		},
+		{
+			InstTyp: Load,
+			Val:     index,
+		},
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     1,
+		},
+		{
+			InstTyp: Call,
+			Val:     0,
 		},
 	}
 	m.Run()
