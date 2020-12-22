@@ -12,8 +12,12 @@ func init() {
 
 type InstType byte
 type ValType byte
+type CmpType byte
 
 const (
+	Less   CmpType = 0 + iota // <
+	LessEQ                    // <=
+
 	Push InstType = 0 + iota
 	Pop
 	Add
@@ -21,10 +25,15 @@ const (
 	Load
 	Store
 	Call
+	Cmp
 	Jump
+
+	TRUE  = 1
+	FALSE = 0
 )
 const (
 	Int ValType = 0 + iota
+	Bool
 	Mem
 )
 
@@ -46,7 +55,8 @@ func (t *SymbolTable) addSymbol(s string) int64 {
 
 type Instruction struct {
 	InstTyp InstType
-	VaType  ValType
+	ValTyp  ValType
+	CmpTyp  CmpType
 	Val     int64
 }
 
@@ -60,7 +70,7 @@ type Machine struct {
 	stack        []ValObject
 	stackPointer int64
 	instructions []Instruction
-	pIns         int
+	pIns         int64
 	mem          map[string]ValObject
 }
 
@@ -79,24 +89,22 @@ func New() *Machine {
 }
 
 func (m *Machine) Run() {
-	for m.pIns < len(m.instructions) {
+	for m.pIns < int64(len(m.instructions)) {
 		ins := m.instructions[m.pIns]
+		//	log.Println(ins)
 		switch ins.InstTyp {
 		case Push:
-			switch ins.VaType {
-			case Int:
-				m.stackPointer++
-				m.stack[m.stackPointer] = ValObject{
-					VType: Int,
-					Val:   ins.Val,
-				}
+			m.stackPointer++
+			m.stack[m.stackPointer] = ValObject{
+				VType: ins.ValTyp,
+				Val:   ins.Val,
 			}
 		case Pop:
 			m.stackPointer--
-		case Add, Sub:
-			operand1 := m.stack[m.stackPointer]
-			m.stackPointer--
+		case Add, Sub, Cmp:
 			operand2 := m.stack[m.stackPointer]
+			m.stackPointer--
+			operand1 := m.stack[m.stackPointer]
 			m.stackPointer--
 			var result ValObject
 			switch operand1.VType {
@@ -104,15 +112,31 @@ func (m *Machine) Run() {
 				switch operand1.VType {
 				case Int:
 					switch ins.InstTyp {
+					case Cmp:
+						//						log.Println(operand1, operand2)
+						result.VType = Bool
+						switch ins.CmpTyp {
+						case Less:
+							result.Val = FALSE
+							if operand1.Val < operand2.Val {
+								result.Val = TRUE
+							}
+						case LessEQ:
+							result.Val = FALSE
+							if operand1.Val <= operand2.Val {
+								result.Val = TRUE
+							}
+						}
 					case Add:
+						result.VType = Int
 						result.Val = operand1.Val + operand2.Val
 					case Sub:
+						result.VType = Int
 						result.Val = operand1.Val - operand2.Val
 					}
-					result.VType = Int
 				}
 			}
-			log.Println(operand1, operand2, result)
+			//			log.Println(operand1, operand2, result)
 			m.stackPointer++
 			m.stack[m.stackPointer] = result
 		case Store:
@@ -128,12 +152,24 @@ func (m *Machine) Run() {
 		case Call:
 			arguments := m.stack[m.stackPointer]
 			m.stackPointer--
-			log.Println(arguments.Val)
+			//log.Println(arguments.Val)
 			m.CallFunc(ins.Val, m.stack[m.stackPointer-arguments.Val+1:m.stackPointer+1]...)
 			m.stackPointer -= arguments.Val
+		case Jump:
+			check := m.stack[m.stackPointer]
+			m.stackPointer--
+			if check.VType != Bool {
+				log.Panic("expect bool value for check")
+			}
+			if check.Val == TRUE {
+				//				log.Println("true",ins.Val)
+				m.pIns = ins.Val
+				continue
+			}
+			log.Println("false")
 		}
 		m.pIns++
-		log.Println(m.stack[:m.stackPointer+1])
+		//log.Println(m.stack[:m.stackPointer+1])
 	}
 }
 
@@ -157,12 +193,12 @@ func TestStore(t *testing.T) {
 	m.instructions = []Instruction{
 		{
 			InstTyp: Push,
-			VaType:  Int,
+			ValTyp:  Int,
 			Val:     1,
 		},
 		{
 			InstTyp: Store,
-			VaType:  Mem,
+			ValTyp:  Mem,
 			Val:     index,
 		},
 	}
@@ -179,22 +215,22 @@ func TestLoad(t *testing.T) {
 	m.instructions = []Instruction{
 		{
 			InstTyp: Push,
-			VaType:  Int,
+			ValTyp:  Int,
 			Val:     100,
 		},
 		{
 			InstTyp: Store,
-			VaType:  Mem,
+			ValTyp:  Mem,
 			Val:     index,
 		},
 		{
 			InstTyp: Load,
-			VaType:  Mem,
+			ValTyp:  Mem,
 			Val:     index,
 		},
 		{
 			InstTyp: Push,
-			VaType:  Int,
+			ValTyp:  Int,
 			Val:     1,
 		},
 		{
@@ -210,12 +246,12 @@ func TestAddNum(t *testing.T) {
 	m.instructions = []Instruction{
 		{
 			InstTyp: Push,
-			VaType:  Int,
+			ValTyp:  Int,
 			Val:     1,
 		},
 		{
 			InstTyp: Push,
-			VaType:  Int,
+			ValTyp:  Int,
 			Val:     1,
 		},
 		{
@@ -223,7 +259,7 @@ func TestAddNum(t *testing.T) {
 		},
 		{
 			InstTyp: Push,
-			VaType:  Int,
+			ValTyp:  Int,
 			Val:     2,
 		},
 		{
@@ -231,7 +267,7 @@ func TestAddNum(t *testing.T) {
 		},
 		{
 			InstTyp: Push,
-			VaType:  Int,
+			ValTyp:  Int,
 			Val:     1,
 		},
 		{
@@ -243,11 +279,120 @@ func TestAddNum(t *testing.T) {
 }
 
 func TestJump(t *testing.T) {
-	/*
-	if 2 > 1{
-		print(2)
-	}else{
-		print(1)
+	var m = New()
+	//for{print(1)}
+
+	m.instructions = []Instruction{
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     1,
+		},
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     1, //argument count 1
+		},
+		{
+			InstTyp: Call,
+		},
+		{
+			InstTyp: Push,
+			ValTyp:  Bool,
+			Val:     TRUE,
+		},
+		{
+			InstTyp: Jump,
+			Val:     0, // jump to begin 0
+		},
 	}
-	 */
+	m.Run()
+}
+
+func TestFor(t *testing.T) {
+	var m = New()
+	/*
+		for a:= 1; a < 10;a++{
+			print(a)
+		}
+	*/
+
+	index := m.symbolTable.addSymbol("a")
+
+	m.instructions = []Instruction{
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     0,
+		},
+		{
+			InstTyp: Store,
+			Val:     index, //a := 1
+		},
+		{
+			InstTyp: Load,
+			Val:     index,
+		},
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     10,
+		},
+		{
+			InstTyp: Cmp,
+			CmpTyp:  Less, // a < 10
+		},
+		{
+			InstTyp: Jump,
+			Val:     8, //todo jump to print
+		},
+		{
+			InstTyp: Push,
+			ValTyp:  Bool,
+			Val:     TRUE,
+		},
+		{
+			InstTyp: Jump,
+			Val:     18, //todo jump to end of for
+		},
+		{
+			InstTyp: Load,
+			Val:     index,
+		},
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     1, // argument count
+		},
+		{
+			InstTyp: Call, // call print
+		},
+		// a++ => a= a+1
+		{
+			InstTyp: Load,
+			Val:     index,
+		},
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     1,
+		},
+		{
+			InstTyp: Add,
+		},
+		{
+			InstTyp: Store,
+			Val:     index,
+		},
+		{
+			InstTyp: Push,
+			ValTyp:  Bool,
+			Val:     TRUE,
+		},
+		{
+			InstTyp: Jump,
+			Val:     2, // jump to a < 10
+		},
+	}
+	m.Run()
 }
