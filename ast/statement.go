@@ -29,7 +29,7 @@ type IfStatement struct {
 	VM         *runtime.VMContext
 	Check      runtime.Invokable
 	Statements Statements
-	ElseIf     []*IfStatement
+	ElseIf     []IfStatement
 	Else       Statements
 }
 
@@ -595,7 +595,7 @@ func (statements Statements) Invoke() runtime.Invokable {
 	return val
 }
 
-func (ifStm *IfStatement) Invoke() runtime.Invokable {
+func (ifStm IfStatement) Invoke() runtime.Invokable {
 	check := ifStm.Check.Invoke()
 	if _, ok := check.(Bool); ok == false {
 		log.Panic("if Statements Check require boolObject", reflect.TypeOf(check).String())

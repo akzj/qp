@@ -454,7 +454,7 @@ func (p *Parser) parseFactor(pre int) runtime.Invokable {
 				}
 			}
 			p.assertNil(exp)
-			exp = &ast.GetVarStatement{
+			exp = ast.GetVarStatement{
 				VM:    p.vm,
 				Label: token.Val,
 			}
@@ -684,7 +684,7 @@ func (p *Parser) parseBoolExpression(pre int) runtime.Invokable {
 	return exp
 }
 
-func (p *Parser) parseIfStatement(elseif bool) *ast.IfStatement {
+func (p *Parser) parseIfStatement(elseif bool) ast.Statement {
 	p.pushStatus(IfStatus)
 	//log.Println("enter parseIfStatement")
 	defer func() {
@@ -699,7 +699,7 @@ func (p *Parser) parseIfStatement(elseif bool) *ast.IfStatement {
 
 	if p.ahead(0).Typ == lexer.RightBraceType {
 		p.nextToken()
-		return &ifS
+		return ifS
 	}
 	ifS.VM = p.vm
 	ifS.Statements = p.ParseStatements()
@@ -710,7 +710,7 @@ func (p *Parser) parseIfStatement(elseif bool) *ast.IfStatement {
 		if next.Typ == lexer.ElseifType {
 			p.nextToken()
 			statement := p.parseIfStatement(true)
-			ifS.ElseIf = append(ifS.ElseIf, statement)
+			ifS.ElseIf = append(ifS.ElseIf, statement.(ast.IfStatement))
 		} else if next.Typ == lexer.ElseType {
 			p.expectType(p.nextToken(), lexer.ElseType)
 			p.expectType(p.nextToken(), lexer.LeftBraceType)
@@ -720,7 +720,7 @@ func (p *Parser) parseIfStatement(elseif bool) *ast.IfStatement {
 			break
 		}
 	}
-	return &ifS
+	return ifS
 
 }
 func (p *Parser) assertNil(exp runtime.Invokable) {
