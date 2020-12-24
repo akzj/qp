@@ -98,7 +98,12 @@ func precedence(tokenType lexer.Type) int {
 		return 10
 	case lexer.AddType, lexer.SubType:
 		return 9
-	case lexer.LessType, lexer.LessEqualType, lexer.GreaterType, lexer.GreaterEqualType, lexer.NoEqualType, lexer.EqualType:
+	case lexer.LessType,
+		lexer.LessEqualType,
+		lexer.GreaterType,
+		lexer.GreaterEqualType,
+		lexer.NoEqualType,
+		lexer.EqualType:
 		return 8
 	case lexer.AndType:
 		return 7
@@ -120,7 +125,9 @@ func New(buffer string) *Parser {
 func Parse(data string) ast.Statements {
 	return New(data).Parse()
 }
-
+func (p *Parser) GetVMContext() *runtime.VMContext {
+	return p.vm
+}
 func (p *Parser) putToken(token lexer.Token) {
 	p.hTokens = p.hTokens[:len(p.hTokens)-1]
 	p.tokens = append([]lexer.Token{token}, p.tokens...)

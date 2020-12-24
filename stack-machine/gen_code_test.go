@@ -15,18 +15,18 @@ if a > 1{
 `
 
 	/*
-	push 2
-	store a
-	load a
-	push 1
-	cmp >
-	jump R 3
-	push 1
-	jump R 4
-	load a
-	push 1
-	call println
-	 */
+		push 2
+		store a
+		load a
+		push 1
+		cmp >
+		jump R 3
+		push 1
+		jump R 4
+		load a
+		push 1
+		call println
+	*/
 	statements := parser.New(script).Parse()
 	GC := NewGenCode(statements)
 	fmt.Println(GC.Gen())
@@ -37,6 +37,25 @@ func TestGenCallCode(t *testing.T) {
 println(1+1)
 `
 	statements := parser.New(script).Parse()
+	GC := NewGenCode(statements)
+	fmt.Println(GC.Gen())
+}
+
+func TestGenFuncStatement(t *testing.T) {
+	script := `
+func hello(){
+	println(1)
+}
+`
+
+	parser := parser.New(script)
+
+	statements := parser.Parse()
+	vm := parser.GetVMContext()
+	objects := vm.Objects()
+	for _, it := range objects {
+		statements = append(statements, it)
+	}
 	GC := NewGenCode(statements)
 	fmt.Println(GC.Gen())
 }

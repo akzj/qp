@@ -58,7 +58,7 @@ func (genCode *GenCode) genCodeStatement(statement runtime.Invokable) {
 			Val:     b,
 		})
 	case *runtime.Object:
-		genCode.genLoadIns(statement.Label)
+		genCode.genObject(statement)
 	case ast.BinaryOpExpression:
 		genCode.genCodeStatement(statement.Left)
 		genCode.genCodeStatement(statement.Right)
@@ -79,6 +79,9 @@ func (genCode *GenCode) genCodeStatement(statement runtime.Invokable) {
 		}
 	case *ast.FuncCallStatement:
 		genCode.genFuncCallStatement(statement)
+	case ast.NopStatement:
+	case *ast.FuncStatement:
+		genCode.genFuncStatement(statement)
 	default:
 		log.Panicf("unknown statement %s", reflect.TypeOf(statement).String())
 	}
@@ -182,4 +185,12 @@ func (genCode *GenCode) genFuncCallStatement(statement *ast.FuncCallStatement) {
 	default:
 		log.Panicf("unkown function type %s", reflect.TypeOf(function).String())
 	}
+}
+
+func (genCode *GenCode) genObject(label *runtime.Object) {
+	genCode.genCodeStatement(label.Pointer)
+}
+
+func (genCode *GenCode) genFuncStatement(statement *ast.FuncStatement) {
+
 }

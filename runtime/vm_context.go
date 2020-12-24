@@ -149,3 +149,14 @@ func (ctx *VMContext) IsGlobal(label string) bool {
 	}
 	return false
 }
+
+func (ctx *VMContext) Objects() []*Object {
+	var objs []*Object
+	for _, object := range ctx.structObjects {
+		objs = append(objs, object)
+	}
+	for _, object := range ctx.GlobalFunctions {
+		objs = append(objs, object)
+	}
+	return objs
+}
