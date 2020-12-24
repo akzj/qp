@@ -13,33 +13,73 @@ type toLink struct {
 	label string
 	IP    int64
 }
-type GenCode struct {
-	symbolTable *SymbolTable
-	ins         []Instruction
-	statements  []ast.Statement
-	toLinks     []toLink
+
+type FuncInstruction struct {
+	toLinks []toLink
+	ins     []Instruction
+	label   string
 }
 
-func NewGenCode(statements []ast.Statement) *GenCode {
-	return &GenCode{
-		ins:         []Instruction{},
-		symbolTable: NewSymbolTable(),
-		statements:  statements,
+type GenCode struct {
+	symbolTable      *SymbolTable
+	builtSymbolTable *SymbolTable
+	ins              []Instruction
+	toLinks          []toLink
+	funcInstructions map[string]FuncInstruction
+}
+
+func NewGenCode() *GenCode {
+	gc := &GenCode{
+		symbolTable:      NewSymbolTable(),
+		builtSymbolTable: NewSymbolTable(),
+		ins:              []Instruction{},
+		funcInstructions: map[string]FuncInstruction{},
 	}
+	for _, function := range BuiltInFunctions {
+		gc.builtSymbolTable.addSymbol(function.Name)
+	}
+	return gc
+}
+
+func (genCode *GenCode) String() string {
+	var buffer bytes.Buffer
+	for _, it := range genCode.ins {
+		if it.InstTyp != Label {
+			buffer.WriteString("\t")
+		}
+		buffer.WriteString(it.String(genCode.symbolTable, genCode.builtSymbolTable))
+		buffer.WriteString("\n")
+	}
+	/*for _, function := range genCode.funcInstructions {
+		buffer.WriteString(function.label + ":")
+		buffer.WriteString("\n")
+		for _, it := range function.ins {
+			buffer.WriteString("\t" + it.String(genCode.symbolTable))
+			buffer.WriteString("\n")
+		}
+	}*/
+	return buffer.String()
 }
 
 func (genCode *GenCode) pushIns(instruction Instruction) {
 	genCode.ins = append(genCode.ins, instruction)
 }
 
-func (genCode *GenCode) Gen() *GenCode {
-	for _, statement := range genCode.statements {
-		genCode.genCodeStatement(statement)
+func (genCode *GenCode) Gen(statements []ast.Statement) *GenCode {
+	for _, statement := range statements {
+		genCode.genStatement(statement)
 	}
+	genCode.GenExit()
+	linker := NewLinker(genCode.funcInstructions,
+		genCode.ins,
+		genCode.toLinks,
+		genCode.symbolTable,
+		genCode.builtSymbolTable)
+	genCode.ins = linker.link()
 	return genCode
 }
 
-func (genCode *GenCode) genCodeStatement(statement runtime.Invokable) {
+func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 	switch statement := statement.(type) {
 	case ast.Int:
 		genCode.pushIns(Instruction{
@@ -60,14 +100,14 @@ func (genCode *GenCode) genCodeStatement(statement runtime.Invokable) {
 	case *runtime.Object:
 		genCode.genObject(statement)
 	case ast.BinaryOpExpression:
-		genCode.genCodeStatement(statement.Left)
-		genCode.genCodeStatement(statement.Right)
+		genCode.genStatement(statement.Left)
+		genCode.genStatement(statement.Right)
 		genCode.genOpCode(statement.OP)
 	case ast.VarAssignStatement:
-		genCode.genCodeStatement(statement.Exp)
+		genCode.genStatement(statement.Exp)
 		genCode.genStoreIns(statement.Name)
 	case ast.VarStatement:
-		genCode.genCodeStatement(statement.Exp)
+		genCode.genStatement(statement.Exp)
 		genCode.genStoreIns(statement.Label)
 	case ast.GetVarStatement:
 		genCode.genLoadIns(statement.Label)
@@ -75,7 +115,7 @@ func (genCode *GenCode) genCodeStatement(statement runtime.Invokable) {
 		genCode.genIfStatement(statement)
 	case ast.Statements:
 		for _, next := range statement {
-			genCode.genCodeStatement(next)
+			genCode.genStatement(next)
 		}
 	case *ast.FuncCallStatement:
 		genCode.genFuncCallStatement(statement)
@@ -116,7 +156,7 @@ func (genCode *GenCode) genStoreIns(label string) {
 }
 
 func (genCode *GenCode) genIfStatement(statement ast.IfStatement) {
-	genCode.genCodeStatement(statement.Check)
+	genCode.genStatement(statement.Check)
 	genCode.pushIns(Instruction{
 		InstTyp: Jump,
 		JumpTyp: RJump,
@@ -132,7 +172,7 @@ func (genCode *GenCode) genIfStatement(statement ast.IfStatement) {
 		JumpTyp: RJump,
 	})
 	index := len(genCode.ins)
-	genCode.genCodeStatement(statement.Statements)
+	genCode.genStatement(statement.Statements)
 	jumpTo := len(genCode.ins) - index + 1
 	genCode.ins[index-1].Val = int64(jumpTo)
 }
@@ -145,42 +185,44 @@ func (genCode *GenCode) genLoadIns(label string) {
 	})
 }
 
-func (genCode *GenCode) String() string {
-	var buffer bytes.Buffer
-	for _, it := range genCode.ins {
-		buffer.WriteString(it.String(genCode.symbolTable))
-		buffer.WriteString("\n")
-	}
-	return buffer.String()
-}
-
 func (genCode *GenCode) genFuncCallStatement(statement *ast.FuncCallStatement) {
 	//statement.ParentExp todo
-	for _, argument := range statement.Arguments {
-		genCode.genCodeStatement(argument)
-	}
-	genCode.pushIns(Instruction{
-		InstTyp: Push,
-		ValTyp:  Int,
-		Val:     int64(len(statement.Arguments)),
-	})
 	switch function := statement.Function.(type) {
 	case ast.GetVarStatement:
-		if index, ok := genCode.symbolTable.getSymbol(function.Label); ok {
+		var II = int64(len(genCode.ins))
+		index, ok := genCode.builtSymbolTable.getSymbol(function.Label)
+		if ok == false { // push IP to stack for return
+			genCode.pushIns(Instruction{InstTyp: Push, ValTyp: IP})
+		}
+		for _, argument := range statement.Arguments {
+			genCode.genStatement(argument)
+		}
+		genCode.pushIns(Instruction{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     int64(len(statement.Arguments)),
+		})
+		if ok {
 			genCode.pushIns(Instruction{
 				InstTyp: Call,
 				Val:     index,
 			})
 		} else {
 			genCode.pushIns(Instruction{
+				InstTyp: Push,
+				ValTyp:  Bool,
+				Val:     TRUE,
+			})
+			genCode.pushIns(Instruction{
 				InstTyp: Jump,
 				JumpTyp: DJump,
-				Val:     0,
+				Val:     -1, //todo link
 			})
 			genCode.toLinks = append(genCode.toLinks, toLink{
 				label: function.Label,
-				IP:    int64(len(genCode.ins)),
+				IP:    int64(len(genCode.ins)) - 1,
 			})
+			genCode.ins[II].Val = int64(len(genCode.ins)) - II
 		}
 	default:
 		log.Panicf("unkown function type %s", reflect.TypeOf(function).String())
@@ -188,9 +230,65 @@ func (genCode *GenCode) genFuncCallStatement(statement *ast.FuncCallStatement) {
 }
 
 func (genCode *GenCode) genObject(label *runtime.Object) {
-	genCode.genCodeStatement(label.Pointer)
+	genCode.genStatement(label.Pointer)
 }
 
 func (genCode *GenCode) genFuncStatement(statement *ast.FuncStatement) {
+	done := genCode.prepareGenFunction(statement.Label)
+	defer done()
+	genCode.pushIns(Instruction{
+		InstTyp: Label,
+		Val:     genCode.symbolTable.addSymbol(statement.Label),
+	})
+	//check argument count
+	genCode.pushIns(Instruction{
+		InstTyp: Push,
+		ValTyp:  Int,
+		Val:     int64(len(statement.Parameters)),
+	})
+	genCode.pushIns(Instruction{
+		InstTyp: Cmp,
+		CmpTyp:  Equal,
+	})
+	genCode.pushIns(Instruction{
+		InstTyp: Jump,
+		JumpTyp: RJump,
+		Val:     2,
+	})
+	genCode.pushIns(Instruction{
+		InstTyp: Call,
+		Val:     genCode.symbolTable.addSymbol("panic"),
+	})
+	for i := len(statement.Parameters) - 1; i >= 0; i-- {
+		genCode.pushIns(Instruction{
+			InstTyp: Store,
+			Val:     genCode.symbolTable.addSymbol(statement.Parameters[i]),
+		})
+	}
+	for _, statement := range statement.Statements {
+		genCode.genStatement(statement)
+	}
+	genCode.pushIns(Instruction{InstTyp: Ret})
+}
 
+func (genCode *GenCode) prepareGenFunction(label string) func() {
+	ins := genCode.ins
+	toLink := genCode.toLinks
+	genCode.ins = nil
+	genCode.toLinks = nil
+	return func() {
+		genCode.funcInstructions[label] = FuncInstruction{
+			toLinks: genCode.toLinks,
+			ins:     genCode.ins,
+			label:   label,
+		}
+		genCode.ins = ins
+		genCode.toLinks = toLink
+	}
+}
+
+func (genCode *GenCode) GenExit() {
+	genCode.pushIns(Instruction{
+		InstTyp: Exit,
+	})
 }

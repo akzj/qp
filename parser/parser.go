@@ -162,7 +162,6 @@ func (p *Parser) Parse() ast.Statements {
 	p.initTokens()
 	var statements ast.Statements
 	for {
-
 		if statement := p.ParseStatement(); statement != nil {
 			statements = append(statements, statement)
 		}

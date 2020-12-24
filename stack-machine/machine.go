@@ -2,6 +2,7 @@ package stackmachine
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"strconv"
 )
@@ -16,6 +17,7 @@ const (
 	LessEQ                   // <=
 	Greater                  // >
 	GreaterEQ                // >=
+	Equal                    // ==
 
 	Push InstType = iota
 	Pop
@@ -27,6 +29,8 @@ const (
 	Cmp
 	Jump
 	Ret
+	Label
+	Exit
 
 	TRUE  int64 = 1
 	FALSE int64 = 0
@@ -34,6 +38,7 @@ const (
 	Int ValType = iota
 	Bool
 	Mem
+	IP
 
 	DJump JumpType = 0
 	RJump JumpType = 1
@@ -48,9 +53,6 @@ func NewSymbolTable() *SymbolTable {
 	st := &SymbolTable{
 		symbols:   []string{},
 		symbolMap: map[string]int64{},
-	}
-	for _, function := range BuiltInFunctions {
-		st.addSymbol(function.Name)
 	}
 	return st
 }
@@ -79,7 +81,7 @@ type Instruction struct {
 	Val     int64
 }
 
-func (i Instruction) String(table *SymbolTable) string {
+func (i Instruction) String(table, builtIn *SymbolTable) string {
 	switch i.InstTyp {
 	case Add:
 		return "add"
@@ -92,7 +94,19 @@ func (i Instruction) String(table *SymbolTable) string {
 			return "jump R " + strconv.FormatInt(i.Val, 10)
 		}
 	case Push:
-		return "push " + strconv.FormatInt(i.Val, 10)
+		if i.ValTyp == IP {
+			return "push ip " + strconv.FormatInt(i.Val, 10)
+		} else if i.ValTyp == Int {
+			return "push " + strconv.FormatInt(i.Val, 10)
+		} else if i.ValTyp == Bool {
+			if i.Val == TRUE {
+				return "push true"
+			} else {
+				return "push false"
+			}
+		}
+	case Exit:
+		return "exit"
 	case Pop:
 		return "pop"
 	case Load:
@@ -100,9 +114,11 @@ func (i Instruction) String(table *SymbolTable) string {
 	case Store:
 		return "store " + table.symbols[i.Val]
 	case Call:
-		return "call " + table.symbols[i.Val]
+		return "call " + builtIn.symbols[i.Val]
 	case Ret:
 		return "return"
+	case Label:
+		return table.symbols[i.Val] + ":"
 	case Cmp:
 		switch i.CmpTyp {
 		case Less:
@@ -113,9 +129,12 @@ func (i Instruction) String(table *SymbolTable) string {
 			return "cmp >"
 		case GreaterEQ:
 			return "cmp >="
+		case Equal:
+			return "cmp =="
 		}
 	}
-	panic("unknown instruction")
+	log.Panicln("unknown instruction")
+	return ""
 }
 
 type Object struct {
@@ -123,14 +142,29 @@ type Object struct {
 	Val   int64
 }
 
+func (o Object) String() string {
+	if o.VType == Int {
+		return strconv.FormatInt(o.Val, 10)
+	} else if o.VType == Bool {
+		if o.Val == TRUE {
+			return "true"
+		} else {
+			return "false"
+		}
+	} else {
+		return fmt.Sprintf("%d %d", o.VType, o.Val)
+	}
+}
+
 type Machine struct {
-	symbolTable  *SymbolTable
-	heap         []Object
-	stack        []Object
-	stackPointer int64
-	instructions []Instruction
-	IP           int64
-	mem          map[string]Object
+	symbolTable        *SymbolTable
+	builtInSymbolTable *SymbolTable
+	heap               []Object
+	stack              []Object
+	stackPointer       int64
+	instructions       []Instruction
+	IP                 int64
+	mem                map[string]Object
 }
 
 func New() *Machine {
@@ -151,9 +185,16 @@ func (m *Machine) Run() {
 		switch ins.InstTyp {
 		case Push:
 			m.stackPointer++
-			m.stack[m.stackPointer] = Object{
-				VType: ins.ValTyp,
-				Val:   ins.Val,
+			if ins.ValTyp == IP {
+				m.stack[m.stackPointer] = Object{
+					VType: ins.ValTyp,
+					Val:   m.IP + ins.Val, //return addr
+				}
+			} else {
+				m.stack[m.stackPointer] = Object{
+					VType: ins.ValTyp,
+					Val:   ins.Val,
+				}
 			}
 		case Pop:
 			m.stackPointer--
@@ -169,7 +210,7 @@ func (m *Machine) Run() {
 				case Int:
 					switch ins.InstTyp {
 					case Cmp:
-						//						log.Println(operand1, operand2)
+						//log.Println(operand1, operand2)
 						result.VType = Bool
 						result.Val = FALSE
 						switch ins.CmpTyp {
@@ -189,6 +230,10 @@ func (m *Machine) Run() {
 							if operand1.Val >= operand2.Val {
 								result.Val = TRUE
 							}
+						case Equal:
+							if operand1.Val == operand2.Val {
+								result.Val = TRUE
+							}
 						}
 					case Add:
 						result.VType = Int
@@ -199,7 +244,7 @@ func (m *Machine) Run() {
 					}
 				}
 			}
-			//			log.Println(operand1, operand2, result)
+			//log.Println(operand1, operand2, result)
 			m.stackPointer++
 			m.stack[m.stackPointer] = result
 		case Store:
@@ -223,15 +268,17 @@ func (m *Machine) Run() {
 			//log.Println(arguments.Val)
 			m.CallFunc(ins.Val, m.stack[m.stackPointer-arguments.Val+1:m.stackPointer+1]...)
 			m.stackPointer -= arguments.Val
-
+		case Label:
+		case Exit:
+			return
 		case Jump:
 			check := m.stack[m.stackPointer]
 			m.stackPointer--
 			if check.VType != Bool {
-				log.Panic("expect bool value for check")
+				log.Panicln("expect bool value for check", m.IP, m.stackPointer)
 			}
 			if check.Val == TRUE {
-				//				log.Println("true",ins.Val)
+				//log.Println("true",ins.Val)
 				if ins.JumpTyp == DJump {
 					m.IP = ins.Val
 				} else {
@@ -261,7 +308,7 @@ func (m *Machine) load(symbol string) Object {
 func (m *Machine) String() string {
 	var buffer bytes.Buffer
 	for _, it := range m.instructions {
-		buffer.WriteString(it.String(m.symbolTable))
+		buffer.WriteString("\t" + it.String(m.symbolTable, m.builtInSymbolTable))
 		buffer.WriteString("\n")
 	}
 	return buffer.String()

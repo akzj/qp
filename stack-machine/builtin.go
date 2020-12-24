@@ -1,6 +1,9 @@
 package stackmachine
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 type Function struct {
 	Name string
@@ -8,10 +11,18 @@ type Function struct {
 }
 
 func __println(object ...Object) {
-	fmt.Println(object)
+	for _, obj := range object {
+		fmt.Print(obj," ")
+	}
+	fmt.Println()
 }
+
 func __print(object ...Object) {
 	fmt.Print(object)
+}
+
+func __panic(object ...Object) {
+	log.Panicln(object)
 }
 
 var BuiltInFunctions = []Function{
@@ -22,5 +33,9 @@ var BuiltInFunctions = []Function{
 	{
 		Name: "print",
 		Call: __print,
+	},
+	{
+		Name: "panic",
+		Call: __panic,
 	},
 }

@@ -28,8 +28,8 @@ if a > 1{
 		call println
 	*/
 	statements := parser.New(script).Parse()
-	GC := NewGenCode(statements)
-	fmt.Println(GC.Gen())
+	GC := NewGenCode()
+	fmt.Println(GC.Gen(statements))
 }
 
 func TestGenCallCode(t *testing.T) {
@@ -37,15 +37,29 @@ func TestGenCallCode(t *testing.T) {
 println(1+1)
 `
 	statements := parser.New(script).Parse()
-	GC := NewGenCode(statements)
-	fmt.Println(GC.Gen())
+	GC := NewGenCode()
+	fmt.Println(GC.Gen(statements))
 }
 
 func TestGenFuncStatement(t *testing.T) {
 	script := `
-func hello(){
-	println(1)
+
+func hello3(a,b,c){
+	println(a,b,c)
 }
+
+func hello2(a,b,c){
+	println(a,b,c)
+	hello3(b,c,a)
+}
+
+func hello(a,b,c){
+	println(a,b,c)
+	hello2(b,c,a)
+}
+
+hello(1,2,3)
+hello(4,5,6)
 `
 
 	parser := parser.New(script)
@@ -56,6 +70,12 @@ func hello(){
 	for _, it := range objects {
 		statements = append(statements, it)
 	}
-	GC := NewGenCode(statements)
-	fmt.Println(GC.Gen())
+	GC := NewGenCode()
+	fmt.Println(GC.Gen(statements))
+
+	m := New()
+	m.instructions = GC.ins
+	m.symbolTable = GC.symbolTable
+
+	m.Run()
 }
