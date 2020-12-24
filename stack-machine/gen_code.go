@@ -9,20 +9,22 @@ import (
 	"reflect"
 )
 
+type toLink struct {
+	label string
+	IP    int64
+}
 type GenCode struct {
 	symbolTable *SymbolTable
 	ins         []Instruction
 	statements  []ast.Statement
+	toLinks     []toLink
 }
 
 func NewGenCode(statements []ast.Statement) *GenCode {
 	return &GenCode{
-		symbolTable: &SymbolTable{
-			symbols:   []string{},
-			symbolMap: map[string]int64{},
-		},
-		ins:        nil,
-		statements: statements,
+		ins:         []Instruction{},
+		symbolTable: NewSymbolTable(),
+		statements:  statements,
 	}
 }
 
@@ -58,8 +60,8 @@ func (genCode *GenCode) genCodeStatement(statement runtime.Invokable) {
 	case *runtime.Object:
 		genCode.genLoadIns(statement.Label)
 	case ast.BinaryOpExpression:
-		genCode.genCodeStatement(statement.Right)
 		genCode.genCodeStatement(statement.Left)
+		genCode.genCodeStatement(statement.Right)
 		genCode.genOpCode(statement.OP)
 	case ast.VarAssignStatement:
 		genCode.genCodeStatement(statement.Exp)
@@ -71,8 +73,14 @@ func (genCode *GenCode) genCodeStatement(statement runtime.Invokable) {
 		genCode.genLoadIns(statement.Label)
 	case ast.IfStatement:
 		genCode.genIfStatement(statement)
+	case ast.Statements:
+		for _, next := range statement {
+			genCode.genCodeStatement(next)
+		}
+	case *ast.FuncCallStatement:
+		genCode.genFuncCallStatement(statement)
 	default:
-		log.Panicf("unknown statement %s",reflect.TypeOf(statement).String())
+		log.Panicf("unknown statement %s", reflect.TypeOf(statement).String())
 	}
 }
 
@@ -82,6 +90,18 @@ func (genCode *GenCode) genOpCode(op lexer.Type) {
 		genCode.pushIns(Instruction{
 			InstTyp: Add,
 		})
+	case lexer.LessType:
+		genCode.pushIns(Instruction{
+			InstTyp: Cmp,
+			CmpTyp:  Less,
+		})
+	case lexer.GreaterType:
+		genCode.pushIns(Instruction{
+			InstTyp: Cmp,
+			CmpTyp:  Greater,
+		})
+	default:
+		log.Panicf("unknown instruction %s", op.String())
 	}
 }
 
@@ -96,10 +116,22 @@ func (genCode *GenCode) genIfStatement(statement ast.IfStatement) {
 	genCode.genCodeStatement(statement.Check)
 	genCode.pushIns(Instruction{
 		InstTyp: Jump,
-		ValTyp:  0,
-		CmpTyp:  0,
-		Val:     0,
+		JumpTyp: RJump,
+		Val:     3,
 	})
+	genCode.pushIns(Instruction{
+		InstTyp: Push,
+		ValTyp:  Bool,
+		Val:     TRUE,
+	})
+	genCode.pushIns(Instruction{
+		InstTyp: Jump,
+		JumpTyp: RJump,
+	})
+	index := len(genCode.ins)
+	genCode.genCodeStatement(statement.Statements)
+	jumpTo := len(genCode.ins) - index + 1
+	genCode.ins[index-1].Val = int64(jumpTo)
 }
 
 func (genCode *GenCode) genLoadIns(label string) {
@@ -117,4 +149,37 @@ func (genCode *GenCode) String() string {
 		buffer.WriteString("\n")
 	}
 	return buffer.String()
+}
+
+func (genCode *GenCode) genFuncCallStatement(statement *ast.FuncCallStatement) {
+	//statement.ParentExp todo
+	for _, argument := range statement.Arguments {
+		genCode.genCodeStatement(argument)
+	}
+	genCode.pushIns(Instruction{
+		InstTyp: Push,
+		ValTyp:  Int,
+		Val:     int64(len(statement.Arguments)),
+	})
+	switch function := statement.Function.(type) {
+	case ast.GetVarStatement:
+		if index, ok := genCode.symbolTable.getSymbol(function.Label); ok {
+			genCode.pushIns(Instruction{
+				InstTyp: Call,
+				Val:     index,
+			})
+		} else {
+			genCode.pushIns(Instruction{
+				InstTyp: Jump,
+				JumpTyp: DJump,
+				Val:     0,
+			})
+			genCode.toLinks = append(genCode.toLinks, toLink{
+				label: function.Label,
+				IP:    int64(len(genCode.ins)),
+			})
+		}
+	default:
+		log.Panicf("unkown function type %s", reflect.TypeOf(function).String())
+	}
 }

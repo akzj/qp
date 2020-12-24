@@ -1,6 +1,7 @@
 package stackmachine
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"testing"
@@ -134,8 +135,7 @@ func TestJump(t *testing.T) {
 
 func TestIf(t *testing.T) {
 	/*
-		var a = 1
-
+		var a = 2
 		if a > 1{
 			print(a)
 		}
@@ -147,7 +147,7 @@ func TestIf(t *testing.T) {
 		{
 			InstTyp: Push,
 			ValTyp:  Int,
-			Val:     1,
+			Val:     2,
 		},
 		{
 			InstTyp: Store,
@@ -160,7 +160,7 @@ func TestIf(t *testing.T) {
 		{
 			InstTyp: Push,
 			ValTyp:  Int,
-			Val:     0,
+			Val:     1,
 		},
 		{
 			InstTyp: Cmp,
@@ -168,7 +168,8 @@ func TestIf(t *testing.T) {
 		},
 		{
 			InstTyp: Jump,
-			Val:     8,
+			Val:     3,
+			JumpTyp: RJump,
 		},
 		{
 			InstTyp: Push,
@@ -177,7 +178,8 @@ func TestIf(t *testing.T) {
 		},
 		{
 			InstTyp: Jump,
-			Val:     11,
+			Val:     4,
+			JumpTyp: RJump,
 		},
 		{
 			InstTyp: Load,
@@ -190,9 +192,10 @@ func TestIf(t *testing.T) {
 		},
 		{
 			InstTyp: Call,
-			Val:     0,
+			Val:     1,
 		},
 	}
+	fmt.Println(m.String())
 	m.Run()
 }
 

@@ -1,7 +1,7 @@
 package stackmachine
 
 import (
-	"fmt"
+	"bytes"
 	"log"
 	"strconv"
 )
@@ -9,14 +9,15 @@ import (
 type InstType byte
 type ValType byte
 type CmpType byte
+type JumpType byte
 
 const (
-	Less      CmpType = 0 + iota // <
-	LessEQ                       // <=
-	Greater                      // >
-	GreaterEQ                    // >=
+	Less      CmpType = iota // <
+	LessEQ                   // <=
+	Greater                  // >
+	GreaterEQ                // >=
 
-	Push InstType = 0 + iota
+	Push InstType = iota
 	Pop
 	Add
 	Sub
@@ -29,16 +30,29 @@ const (
 
 	TRUE  int64 = 1
 	FALSE int64 = 0
-)
-const (
-	Int ValType = 0 + iota
+
+	Int ValType = iota
 	Bool
 	Mem
+
+	DJump JumpType = 0
+	RJump JumpType = 1
 )
 
 type SymbolTable struct {
 	symbols   []string
 	symbolMap map[string]int64
+}
+
+func NewSymbolTable() *SymbolTable {
+	st := &SymbolTable{
+		symbols:   []string{},
+		symbolMap: map[string]int64{},
+	}
+	for _, function := range BuiltInFunctions {
+		st.addSymbol(function.Name)
+	}
+	return st
 }
 
 func (t *SymbolTable) addSymbol(s string) int64 {
@@ -52,10 +66,16 @@ func (t *SymbolTable) addSymbol(s string) int64 {
 	return index
 }
 
+func (t *SymbolTable) getSymbol(s string) (int64, bool) {
+	index, ok := t.symbolMap[s]
+	return index, ok
+}
+
 type Instruction struct {
 	InstTyp InstType
 	ValTyp  ValType
 	CmpTyp  CmpType
+	JumpTyp JumpType
 	Val     int64
 }
 
@@ -66,7 +86,11 @@ func (i Instruction) String(table *SymbolTable) string {
 	case Sub:
 		return "sub"
 	case Jump:
-		return "jump " + strconv.FormatInt(i.Val, 10)
+		if i.JumpTyp == DJump {
+			return "jump D " + strconv.FormatInt(i.Val, 10)
+		} else {
+			return "jump R " + strconv.FormatInt(i.Val, 10)
+		}
 	case Push:
 		return "push " + strconv.FormatInt(i.Val, 10)
 	case Pop:
@@ -94,31 +118,29 @@ func (i Instruction) String(table *SymbolTable) string {
 	panic("unknown instruction")
 }
 
-type ValObject struct {
+type Object struct {
 	VType ValType
 	Val   int64
 }
 
 type Machine struct {
 	symbolTable  *SymbolTable
-	stack        []ValObject
+	heap         []Object
+	stack        []Object
 	stackPointer int64
 	instructions []Instruction
 	IP           int64
-	mem          map[string]ValObject
+	mem          map[string]Object
 }
 
 func New() *Machine {
 	return &Machine{
-		symbolTable: &SymbolTable{
-			symbols:   []string{},
-			symbolMap: map[string]int64{},
-		},
-		stack:        make([]ValObject, 1024*1024),
+		symbolTable:  NewSymbolTable(),
+		stack:        make([]Object, 1024*1024),
 		stackPointer: -1,
 		instructions: nil,
 		IP:           0,
-		mem:          map[string]ValObject{},
+		mem:          map[string]Object{},
 	}
 }
 
@@ -129,7 +151,7 @@ func (m *Machine) Run() {
 		switch ins.InstTyp {
 		case Push:
 			m.stackPointer++
-			m.stack[m.stackPointer] = ValObject{
+			m.stack[m.stackPointer] = Object{
 				VType: ins.ValTyp,
 				Val:   ins.Val,
 			}
@@ -140,7 +162,7 @@ func (m *Machine) Run() {
 			m.stackPointer--
 			operand1 := m.stack[m.stackPointer]
 			m.stackPointer--
-			var result ValObject
+			var result Object
 			switch operand1.VType {
 			case Int:
 				switch operand1.VType {
@@ -210,7 +232,11 @@ func (m *Machine) Run() {
 			}
 			if check.Val == TRUE {
 				//				log.Println("true",ins.Val)
-				m.IP = ins.Val
+				if ins.JumpTyp == DJump {
+					m.IP = ins.Val
+				} else {
+					m.IP += ins.Val
+				}
 				continue
 			}
 			log.Println("false")
@@ -220,16 +246,23 @@ func (m *Machine) Run() {
 	}
 }
 
-func (m *Machine) store(symbol string, val ValObject) {
+func (m *Machine) store(symbol string, val Object) {
 	m.mem[symbol] = val
 }
 
-func (m *Machine) CallFunc(funcIndex int64, object ...ValObject) {
-	if funcIndex == 0 {
-		fmt.Println(object)
-	}
+func (m *Machine) CallFunc(funcIndex int64, object ...Object) {
+	BuiltInFunctions[funcIndex].Call(object...)
 }
 
-func (m *Machine) load(symbol string) ValObject {
+func (m *Machine) load(symbol string) Object {
 	return m.mem[symbol]
+}
+
+func (m *Machine) String() string {
+	var buffer bytes.Buffer
+	for _, it := range m.instructions {
+		buffer.WriteString(it.String(m.symbolTable))
+		buffer.WriteString("\n")
+	}
+	return buffer.String()
 }
