@@ -589,7 +589,7 @@ func (p *Parser) ahead(index int) lexer.Token {
 }
 
 func (p *Parser) parseCallStatement(parentExp, function runtime.Invokable) runtime.Invokable {
-	var call ast.FuncCallStatement
+	var call ast.CallStatement
 	call.Function = function
 	call.ParentExp = parentExp
 	for {

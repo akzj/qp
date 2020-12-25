@@ -41,6 +41,40 @@ println(1+1)
 	fmt.Println(GC.Gen(statements))
 }
 
+func TestGenReturnVal(t *testing.T) {
+	script := `
+func fib(left){
+	if left < 2 {
+		return left
+	}
+	var a = fib(left-2)
+	println(a)
+	println(left)
+	var b = fib(left-1)
+	println(b)
+	return  a + b
+}
+var a = fib(2)
+println(a)
+`
+	parser := parser.New(script)
+
+	statements := parser.Parse()
+	vm := parser.GetVMContext()
+	objects := vm.Objects()
+	for _, it := range objects {
+		statements = append(statements, it)
+	}
+	GC := NewGenCode()
+	fmt.Println(GC.Gen(statements))
+
+	m := New()
+	m.instructions = GC.ins
+	m.symbolTable = GC.symbolTable
+
+	m.Run()
+}
+
 func TestGenFuncStatement(t *testing.T) {
 	script := `
 

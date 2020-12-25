@@ -109,13 +109,13 @@ type getObjectObjectStatement struct {
 	labels    []string
 }
 
-type FuncCallStatement struct {
+type CallStatement struct {
 	ParentExp runtime.Invokable
 	Function  runtime.Invokable
 	Arguments Statements
 }
 
-func (f *FuncCallStatement) String() string {
+func (f *CallStatement) String() string {
 	var str = f.Function.String() + "("
 	for index, statement := range f.Arguments {
 		if index != 0 {
@@ -467,7 +467,7 @@ func (Statements) GetType() lexer.Type {
 	return lexer.StatementsType
 }
 
-func (f *FuncCallStatement) Invoke() runtime.Invokable {
+func (f *CallStatement) Invoke() runtime.Invokable {
 	exp := f.Function.Invoke()
 	switch obj := exp.(type) {
 	case *runtime.Object:
@@ -516,8 +516,8 @@ func (f *FuncCallStatement) Invoke() runtime.Invokable {
 	return nil
 }
 
-func (f *FuncCallStatement) GetType() lexer.Type {
-	return lexer.FuncType
+func (f *CallStatement) GetType() lexer.Type {
+	return lexer.CallType
 }
 
 func (f GetVarStatement) Invoke() runtime.Invokable {

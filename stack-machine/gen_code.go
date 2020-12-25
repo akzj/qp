@@ -105,6 +105,10 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 		genCode.genOpCode(statement.OP)
 	case ast.VarAssignStatement:
 		genCode.genStatement(statement.Exp)
+		if statement.Exp.GetType() == lexer.CallType {
+			genCode.pushIns(Instruction{InstTyp: LoadR})
+		}
+		log.Println(statement.Exp.GetType())
 		genCode.genStoreIns(statement.Name)
 	case ast.VarStatement:
 		genCode.genStatement(statement.Exp)
@@ -117,11 +121,13 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 		for _, next := range statement {
 			genCode.genStatement(next)
 		}
-	case *ast.FuncCallStatement:
+	case *ast.CallStatement:
 		genCode.genFuncCallStatement(statement)
 	case ast.NopStatement:
 	case *ast.FuncStatement:
 		genCode.genFuncStatement(statement)
+	case ast.ReturnStatement:
+		genCode.genReturnStatement(statement)
 	default:
 		log.Panicf("unknown statement %s", reflect.TypeOf(statement).String())
 	}
@@ -142,6 +148,10 @@ func (genCode *GenCode) genOpCode(op lexer.Type) {
 		genCode.pushIns(Instruction{
 			InstTyp: Cmp,
 			CmpTyp:  Greater,
+		})
+	case lexer.SubType:
+		genCode.pushIns(Instruction{
+			InstTyp: Sub,
 		})
 	default:
 		log.Panicf("unknown instruction %s", op.String())
@@ -185,7 +195,7 @@ func (genCode *GenCode) genLoadIns(label string) {
 	})
 }
 
-func (genCode *GenCode) genFuncCallStatement(statement *ast.FuncCallStatement) {
+func (genCode *GenCode) genFuncCallStatement(statement *ast.CallStatement) {
 	//statement.ParentExp todo
 	switch function := statement.Function.(type) {
 	case ast.GetVarStatement:
@@ -285,6 +295,14 @@ func (genCode *GenCode) prepareGenFunction(label string) func() {
 		genCode.ins = ins
 		genCode.toLinks = toLink
 	}
+}
+
+func (genCode *GenCode) genReturnStatement(statement ast.ReturnStatement) {
+	genCode.genStatement(statement.Exp)
+	genCode.pushIns(Instruction{
+		InstTyp: StoreR,
+	})
+	genCode.pushIns(Instruction{InstTyp: Ret})
 }
 
 func (genCode *GenCode) GenExit() {

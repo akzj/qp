@@ -304,7 +304,7 @@ func TestFunc(t *testing.T) {
 		{
 			InstTyp: Push,
 			ValTyp:  Int,
-			Val:     5,
+			Val:     5, //return IP
 		},
 		{
 			InstTyp: Push,
@@ -366,6 +366,37 @@ func TestFunc(t *testing.T) {
 		{
 			InstTyp: Ret,
 		},
+	}
+	m.Run()
+}
+
+func TestReturnVal(t *testing.T) {
+	/*
+		func fib() {
+			return 1
+		}
+		var a = fib()
+		println(a)
+	*/
+
+	var m = New()
+	a1 := m.symbolTable.addSymbol("a")
+	m.instructions = []Instruction{
+		{
+			InstTyp: Push,
+			ValTyp:  Int,
+			Val:     1,
+		},
+		{
+			InstTyp: Store,
+			Val: a1,
+		},
+		{
+			InstTyp: Load,
+			Val: a1,
+		},
+
+
 	}
 	m.Run()
 

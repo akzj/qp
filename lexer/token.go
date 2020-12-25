@@ -67,7 +67,7 @@ func (t Type) String() string {
 		return ","
 	case IncType:
 		return "++"
-	case CallFunctionType:
+	case CallType:
 		return "call"
 	case SemicolonType:
 		return ";"
@@ -188,7 +188,7 @@ const IDType Type = 5000                       // name
 const StatementType Type = 6001                // statement
 const StatementsType Type = 6003               // StatementType
 const ExpressionType Type = 6002               // ExpressionType
-const CallFunctionType Type = 6004             // call function
+const CallType Type = 6004                     // call function
 const NopStatementType Type = 6005             // nop
 const AssignStatementType Type = 6006          // =
 const ObjectType Type = 100000                 // objects

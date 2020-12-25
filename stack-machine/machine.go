@@ -31,6 +31,8 @@ const (
 	Ret
 	Label
 	Exit
+	StoreR // stack -> register
+	LoadR  // register -> stack
 
 	TRUE  int64 = 1
 	FALSE int64 = 0
@@ -39,6 +41,7 @@ const (
 	Bool
 	Mem
 	IP
+	R
 
 	DJump JumpType = 0
 	RJump JumpType = 1
@@ -111,8 +114,12 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 		return "pop"
 	case Load:
 		return "load " + table.symbols[i.Val]
+	case LoadR:
+		return "loadR"
 	case Store:
 		return "store " + table.symbols[i.Val]
+	case StoreR:
+		return "storeR"
 	case Call:
 		return "call " + builtIn.symbols[i.Val]
 	case Ret:
@@ -165,23 +172,34 @@ type Machine struct {
 	instructions       []Instruction
 	IP                 int64
 	mem                map[string]Object
+
+	R1 Object //return val
 }
 
 func New() *Machine {
 	return &Machine{
-		symbolTable:  NewSymbolTable(),
-		stack:        make([]Object, 1024*1024),
-		stackPointer: -1,
-		instructions: nil,
-		IP:           0,
-		mem:          map[string]Object{},
+		symbolTable:        NewSymbolTable(),
+		builtInSymbolTable: getBuiltInSymbolTable(),
+		stack:              make([]Object, 1024*1024),
+		stackPointer:       -1,
+		instructions:       nil,
+		IP:                 0,
+		mem:                map[string]Object{},
 	}
+}
+
+func getBuiltInSymbolTable() *SymbolTable {
+	table := NewSymbolTable()
+	for _, builtIn := range BuiltInFunctions {
+		table.addSymbol(builtIn.Name)
+	}
+	return table
 }
 
 func (m *Machine) Run() {
 	for m.IP < int64(len(m.instructions)) {
 		ins := m.instructions[m.IP]
-		//	log.Println(ins)
+		log.Println(ins.String(m.symbolTable, m.builtInSymbolTable))
 		switch ins.InstTyp {
 		case Push:
 			m.stackPointer++
@@ -252,6 +270,13 @@ func (m *Machine) Run() {
 			m.stackPointer--
 			symbol := m.symbolTable.symbols[ins.Val]
 			m.store(symbol, val)
+		case StoreR:
+			arguments := m.stack[m.stackPointer]
+			m.stackPointer--
+			m.R1 = arguments
+		case LoadR:
+			m.stackPointer++
+			m.stack[m.stackPointer] = m.R1
 		case Load:
 			symbol := m.symbolTable.symbols[ins.Val]
 			val := m.load(symbol)
