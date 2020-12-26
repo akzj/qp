@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 )
 
 type Function struct {
@@ -42,6 +43,16 @@ func __panic(object ...Object) []Object {
 	return nil
 }
 
+func __now__(object ...Object) []Object {
+	now := time.Now()
+	return []Object{
+		{
+			VType: Time,
+			time:  &now,
+		},
+	}
+}
+
 var BuiltInFunctionsIndex = map[string]int64{}
 
 var BuiltInFunctions = []Function{
@@ -56,6 +67,10 @@ var BuiltInFunctions = []Function{
 	{
 		Name: "panic",
 		Call: __panic,
+	},
+	{
+		Name: "now",
+		Call: __now__,
 	},
 	{
 		Name: "string.to_lower",

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 )
 
 type InstType byte
@@ -33,12 +34,12 @@ const (
 	Ret
 	Label
 	Exit
-	ResetStack // reset stack
-	StoreR     // stack -> register
-	LoadR      // register -> stack
-	PushS      // set stack base point
-	PopS       // pop stack
-	LoadO      // load from object
+	IncStack  // update stack
+	StoreR    // stack -> register
+	LoadR     // register -> stack
+	MakeStack // make stack for function call
+	PopStack  // pop stack for return function call
+	LoadO     // load from object
 
 	TRUE  int64 = 1
 	FALSE int64 = 0
@@ -49,6 +50,8 @@ const (
 	IP
 	String
 	Func
+	Time
+	Duration
 
 	DJump JumpType = 0
 	RJump JumpType = 1
@@ -121,8 +124,8 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 				return "push false"
 			}
 		} else if i.ValTyp == String {
-			return "push \"" + i.Str+"\""
-		}else{
+			return "push \"" + i.Str + "\""
+		} else {
 			panic(i.ValTyp)
 		}
 	case Exit:
@@ -147,12 +150,12 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 		return "return"
 	case Label:
 		return table.symbols[i.symbol] + ":"
-	case ResetStack:
+	case IncStack:
 		return "reset " + strconv.FormatInt(i.Val, 10)
-	case PushS:
-		return "PushS"
-	case PopS:
-		return "pops"
+	case MakeStack:
+		return "make_stack"
+	case PopStack:
+		return "pop_stack"
 	case Cmp:
 		switch i.CmpTyp {
 		case Less:
@@ -167,7 +170,7 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 			return "cmp =="
 		}
 	}
-	log.Panicln("unknown instruction",i)
+	log.Panicln("unknown instruction", i)
 	return ""
 }
 
@@ -175,6 +178,7 @@ type Object struct {
 	VType ValType
 	Val   int64
 	Str   string
+	time  *time.Time
 }
 
 func (o Object) String() string {
@@ -188,6 +192,10 @@ func (o Object) String() string {
 		}
 	} else if o.VType == String {
 		return o.Str
+	} else if o.VType == Time {
+		return o.time.String()
+	} else if o.VType == Duration {
+		return time.Duration(o.Val).String()
 	} else {
 		return fmt.Sprintf("{%d %d}", o.VType, o.Val)
 	}
@@ -235,7 +243,7 @@ func getBuiltInSymbolTable() *SymbolTable {
 func (m *Machine) Run() {
 	for m.IP < int64(len(m.instructions)) {
 		ins := m.instructions[m.IP]
-//		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
+		//		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
 		switch ins.InstTyp {
 		case Push:
 			m.SP++
@@ -257,19 +265,15 @@ func (m *Machine) Run() {
 			}
 		case Pop:
 			m.SP--
-		case PushS:
+		case MakeStack:
 			m.stackFrames = append(m.stackFrames, StackFrame{SP: m.SP, stack: m.stack})
 			m.stack = m.stack[m.SP+1:]
 			m.SP = -1
-			//log.Println(m.stackFrames[len(m.stackFrames)-1])
-		case PopS:
-			//			log.Println(m.SP, m.stack[:m.SP+1])
-			//log.Println(m.stackFrames[len(m.stackFrames)-1])
+		case PopStack:
 			frame := m.stackFrames[len(m.stackFrames)-1]
 			m.stack = frame.stack
 			m.SP = frame.SP
 			m.stackFrames = m.stackFrames[:len(m.stackFrames)-1]
-			//		log.Println(m.SP, m.stack[:m.SP+1])
 		case Add, Sub, Cmp:
 			operand2 := m.stack[m.SP]
 			m.SP--
@@ -278,7 +282,7 @@ func (m *Machine) Run() {
 			var result Object
 			switch operand1.VType {
 			case Int:
-				switch operand1.VType {
+				switch operand2.VType {
 				case Int:
 					switch ins.InstTyp {
 					case Cmp:
@@ -315,6 +319,15 @@ func (m *Machine) Run() {
 						result.Val = operand1.Val - operand2.Val
 					}
 				}
+			case Time:
+				switch operand2.VType {
+				case Time:
+					switch ins.InstTyp {
+					case Sub:
+						result.VType = Duration
+						result.Val = int64(operand1.time.Sub(*operand2.time))
+					}
+				}
 			}
 			//log.Println(operand1, operand2, result)
 			m.SP++
@@ -323,12 +336,8 @@ func (m *Machine) Run() {
 			val := m.stack[m.SP]
 			m.SP--
 			m.stack[ins.Val] = val
-		case ResetStack:
-			if ins.ResetStackTyp == ResetStackR {
-				m.SP -= ins.Val
-			} else {
-				m.SP = ins.Val
-			}
+		case IncStack:
+			m.SP += ins.Val
 		case StoreR:
 			object := m.stack[m.SP]
 			m.SP--
@@ -401,7 +410,7 @@ func (m *Machine) Run() {
 			//			log.Println("false")
 		}
 		m.IP++
-//		log.Println(m.stack[:m.SP+1])
+		//		log.Println(m.stack[:m.SP+1])
 	}
 }
 

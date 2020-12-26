@@ -21,7 +21,6 @@ type FuncInstruction struct {
 }
 
 type StackManager struct {
-	IP         int
 	stack      []string
 	stackFrame []struct {
 		stack []string
@@ -40,8 +39,6 @@ func (s *StackManager) Store(symbol string) int64 {
 				log.Panicln("redefine symbol", symbol, s.stackFrame, s.stack)
 			}
 		}
-	} else {
-		s.IP++
 	}
 	s.stack = append(s.stack, symbol)
 	return int64(len(s.stack)) - 1
@@ -261,6 +258,7 @@ func (genCode *GenCode) genForStatement(statement ast.ForStatement) {
 	begin := len(genCode.ins)
 	genCode.genStatement(statement.Check)
 
+	baseSP := genCode.sm.SP()
 	genCode.pushIns(Instruction{
 		InstTyp: Jump,
 		JumpTyp: RJump,
@@ -280,6 +278,10 @@ func (genCode *GenCode) genForStatement(statement ast.ForStatement) {
 	//if statement
 	genCode.genStatement(statement.Statements)
 
+	genCode.pushIns(Instruction{
+		InstTyp: IncStack,
+		Val:     baseSP - genCode.sm.SP(),
+	})
 	genCode.genStatement(statement.Post)
 
 	genCode.pushIns(Instruction{
@@ -290,7 +292,7 @@ func (genCode *GenCode) genForStatement(statement ast.ForStatement) {
 	genCode.pushIns(Instruction{
 		InstTyp: Jump,
 		JumpTyp: RJump,
-		Val:     int64(begin  - len(genCode.ins)),
+		Val:     int64(begin - len(genCode.ins)),
 	})
 
 	//fix jump val
@@ -316,7 +318,6 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 		var II = int64(len(genCode.ins))
 		index, ok := genCode.builtSymbolTable.getSymbol(function.Label)
 		if ok == false { // push IP to stack for return
-			//genCode.sm.Store("")
 			genCode.pushIns(Instruction{InstTyp: Push, ValTyp: IP})
 		}
 		var R int64
@@ -339,7 +340,7 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 		}
 		if ok == false {
 			genCode.pushIns(Instruction{
-				InstTyp: PushS,
+				InstTyp: MakeStack,
 			})
 		}
 		if ok {
@@ -365,7 +366,6 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 			genCode.ins[II].Val = int64(len(genCode.ins)) - II
 		}
 	case ast.PeriodStatement:
-		//log.Println(reflect.TypeOf(statement.ParentExp).String())
 		genCode.genStatement(statement.ParentExp)
 		genCode.genStatement(statement.Function)
 		genCode.pushIns(Instruction{
@@ -435,7 +435,7 @@ func (genCode *GenCode) genFuncStatement(statement *ast.FuncStatement) {
 	switch last.(type) {
 	case ast.ReturnStatement:
 	default:
-		genCode.pushIns(Instruction{InstTyp: PopS})
+		genCode.pushIns(Instruction{InstTyp: PopStack})
 		genCode.pushIns(Instruction{InstTyp: Ret})
 	}
 }
@@ -465,7 +465,7 @@ func (genCode *GenCode) genReturnStatement(statement ast.ReturnStatement) {
 		InstTyp: StoreR,
 		Val:     1,
 	})
-	genCode.pushIns(Instruction{InstTyp: PopS})
+	genCode.pushIns(Instruction{InstTyp: PopStack})
 	genCode.pushIns(Instruction{InstTyp: Ret})
 }
 

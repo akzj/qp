@@ -98,10 +98,32 @@ hello(4,5,6)
 	runScript(script)
 }
 
+func TestGenTime(t *testing.T) {
+	runScript(`
+var a = now()
+var b = now()
+println(b-a)
+`)
+}
+
 func TestGenFor(t *testing.T) {
 	runScript(`
-for var i = 0; i < 5; i++ {
-	println(i)
+
+func fib(a){
+	if a < 2 {
+		return a
+	}
+	return fib(a-1) + fib(a-2)
+}
+
+println("num|result|time")
+println("---|------|-----")
+
+for var i = 0; i < 36; i++ {
+	var s = now()
+	var b = fib(i)
+	var e = now()
+	println(i,"|",b,"|",e-s)
 }
 
 `)
