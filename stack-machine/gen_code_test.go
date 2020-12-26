@@ -44,9 +44,11 @@ println(a)
 func TestGenCallCode(t *testing.T) {
 	script := `
 var a = "HELLO"
-var b = a.to_lower(1)
+a.to_lower()
 var c = 1
-println(a,b,c)
+println(a,c)
+var d = 2
+println(d)
 `
 	parser := parser.New(script)
 
@@ -72,9 +74,9 @@ func fib(a){
 	if a < 2 {
 		return a
 	}
-	return fib(a-1)  + fib(a-2)
+	return fib(a-1) + fib(a-2)
 }
-var a = fib(35)
+var a = fib(29)
 println("35",a)
 `
 	parser := parser.New(script)
@@ -94,7 +96,6 @@ println("35",a)
 
 	m.Run()
 }
-
 
 func TestGenFuncStatement(t *testing.T) {
 	script := `

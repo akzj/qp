@@ -144,10 +144,19 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 		genCode.genObject(statement)
 	case ast.BinaryOpExpression:
 		genCode.genStatement(statement.Left)
+		if statement.Left.GetType() == lexer.CallType {
+			genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
+		}
 		genCode.genStatement(statement.Right)
+		if statement.Right.GetType() == lexer.CallType {
+			genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
+		}
 		genCode.genOpCode(statement.OP)
 	case ast.VarAssignStatement:
 		genCode.genStatement(statement.Exp)
+		if statement.Exp.GetType() == lexer.CallType {
+			genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
+		}
 		genCode.genStoreIns(statement.Name)
 	case ast.VarStatement:
 		genCode.genStatement(statement.Exp)
@@ -182,9 +191,6 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 		})
 	default:
 		log.Panicf("unknown statement %s", reflect.TypeOf(statement).String())
-	}
-	if statement.GetType() == lexer.CallType {
-		genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
 	}
 }
 
@@ -370,11 +376,17 @@ func (genCode *GenCode) genFuncStatement(statement *ast.FuncStatement) {
 		log.Println(statement.Parameters[i], index)
 	}
 
+	var last runtime.Invokable
 	for _, statement := range statement.Statements {
 		genCode.genStatement(statement)
+		last = statement
 	}
-	genCode.pushIns(Instruction{InstTyp: PopS})
-	genCode.pushIns(Instruction{InstTyp: Ret})
+	switch last.(type) {
+	case ast.ReturnStatement:
+	default:
+		genCode.pushIns(Instruction{InstTyp: PopS})
+		genCode.pushIns(Instruction{InstTyp: Ret})
+	}
 }
 
 func (genCode *GenCode) prepareGenFunction(label string) func() {
@@ -395,6 +407,9 @@ func (genCode *GenCode) prepareGenFunction(label string) func() {
 
 func (genCode *GenCode) genReturnStatement(statement ast.ReturnStatement) {
 	genCode.genStatement(statement.Exp)
+	if statement.Exp.GetType() == lexer.CallType {
+		genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
+	}
 	genCode.pushIns(Instruction{
 		InstTyp: StoreR,
 		Val:     1,
