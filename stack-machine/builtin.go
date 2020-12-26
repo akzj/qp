@@ -24,10 +24,10 @@ func __println(object ...Object) []Object {
 }
 
 func __tLower_(object ...Object) []Object {
-	o := strings.ToLower(object[0].Str)
+	o := strings.ToLower(object[0].obj.(string))
 	return []Object{
 		{
-			Str:   o,
+			obj:   o,
 			VType: String,
 		},
 	}
@@ -48,7 +48,7 @@ func __now__(object ...Object) []Object {
 	return []Object{
 		{
 			VType: Time,
-			time:  &now,
+			obj:   now,
 		},
 	}
 }
