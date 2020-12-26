@@ -3,60 +3,15 @@ package stackmachine
 import (
 	"fmt"
 	"gitlab.com/akzj/qp/parser"
+	"log"
 	"testing"
 )
 
-func TestGenStoreIns(t *testing.T) {
-	script := `
-var a = 2
-if a > 1{
-	print(a)
-}
-`
-
-	/*
-		push 2
-		store a
-		load a
-		push 1
-		cmp >
-		jump R 3
-		push 1
-		jump R 4
-		load a
-		push 1
-		call println
-	*/
-	statements := parser.New(script).Parse()
-	GC := NewGenCode()
-	fmt.Println(GC.Gen(statements))
+func init() {
+	log.SetFlags(log.Lshortfile)
 }
 
-func TestGenCallCode(t *testing.T) {
-	script := `
-println(1+1)
-`
-	statements := parser.New(script).Parse()
-	GC := NewGenCode()
-	fmt.Println(GC.Gen(statements))
-}
-
-func TestGenReturnVal(t *testing.T) {
-	script := `
-func fib(left){
-	if left < 2 {
-		return left
-	}
-	var a = fib(left-2)
-	println(a)
-	println(left)
-	var b = fib(left-1)
-	println(b)
-	return  a + b
-}
-var a = fib(2)
-println(a)
-`
+func runScript(script string) {
 	parser := parser.New(script)
 
 	statements := parser.Parse()
@@ -75,11 +30,56 @@ println(a)
 	m.Run()
 }
 
+func TestGenStoreIns(t *testing.T) {
+	script := `
+var a = 1
+func test(b,c){
+	var a = 1000 + b
+	println(b,c)
+	println(a)
+}
+test(2,3)
+println(a)
+`
+	runScript(script)
+}
+
+func TestGenCallCode(t *testing.T) {
+	script := `
+var a = "HELLO"
+a.to_lower()
+var c = 1
+println(a,c)
+var d = 2
+println(d)
+`
+	runScript(script)
+}
+
+func TestGenReturnVal(t *testing.T) {
+	script := `
+func fib(a){
+	if a < 2 {
+		return a
+	}
+	return fib(a-1) + fib(a-2)
+}
+var a = fib(29)
+println("35",a)
+`
+	runScript(script)
+}
+
 func TestGenFuncStatement(t *testing.T) {
 	script := `
 
+func hello4(a,b,c){
+	println(a,b,c)
+}
+
 func hello3(a,b,c){
 	println(a,b,c)
+	hello4(b,c,a)
 }
 
 func hello2(a,b,c){
@@ -92,24 +92,39 @@ func hello(a,b,c){
 	hello2(b,c,a)
 }
 
-hello(1,2,3)
 hello(4,5,6)
 `
 
-	parser := parser.New(script)
+	runScript(script)
+}
 
-	statements := parser.Parse()
-	vm := parser.GetVMContext()
-	objects := vm.Objects()
-	for _, it := range objects {
-		statements = append(statements, it)
+func TestGenTime(t *testing.T) {
+	runScript(`
+var a = now()
+var b = now()
+println(b-a)
+`)
+}
+
+func TestGenFor(t *testing.T) {
+	runScript(`
+
+func fib(a){
+	if a < 2 {
+		return a
 	}
-	GC := NewGenCode()
-	fmt.Println(GC.Gen(statements))
+	return fib(a-1) + fib(a-2)
+}
 
-	m := New()
-	m.instructions = GC.ins
-	m.symbolTable = GC.symbolTable
+println("num|result|time")
+println("---|------|-----")
 
-	m.Run()
+for var i = 0; i < 36; i++ {
+	var s = now()
+	var b = fib(i)
+	var e = now()
+	println(i,"|",b,"|",e-s)
+}
+
+`)
 }

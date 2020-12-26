@@ -204,7 +204,7 @@ type ForStatement struct {
 	Statements Statements
 }
 
-func (f *ForStatement) String() string {
+func (f ForStatement) String() string {
 	return "for"
 }
 
@@ -418,7 +418,7 @@ func (n NopStatement) GetType() lexer.Type {
 	return lexer.NopStatementType
 }
 
-func (f *ForStatement) Invoke() runtime.Invokable {
+func (f ForStatement) Invoke() runtime.Invokable {
 	f.VM.PushStackFrame(false) //make stack frame
 
 	//make for brock stack
@@ -449,7 +449,7 @@ func (f *ForStatement) Invoke() runtime.Invokable {
 	}
 }
 
-func (f *ForStatement) GetType() lexer.Type {
+func (f ForStatement) GetType() lexer.Type {
 	return lexer.ForType
 }
 
