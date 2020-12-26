@@ -64,7 +64,7 @@ func fib(a){
 	}
 	return fib(a-1) + fib(a-2)
 }
-var a = fib(29)
+var a = fib(35)
 println("35",a)
 `
 	runScript(script)

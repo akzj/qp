@@ -177,8 +177,7 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 type Object struct {
 	VType ValType
 	Val   int64
-	Str   string
-	time  *time.Time
+	obj   interface{}
 }
 
 func (o Object) String() string {
@@ -191,9 +190,9 @@ func (o Object) String() string {
 			return "false"
 		}
 	} else if o.VType == String {
-		return o.Str
+		return o.obj.(string)
 	} else if o.VType == Time {
-		return o.time.String()
+		return o.obj.(time.Time).String()
 	} else if o.VType == Duration {
 		return time.Duration(o.Val).String()
 	} else {
@@ -253,9 +252,10 @@ func (m *Machine) Run() {
 					Val:   m.IP + ins.Val, //return addr
 				}
 			} else if ins.ValTyp == String {
+				str := ins.Str
 				m.stack[m.SP] = Object{
 					VType: ins.ValTyp,
-					Str:   ins.Str,
+					obj:   str,
 				}
 			} else {
 				m.stack[m.SP] = Object{
@@ -325,7 +325,7 @@ func (m *Machine) Run() {
 					switch ins.InstTyp {
 					case Sub:
 						result.VType = Duration
-						result.Val = int64(operand1.time.Sub(*operand2.time))
+						result.Val = int64(operand1.obj.(time.Time).Sub(operand2.obj.(time.Time)))
 					}
 				}
 			}
