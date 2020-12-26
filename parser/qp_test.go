@@ -651,7 +651,7 @@ func fib(left){
 
 println("num|result|take time")
 println("---|------|---------")
-for var num = 20; num < 30; num++ {
+for var num = 35; num < 36; num++ {
 	var begin = now()
 	println(num,"|",fib(num),"|",now() - begin)
 }

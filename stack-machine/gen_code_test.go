@@ -8,28 +8,32 @@ import (
 
 func TestGenStoreIns(t *testing.T) {
 	script := `
-var a = 2
-if a > 1{
-	print(a)
+var a = 1
+func test(b,c){
+	var a = 1000 + b
+	println(b,c)
+	println(a)
 }
+test(2,3)
+println(a)
 `
 
-	/*
-		push 2
-		store a
-		load a
-		push 1
-		cmp >
-		jump R 3
-		push 1
-		jump R 4
-		load a
-		push 1
-		call println
-	*/
-	statements := parser.New(script).Parse()
+	parser := parser.New(script)
+
+	statements := parser.Parse()
+	vm := parser.GetVMContext()
+	objects := vm.Objects()
+	for _, it := range objects {
+		statements = append(statements, it)
+	}
 	GC := NewGenCode()
 	fmt.Println(GC.Gen(statements))
+
+	m := New()
+	m.instructions = GC.ins
+	m.symbolTable = GC.symbolTable
+
+	m.Run()
 }
 
 func TestGenCallCode(t *testing.T) {
@@ -43,18 +47,16 @@ println(1+1)
 
 func TestGenReturnVal(t *testing.T) {
 	script := `
-func fib(left){
-	if left < 2 {
-		return left
+func fib(a){
+	if a < 2 {
+		return a
 	}
-	var a = fib(left-2)
-	println(a)
-	println(left)
-	var b = fib(left-1)
-	println(b)
-	return  a + b
+	//println(a)
+	var b = fib(a-1)
+	var c = fib(a-2)
+	return  b+c
 }
-var a = fib(2)
+var a = fib(35)
 println(a)
 `
 	parser := parser.New(script)
@@ -78,13 +80,9 @@ println(a)
 func TestGenFuncStatement(t *testing.T) {
 	script := `
 
-func hello3(a,b,c){
-	println(a,b,c)
-}
 
 func hello2(a,b,c){
 	println(a,b,c)
-	hello3(b,c,a)
 }
 
 func hello(a,b,c){
@@ -92,7 +90,6 @@ func hello(a,b,c){
 	hello2(b,c,a)
 }
 
-hello(1,2,3)
 hello(4,5,6)
 `
 
