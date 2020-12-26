@@ -51,10 +51,7 @@ func fib(a){
 	if a < 2 {
 		return a
 	}
-	//println(a)
-	var b = fib(a-1)
-	var c = fib(a-2)
-	return  b+c
+	return fib(a-1)  + fib(a-2)
 }
 var a = fib(35)
 println(a)
@@ -76,6 +73,7 @@ println(a)
 
 	m.Run()
 }
+
 
 func TestGenFuncStatement(t *testing.T) {
 	script := `

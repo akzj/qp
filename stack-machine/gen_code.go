@@ -148,9 +148,6 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 		genCode.genOpCode(statement.OP)
 	case ast.VarAssignStatement:
 		genCode.genStatement(statement.Exp)
-		if statement.Exp.GetType() == lexer.CallType {
-			genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
-		}
 		genCode.genStoreIns(statement.Name)
 	case ast.VarStatement:
 		genCode.genStatement(statement.Exp)
@@ -174,6 +171,9 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 		genCode.genAssignStatement(statement)
 	default:
 		log.Panicf("unknown statement %s", reflect.TypeOf(statement).String())
+	}
+	if statement.GetType() == lexer.CallType {
+		genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
 	}
 }
 
@@ -208,12 +208,6 @@ func (genCode *GenCode) genStoreIns(label string) {
 }
 
 func (genCode *GenCode) genIfStatement(statement ast.IfStatement) {
-	SP := genCode.sm.SP() - 1
-	defer genCode.pushIns(Instruction{
-		InstTyp: ResetStack,
-		Val:     SP,
-	})
-
 	genCode.genStatement(statement.Check)
 	genCode.pushIns(Instruction{
 		InstTyp: Jump,
