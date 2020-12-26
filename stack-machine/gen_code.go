@@ -169,6 +169,17 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 		genCode.genReturnStatement(statement)
 	case ast.AssignStatement:
 		genCode.genAssignStatement(statement)
+	case ast.String:
+		genCode.pushIns(Instruction{
+			InstTyp: Push,
+			ValTyp:  String,
+			Str:     string(statement),
+		})
+	case ast.PeriodStatement:
+		genCode.pushIns(Instruction{
+			InstTyp: LoadO,
+			Str:     statement.Val,
+		})
 	default:
 		log.Panicf("unknown statement %s", reflect.TypeOf(statement).String())
 	}
@@ -296,6 +307,13 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 			})
 			genCode.ins[II].Val = int64(len(genCode.ins)) - II
 		}
+	case ast.PeriodStatement:
+		//log.Println(reflect.TypeOf(statement.ParentExp).String())
+		genCode.genStatement(statement.ParentExp)
+		genCode.genStatement(statement.Function)
+		genCode.pushIns(Instruction{
+			InstTyp: CallO,
+		})
 	default:
 		log.Panicf("unkown function type %s", reflect.TypeOf(function).String())
 	}

@@ -27,6 +27,7 @@ const (
 	Load
 	Store
 	Call
+	CallO
 	Cmp
 	Jump
 	Ret
@@ -37,6 +38,7 @@ const (
 	LoadR      // register -> stack
 	PushS      // set stack base point
 	PopS       // pop stack
+	LoadO      // load from object
 
 	TRUE  int64 = 1
 	FALSE int64 = 0
@@ -45,7 +47,8 @@ const (
 	Bool
 	Mem
 	IP
-	R
+	String
+	Func
 
 	DJump JumpType = 0
 	RJump JumpType = 1
@@ -91,6 +94,7 @@ type Instruction struct {
 	ResetStackTyp ResetStackType
 	symbol        int64
 	Val           int64
+	Str           string
 }
 
 func (i Instruction) String(table, builtIn *SymbolTable) string {
@@ -116,6 +120,8 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 			} else {
 				return "push false"
 			}
+		} else if i.ValTyp == String {
+			return "push " + i.Str
 		}
 	case Exit:
 		return "exit"
@@ -125,12 +131,16 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 		return "load " + table.symbols[i.symbol] + " " + strconv.FormatInt(i.Val, 10)
 	case LoadR:
 		return "loadR"
+	case LoadO:
+		return "LoadO"
 	case Store:
 		return "store "
 	case StoreR:
 		return "storeR"
 	case Call:
 		return "call " + builtIn.symbols[i.symbol]
+	case CallO:
+		return "CallO"
 	case Ret:
 		return "return"
 	case Label:
@@ -162,6 +172,7 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 type Object struct {
 	VType ValType
 	Val   int64
+	Str   string
 }
 
 func (o Object) String() string {
@@ -173,6 +184,8 @@ func (o Object) String() string {
 		} else {
 			return "false"
 		}
+	} else if o.VType == String {
+		return o.Str
 	} else {
 		return fmt.Sprintf("{%d %d}", o.VType, o.Val)
 	}
@@ -220,7 +233,7 @@ func getBuiltInSymbolTable() *SymbolTable {
 func (m *Machine) Run() {
 	for m.IP < int64(len(m.instructions)) {
 		ins := m.instructions[m.IP]
-//		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
+		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
 		switch ins.InstTyp {
 		case Push:
 			m.SP++
@@ -228,6 +241,11 @@ func (m *Machine) Run() {
 				m.stack[m.SP] = Object{
 					VType: ins.ValTyp,
 					Val:   m.IP + ins.Val, //return addr
+				}
+			} else if ins.ValTyp == String {
+				m.stack[m.SP] = Object{
+					VType: ins.ValTyp,
+					Str:   ins.Str,
 				}
 			} else {
 				m.stack[m.SP] = Object{
@@ -243,13 +261,13 @@ func (m *Machine) Run() {
 			m.SP = -1
 			//log.Println(m.stackFrames[len(m.stackFrames)-1])
 		case PopS:
-//			log.Println(m.SP, m.stack[:m.SP+1])
+			//			log.Println(m.SP, m.stack[:m.SP+1])
 			//log.Println(m.stackFrames[len(m.stackFrames)-1])
 			frame := m.stackFrames[len(m.stackFrames)-1]
 			m.stack = frame.stack
 			m.SP = frame.SP
 			m.stackFrames = m.stackFrames[:len(m.stackFrames)-1]
-	//		log.Println(m.SP, m.stack[:m.SP+1])
+			//		log.Println(m.SP, m.stack[:m.SP+1])
 		case Add, Sub, Cmp:
 			operand2 := m.stack[m.SP]
 			m.SP--
@@ -300,10 +318,6 @@ func (m *Machine) Run() {
 			m.SP++
 			m.stack[m.SP] = result
 		case Store:
-			/*val := m.stack[m.SP]
-			m.SP--
-			symbol := m.symbolTable.symbols[ins.Val]
-			m.store(symbol, val)*/
 			val := m.stack[m.SP]
 			m.SP--
 			m.stack[ins.Val] = val
@@ -332,9 +346,38 @@ func (m *Machine) Run() {
 			m.SP--
 			m.IP = IP.Val
 			continue
+		case LoadO:
+			object := m.stack[m.SP]
+			switch object.VType {
+			case String:
+				index, ok := BuiltInFunctionsIndex["string."+ins.Str]
+				if ok == false {
+					log.Panicln("no find string." + ins.Str)
+				}
+				m.SP++
+				m.stack[m.SP] = Object{
+					VType: Func,
+					Val:   index,
+				}
+			}
 		case Call:
 			count := m.R1[0].Val
-			m.CallFunc(ins.Val, m.R1[1:count+1]...)
+			objects := m.CallFunc(ins.Val, m.R1[1:count+1]...)
+			m.R1[0].Val = int64(len(objects))
+			for index, obj := range objects {
+				m.R1[index+1] = obj
+			}
+		case CallO:
+			obj := m.stack[m.SP]
+			m.SP--
+			objects := m.CallFunc(obj.Val, m.stack[m.SP])
+			m.SP--
+
+			m.R1[0].Val = int64(len(objects))
+			for index, obj := range objects {
+				m.R1[index+1] = obj
+			}
+
 		case Label:
 		case Exit:
 			return
@@ -353,10 +396,10 @@ func (m *Machine) Run() {
 				}
 				continue
 			}
-//			log.Println("false")
+			//			log.Println("false")
 		}
 		m.IP++
-//		log.Println(m.stack[:m.SP+1])
+		log.Println(m.stack[:m.SP+1])
 	}
 }
 
@@ -364,8 +407,8 @@ func (m *Machine) store(symbol string, val Object) {
 	m.mem[symbol] = val
 }
 
-func (m *Machine) CallFunc(funcIndex int64, object ...Object) {
-	BuiltInFunctions[funcIndex].Call(object...)
+func (m *Machine) CallFunc(funcIndex int64, object ...Object) []Object {
+	return BuiltInFunctions[funcIndex].Call(object...)
 }
 
 func (m *Machine) load(symbol string) Object {

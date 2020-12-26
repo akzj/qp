@@ -3,8 +3,13 @@ package stackmachine
 import (
 	"fmt"
 	"gitlab.com/akzj/qp/parser"
+	"log"
 	"testing"
 )
+
+func init() {
+	log.SetFlags(log.Lshortfile)
+}
 
 func TestGenStoreIns(t *testing.T) {
 	script := `
@@ -38,11 +43,27 @@ println(a)
 
 func TestGenCallCode(t *testing.T) {
 	script := `
-println(1+1)
+var a = "HELLO"
+var b = a.to_lower(1)
+var c = 1
+println(a,b,c)
 `
-	statements := parser.New(script).Parse()
+	parser := parser.New(script)
+
+	statements := parser.Parse()
+	vm := parser.GetVMContext()
+	objects := vm.Objects()
+	for _, it := range objects {
+		statements = append(statements, it)
+	}
 	GC := NewGenCode()
 	fmt.Println(GC.Gen(statements))
+
+	m := New()
+	m.instructions = GC.ins
+	m.symbolTable = GC.symbolTable
+
+	m.Run()
 }
 
 func TestGenReturnVal(t *testing.T) {
@@ -54,7 +75,7 @@ func fib(a){
 	return fib(a-1)  + fib(a-2)
 }
 var a = fib(35)
-println(a)
+println("35",a)
 `
 	parser := parser.New(script)
 
@@ -78,9 +99,18 @@ println(a)
 func TestGenFuncStatement(t *testing.T) {
 	script := `
 
+func hello4(a,b,c){
+	println(a,b,c)
+}
+
+func hello3(a,b,c){
+	println(a,b,c)
+	hello4(b,c,a)
+}
 
 func hello2(a,b,c){
 	println(a,b,c)
+	hello3(b,c,a)
 }
 
 func hello(a,b,c){
