@@ -121,7 +121,9 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 				return "push false"
 			}
 		} else if i.ValTyp == String {
-			return "push " + i.Str
+			return "push \"" + i.Str+"\""
+		}else{
+			panic(i.ValTyp)
 		}
 	case Exit:
 		return "exit"
@@ -165,7 +167,7 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 			return "cmp =="
 		}
 	}
-	log.Panicln("unknown instruction")
+	log.Panicln("unknown instruction",i)
 	return ""
 }
 

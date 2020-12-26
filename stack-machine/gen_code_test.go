@@ -11,6 +11,25 @@ func init() {
 	log.SetFlags(log.Lshortfile)
 }
 
+func runScript(script string) {
+	parser := parser.New(script)
+
+	statements := parser.Parse()
+	vm := parser.GetVMContext()
+	objects := vm.Objects()
+	for _, it := range objects {
+		statements = append(statements, it)
+	}
+	GC := NewGenCode()
+	fmt.Println(GC.Gen(statements))
+
+	m := New()
+	m.instructions = GC.ins
+	m.symbolTable = GC.symbolTable
+
+	m.Run()
+}
+
 func TestGenStoreIns(t *testing.T) {
 	script := `
 var a = 1
@@ -22,23 +41,7 @@ func test(b,c){
 test(2,3)
 println(a)
 `
-
-	parser := parser.New(script)
-
-	statements := parser.Parse()
-	vm := parser.GetVMContext()
-	objects := vm.Objects()
-	for _, it := range objects {
-		statements = append(statements, it)
-	}
-	GC := NewGenCode()
-	fmt.Println(GC.Gen(statements))
-
-	m := New()
-	m.instructions = GC.ins
-	m.symbolTable = GC.symbolTable
-
-	m.Run()
+	runScript(script)
 }
 
 func TestGenCallCode(t *testing.T) {
@@ -50,22 +53,7 @@ println(a,c)
 var d = 2
 println(d)
 `
-	parser := parser.New(script)
-
-	statements := parser.Parse()
-	vm := parser.GetVMContext()
-	objects := vm.Objects()
-	for _, it := range objects {
-		statements = append(statements, it)
-	}
-	GC := NewGenCode()
-	fmt.Println(GC.Gen(statements))
-
-	m := New()
-	m.instructions = GC.ins
-	m.symbolTable = GC.symbolTable
-
-	m.Run()
+	runScript(script)
 }
 
 func TestGenReturnVal(t *testing.T) {
@@ -79,22 +67,7 @@ func fib(a){
 var a = fib(29)
 println("35",a)
 `
-	parser := parser.New(script)
-
-	statements := parser.Parse()
-	vm := parser.GetVMContext()
-	objects := vm.Objects()
-	for _, it := range objects {
-		statements = append(statements, it)
-	}
-	GC := NewGenCode()
-	fmt.Println(GC.Gen(statements))
-
-	m := New()
-	m.instructions = GC.ins
-	m.symbolTable = GC.symbolTable
-
-	m.Run()
+	runScript(script)
 }
 
 func TestGenFuncStatement(t *testing.T) {
@@ -122,20 +95,14 @@ func hello(a,b,c){
 hello(4,5,6)
 `
 
-	parser := parser.New(script)
+	runScript(script)
+}
 
-	statements := parser.Parse()
-	vm := parser.GetVMContext()
-	objects := vm.Objects()
-	for _, it := range objects {
-		statements = append(statements, it)
-	}
-	GC := NewGenCode()
-	fmt.Println(GC.Gen(statements))
+func TestGenFor(t *testing.T) {
+	runScript(`
+for var i = 0; i < 5; i++ {
+	println(i)
+}
 
-	m := New()
-	m.instructions = GC.ins
-	m.symbolTable = GC.symbolTable
-
-	m.Run()
+`)
 }

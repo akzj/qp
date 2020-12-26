@@ -189,6 +189,10 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 			InstTyp: LoadO,
 			Str:     statement.Val,
 		})
+	case ast.ForStatement:
+		genCode.genForStatement(statement)
+	case ast.IncFieldStatement:
+		genCode.genIncFieldStatement(statement)
 	default:
 		log.Panicf("unknown statement %s", reflect.TypeOf(statement).String())
 	}
@@ -241,9 +245,56 @@ func (genCode *GenCode) genIfStatement(statement ast.IfStatement) {
 		JumpTyp: RJump,
 	})
 	index := len(genCode.ins)
+
+	//if statement
 	genCode.genStatement(statement.Statements)
+
+	//fix jump val
 	jumpTo := len(genCode.ins) - index + 1
 	genCode.ins[index-1].Val = int64(jumpTo)
+}
+
+func (genCode *GenCode) genForStatement(statement ast.ForStatement) {
+
+	genCode.genStatement(statement.Pre)
+
+	begin := len(genCode.ins)
+	genCode.genStatement(statement.Check)
+
+	genCode.pushIns(Instruction{
+		InstTyp: Jump,
+		JumpTyp: RJump,
+		Val:     3,
+	})
+	genCode.pushIns(Instruction{
+		InstTyp: Push,
+		ValTyp:  Bool,
+		Val:     TRUE,
+	})
+	genCode.pushIns(Instruction{
+		InstTyp: Jump,
+		JumpTyp: RJump,
+	})
+	jumpStatement := len(genCode.ins)
+
+	//if statement
+	genCode.genStatement(statement.Statements)
+
+	genCode.genStatement(statement.Post)
+
+	genCode.pushIns(Instruction{
+		InstTyp: Push,
+		ValTyp:  Bool,
+		Val:     TRUE,
+	})
+	genCode.pushIns(Instruction{
+		InstTyp: Jump,
+		JumpTyp: RJump,
+		Val:     int64(begin  - len(genCode.ins)),
+	})
+
+	//fix jump val
+	genCode.ins[jumpStatement-1].Val = int64(len(genCode.ins) - jumpStatement + 1)
 }
 
 func (genCode *GenCode) genLoadIns(label string) {
@@ -437,4 +488,29 @@ func (genCode *GenCode) genAssignStatement(statement ast.AssignStatement) {
 	default:
 		log.Panicln(reflect.TypeOf(obj).String())
 	}
+}
+
+func (genCode *GenCode) genIncFieldStatement(statement ast.IncFieldStatement) {
+	object := statement.Exp.(ast.GetVarStatement)
+	index, ok := genCode.sm.load(object.Label)
+	if ok == false {
+		log.Panicln("no find label`" + object.Label + "`")
+	}
+	genCode.pushIns(Instruction{
+		InstTyp: Load,
+		Val:     index,
+	})
+	genCode.pushIns(Instruction{
+		InstTyp: Push,
+		ValTyp:  Int,
+		Val:     1,
+	})
+	genCode.pushIns(Instruction{
+		InstTyp: Add,
+	})
+	genCode.pushIns(Instruction{
+		InstTyp: Store,
+		Val:     index,
+	})
+
 }

@@ -511,7 +511,7 @@ func (p *Parser) parseFactor(pre int) runtime.Invokable {
 			}
 		case lexer.IncType:
 			p.assertNoNil(exp)
-			exp = &ast.IncFieldStatement{
+			exp = ast.IncFieldStatement{
 				Exp: exp,
 			}
 		case lexer.NilType:
@@ -863,7 +863,7 @@ func (p *Parser) parseForStatement() ast.Statement {
 	statements := p.ParseStatements()
 	forStatement.Statements = statements
 	p.expectType(p.nextToken(), lexer.RightBraceType)
-	return &forStatement
+	return forStatement
 }
 
 func (p *Parser) ParseStatements() ast.Statements {
