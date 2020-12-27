@@ -128,3 +128,13 @@ for var i = 0; i < 36; i++ {
 
 `)
 }
+
+func TestUserObject(t *testing.T) {
+	runScript(`
+
+var u = User{}
+u.id.id =  1
+u.id.id =  100
+println(u.id.id)
+`)
+}

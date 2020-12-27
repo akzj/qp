@@ -890,12 +890,12 @@ func (p *Parser) ParseObjInitStatement(exp runtime.Invokable) runtime.Invokable 
 	statement.VM = p.vm
 	if ahead := p.ahead(0); ahead.Typ == lexer.RightBraceType {
 		p.nextToken()
-		return &statement
+		return statement
 	} else {
 		statement.PropTemplates = p.parseTypeObjectInit()
 	}
 	p.expectType(p.nextToken(), lexer.RightBraceType)
-	return &statement
+	return statement
 }
 
 func (p *Parser) pushStatus(status PStatus) {

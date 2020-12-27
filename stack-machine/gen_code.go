@@ -107,6 +107,7 @@ func (genCode *GenCode) pushIns(instruction Instruction) {
 
 func (genCode *GenCode) Gen(statements []ast.Statement) *GenCode {
 	for _, statement := range statements {
+		log.Println(statement.String())
 		genCode.genStatement(statement)
 	}
 	genCode.GenExit()
@@ -182,6 +183,7 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 			Str:     string(statement),
 		})
 	case ast.PeriodStatement:
+		genCode.genStatement(statement.Exp)
 		genCode.pushIns(Instruction{
 			InstTyp: LoadO,
 			Str:     statement.Val,
@@ -190,6 +192,10 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 		genCode.genForStatement(statement)
 	case ast.IncFieldStatement:
 		genCode.genIncFieldStatement(statement)
+	case ast.ObjectInitStatement:
+		genCode.genObjectInitStatement(statement)
+	case *ast.TypeObject:
+		genCode.genTypeObject(statement)
 	default:
 		log.Panicf("unknown statement %s", reflect.TypeOf(statement).String())
 	}
@@ -485,6 +491,12 @@ func (genCode *GenCode) genAssignStatement(statement ast.AssignStatement) {
 				Val:     index,
 			})
 		}
+	case ast.PeriodStatement:
+		genCode.genStatement(obj.Exp)
+		genCode.pushIns(Instruction{
+			InstTyp: StoreO,
+			Str:     obj.Val,
+		})
 	default:
 		log.Panicln(reflect.TypeOf(obj).String())
 	}
@@ -513,4 +525,23 @@ func (genCode *GenCode) genIncFieldStatement(statement ast.IncFieldStatement) {
 		Val:     index,
 	})
 
+}
+
+func (genCode *GenCode) genObjectInitStatement(statement ast.ObjectInitStatement) {
+	switch obj := statement.Exp.(type) {
+	case ast.GetVarStatement:
+		genCode.pushIns(Instruction{
+			InstTyp: Push,
+			ValTyp:  Obj,
+			Str:     obj.Label,
+			Val:     genCode.symbolTable.addSymbol(obj.Label),
+		})
+	default:
+		log.Panicln(reflect.TypeOf(obj).String())
+	}
+
+}
+
+func (genCode *GenCode) genTypeObject(statement *ast.TypeObject) {
+	log.Println(statement.Label)
 }

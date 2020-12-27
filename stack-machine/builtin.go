@@ -9,10 +9,10 @@ import (
 
 type Function struct {
 	Name string
-	Call func(object ...Object) []Object
+	Call func(object ...Element) []Element
 }
 
-func __println(object ...Object) []Object {
+func __println(object ...Element) []Element {
 	for index, obj := range object {
 		if index != 0 {
 			fmt.Print(" ")
@@ -23,32 +23,32 @@ func __println(object ...Object) []Object {
 	return nil
 }
 
-func __tLower_(object ...Object) []Object {
-	o := strings.ToLower(object[0].obj.(string))
-	return []Object{
+func __tLower_(object ...Element) []Element {
+	o := strings.ToLower(object[0].Obj.(string))
+	return []Element{
 		{
-			obj:   o,
-			VType: String,
+			Obj:  o,
+			Type: String,
 		},
 	}
 }
 
-func __print(object ...Object) []Object {
+func __print(object ...Element) []Element {
 	fmt.Print(object)
 	return nil
 }
 
-func __panic(object ...Object) []Object {
+func __panic(object ...Element) []Element {
 	log.Panicln(object)
 	return nil
 }
 
-func __now__(object ...Object) []Object {
+func __now__(object ...Element) []Element {
 	now := time.Now()
-	return []Object{
+	return []Element{
 		{
-			VType: Time,
-			obj:   now,
+			Type: Time,
+			Obj:  now,
 		},
 	}
 }

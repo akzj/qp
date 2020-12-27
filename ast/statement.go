@@ -214,12 +214,12 @@ type ObjectInitStatement struct {
 	PropTemplates []TypeObjectPropTemplate
 }
 
-func (statement *ObjectInitStatement) String() string {
+func (statement ObjectInitStatement) String() string {
 	var str string
 	for _, statement := range statement.PropTemplates {
 		str += statement.String() + "\n"
 	}
-	return "{" + str + "}"
+	return statement.Exp.String()+"{" + str + "}"
 }
 
 type ArrayGetElement struct {
@@ -313,7 +313,7 @@ func (g *getObjectPropStatement) GetType() lexer.Type {
 	return lexer.PropObjectStatementType
 }
 
-func (statement *ObjectInitStatement) Invoke() runtime.Invokable {
+func (statement ObjectInitStatement) Invoke() runtime.Invokable {
 	object := statement.Exp.Invoke().(*runtime.Object).Pointer.(BaseObject).Clone().(*TypeObject)
 
 Loop:
@@ -334,7 +334,7 @@ Loop:
 	return object
 }
 
-func (statement *ObjectInitStatement) GetType() lexer.Type {
+func (statement ObjectInitStatement) GetType() lexer.Type {
 	return lexer.TypeObjectInitStatementType
 }
 
