@@ -324,9 +324,9 @@ func (genCode *GenCode) genLoadIns(label string) {
 
 func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 	//statement.ParentExp todo
+	var retIP = int64(len(genCode.ins))
 	switch function := statement.Function.(type) {
 	case ast.GetVarStatement:
-		var II = int64(len(genCode.ins))
 		index, ok := genCode.builtSymbolTable.getSymbol(function.Label)
 		if ok == false { // push IP to stack for return
 			genCode.pushIns(Instruction{InstTyp: Push, ValTyp: IP})
@@ -349,11 +349,6 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 				Val:     int64(R),
 			})
 		}
-		if ok == false {
-			genCode.pushIns(Instruction{
-				InstTyp: MakeStack,
-			})
-		}
 		if ok {
 			genCode.pushIns(Instruction{
 				InstTyp: Call,
@@ -374,17 +369,18 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 				label: function.Label,
 				IP:    int64(len(genCode.ins)) - 1,
 			})
-			genCode.ins[II].Val = int64(len(genCode.ins)) - II
+			genCode.ins[retIP].Val = int64(len(genCode.ins)) - retIP
 		}
 	case ast.PeriodStatement:
+		genCode.pushIns(Instruction{InstTyp: Push, ValTyp: IP})
 		genCode.genStatement(function.Exp)
 		genCode.pushIns(Instruction{
 			InstTyp: LoadO,
 			ValTyp:  String,
 			Str:     function.Val,
 		})
-		var R int64
 
+		var R int64
 		statement.Arguments = append(ast.Statements{statement.ParentExp}, statement.Arguments...)
 		genCode.pushIns(Instruction{
 			InstTyp: Push,
@@ -406,6 +402,7 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 		genCode.pushIns(Instruction{
 			InstTyp: CallO,
 		})
+		genCode.ins[retIP].Val = int64(len(genCode.ins)) - retIP
 	default:
 		log.Panicf("unkown function type %s", reflect.TypeOf(function).String())
 	}
@@ -476,6 +473,9 @@ func (genCode *GenCode) genFuncStatement(statement *ast.FuncStatement) {
 	genCode.pushIns(Instruction{
 		InstTyp: Label,
 		symbol:  genCode.symbolTable.addSymbol(label),
+	})
+	genCode.pushIns(Instruction{
+		InstTyp: MakeStack,
 	})
 	//check argument count
 

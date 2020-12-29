@@ -275,7 +275,7 @@ func getBuiltInSymbolTable() *SymbolTable {
 func (m *Machine) Run() {
 	for m.IP < int64(len(m.instructions)) {
 		ins := m.instructions[m.IP]
-		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
+//		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
 		switch ins.InstTyp {
 		case Push:
 			m.SP++
@@ -443,14 +443,6 @@ func (m *Machine) Run() {
 					m.R[index+1] = obj
 				}
 			case OFunc:
-				m.stack[m.SP] = Object{
-					//Jump to function
-					Type: IP,
-					Int:  m.IP + 1, //return addr
-				}
-				m.stackFrames = append(m.stackFrames, StackFrame{SP: m.SP, stack: m.stack})
-				m.stack = m.stack[m.SP+1:]
-				m.SP = -1
 				m.IP = f.Int
 				continue
 			default:
@@ -478,7 +470,7 @@ func (m *Machine) Run() {
 			//			log.Println("false")
 		}
 		m.IP++
-		log.Println(m.stack[:m.SP+1])
+//		log.Println(m.stack[:m.SP+1])
 	}
 }
 
