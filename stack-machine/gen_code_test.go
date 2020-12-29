@@ -47,11 +47,8 @@ println(a)
 func TestGenCallCode(t *testing.T) {
 	script := `
 var a = "HELLO"
-a.to_lower()
-var c = 1
-println(a,c)
-var d = 2
-println(d)
+var b = a.to_lower()
+println(b,1,2,3,4)
 `
 	runScript(script)
 }
@@ -127,4 +124,38 @@ for var i = 0; i < 36; i++ {
 }
 
 `)
+}
+
+func TestUserObject(t *testing.T) {
+	runScript(`
+
+type User{}
+func User.hello(a){
+	println("hello",100, a)
+	this.a = 100
+}
+var u = User{}
+u.hello(1)
+println(u.a)
+`)
+
+}
+
+
+func TestUserLambda(t *testing.T) {
+	runScript(`
+
+
+type User{}
+
+func User.printName(id){
+	println(this.name,id)
+}
+
+var u = User{}
+u.name = "jojo"
+u.printName(1999)
+
+`)
+
 }

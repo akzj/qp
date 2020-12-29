@@ -28,7 +28,7 @@ const (
 	Load
 	Store
 	Call
-	CallO
+	CallO // call object member function
 	Cmp
 	Jump
 	Ret
@@ -40,6 +40,7 @@ const (
 	MakeStack // make stack for function call
 	PopStack  // pop stack for return function call
 	LoadO     // load from object
+	StoreO    // store to object
 
 	TRUE  int64 = 1
 	FALSE int64 = 0
@@ -49,9 +50,12 @@ const (
 	Mem
 	IP
 	String
-	Func
+	BFunc  // built in function
+	OFunc  // object member function
+	Lambda //
 	Time
 	Duration
+	Obj
 
 	DJump JumpType = 0
 	RJump JumpType = 1
@@ -125,11 +129,17 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 			}
 		} else if i.ValTyp == String {
 			return "push \"" + i.Str + "\""
+		} else if i.ValTyp == OFunc || i.ValTyp == Lambda {
+			return "push func \"" + i.Str + "\" " + strconv.FormatInt(i.Val, 10)
+		} else if i.ValTyp == Obj {
+			return "push obj \"" + i.Str + "\""
 		} else {
 			panic(i.ValTyp)
 		}
 	case Exit:
 		return "exit"
+	case StoreO:
+		return "StoreO \"" + i.Str + "\""
 	case Pop:
 		return "pop"
 	case Load:
@@ -137,7 +147,7 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 	case LoadR:
 		return "loadR"
 	case LoadO:
-		return "LoadO"
+		return "LoadO " + i.Str
 	case Store:
 		return "store "
 	case StoreR:
@@ -175,28 +185,55 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 }
 
 type Object struct {
-	VType ValType
-	Val   int64
-	obj   interface{}
+	Type ValType
+	Int  int64
+	Obj  interface{}
+}
+type objectMap map[string]*Object
+
+func (obj *Object) loadObj(label string) *Object {
+	if obj.Obj == nil {
+		obj.Obj = make(objectMap)
+	}
+	o, ok := obj.Obj.(objectMap)[label]
+	if ok {
+		return o
+	}
+	o = &Object{}
+	obj.Obj.(objectMap)[label] = o
+	return o
 }
 
-func (o Object) String() string {
-	if o.VType == Int {
-		return strconv.FormatInt(o.Val, 10)
-	} else if o.VType == Bool {
-		if o.Val == TRUE {
+func (obj *Object) Store(str string, ele Object) {
+	if obj.Obj == nil {
+		obj.Obj = make(objectMap)
+	}
+	obj.Obj.(objectMap)[str] = &ele
+}
+
+func (obj Object) String() string {
+	if obj.Type == Int {
+		return strconv.FormatInt(obj.Int, 10)
+	} else if obj.Type == Bool {
+		if obj.Int == TRUE {
 			return "true"
 		} else {
 			return "false"
 		}
-	} else if o.VType == String {
-		return o.obj.(string)
-	} else if o.VType == Time {
-		return o.obj.(time.Time).String()
-	} else if o.VType == Duration {
-		return time.Duration(o.Val).String()
+	} else if obj.Type == String {
+		return obj.Obj.(string)
+	} else if obj.Type == Time {
+		return obj.Obj.(time.Time).String()
+	} else if obj.Type == Duration {
+		return time.Duration(obj.Int).String()
+	} else if obj.Type == Obj {
+		return "object"
+	} else if obj.Type == OFunc || obj.Type == BFunc {
+		return "function " + strconv.FormatInt(obj.Int, 10)
+	} else if obj.Type == Lambda {
+		return "lambda " + strconv.FormatInt(obj.Int, 10)
 	} else {
-		return fmt.Sprintf("{%d %d}", o.VType, o.Val)
+		return fmt.Sprintf("{%d %d}", obj.Type, obj.Int)
 	}
 }
 
@@ -208,15 +245,12 @@ type StackFrame struct {
 type Machine struct {
 	symbolTable        *SymbolTable
 	builtInSymbolTable *SymbolTable
-	heap               []Object
 	stack              []Object
 	stackFrames        []StackFrame
 	SP                 int64
 	instructions       []Instruction
 	IP                 int64
-	mem                map[string]Object
-
-	R1 [32]Object //return val
+	R                  [32]Object //register
 }
 
 func New() *Machine {
@@ -227,7 +261,6 @@ func New() *Machine {
 		SP:                 -1,
 		instructions:       nil,
 		IP:                 0,
-		mem:                map[string]Object{},
 	}
 }
 
@@ -242,25 +275,30 @@ func getBuiltInSymbolTable() *SymbolTable {
 func (m *Machine) Run() {
 	for m.IP < int64(len(m.instructions)) {
 		ins := m.instructions[m.IP]
-		//		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
+		//log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
 		switch ins.InstTyp {
 		case Push:
 			m.SP++
 			if ins.ValTyp == IP {
 				m.stack[m.SP] = Object{
-					VType: ins.ValTyp,
-					Val:   m.IP + ins.Val, //return addr
+					Type: ins.ValTyp,
+					Int:  m.IP + ins.Val, //return addr
 				}
 			} else if ins.ValTyp == String {
 				str := ins.Str
 				m.stack[m.SP] = Object{
-					VType: ins.ValTyp,
-					obj:   str,
+					Type: ins.ValTyp,
+					Obj:  str,
+				}
+			} else if ins.ValTyp == Obj {
+				m.stack[m.SP] = Object{
+					Type: ins.ValTyp,
+					Obj:  make(objectMap),
 				}
 			} else {
 				m.stack[m.SP] = Object{
-					VType: ins.ValTyp,
-					Val:   ins.Val,
+					Type: ins.ValTyp,
+					Int:  ins.Val,
 				}
 			}
 		case Pop:
@@ -274,58 +312,59 @@ func (m *Machine) Run() {
 			m.stack = frame.stack
 			m.SP = frame.SP
 			m.stackFrames = m.stackFrames[:len(m.stackFrames)-1]
+
 		case Add, Sub, Cmp:
 			operand2 := m.stack[m.SP]
 			m.SP--
 			operand1 := m.stack[m.SP]
 			m.SP--
 			var result Object
-			switch operand1.VType {
+			switch operand1.Type {
 			case Int:
-				switch operand2.VType {
+				switch operand2.Type {
 				case Int:
 					switch ins.InstTyp {
 					case Cmp:
 						//log.Println(operand1, operand2)
-						result.VType = Bool
-						result.Val = FALSE
+						result.Type = Bool
+						result.Int = FALSE
 						switch ins.CmpTyp {
 						case Less:
-							if operand1.Val < operand2.Val {
-								result.Val = TRUE
+							if operand1.Int < operand2.Int {
+								result.Int = TRUE
 							}
 						case LessEQ:
-							if operand1.Val <= operand2.Val {
-								result.Val = TRUE
+							if operand1.Int <= operand2.Int {
+								result.Int = TRUE
 							}
 						case Greater:
-							if operand1.Val > operand2.Val {
-								result.Val = TRUE
+							if operand1.Int > operand2.Int {
+								result.Int = TRUE
 							}
 						case GreaterEQ:
-							if operand1.Val >= operand2.Val {
-								result.Val = TRUE
+							if operand1.Int >= operand2.Int {
+								result.Int = TRUE
 							}
 						case Equal:
-							if operand1.Val == operand2.Val {
-								result.Val = TRUE
+							if operand1.Int == operand2.Int {
+								result.Int = TRUE
 							}
 						}
 					case Add:
-						result.VType = Int
-						result.Val = operand1.Val + operand2.Val
+						result.Type = Int
+						result.Int = operand1.Int + operand2.Int
 					case Sub:
-						result.VType = Int
-						result.Val = operand1.Val - operand2.Val
+						result.Type = Int
+						result.Int = operand1.Int - operand2.Int
 					}
 				}
 			case Time:
-				switch operand2.VType {
+				switch operand2.Type {
 				case Time:
 					switch ins.InstTyp {
 					case Sub:
-						result.VType = Duration
-						result.Val = int64(operand1.obj.(time.Time).Sub(operand2.obj.(time.Time)))
+						result.Type = Duration
+						result.Int = int64(operand1.Obj.(time.Time).Sub(operand2.Obj.(time.Time)))
 					}
 				}
 			}
@@ -341,10 +380,10 @@ func (m *Machine) Run() {
 		case StoreR:
 			object := m.stack[m.SP]
 			m.SP--
-			m.R1[ins.Val] = object
+			m.R[ins.Val] = object
 		case LoadR:
 			m.SP++
-			m.stack[m.SP] = m.R1[ins.Val]
+			m.stack[m.SP] = m.R[ins.Val]
 		case Load:
 			sp := ins.Val
 			if sp > m.SP {
@@ -355,11 +394,11 @@ func (m *Machine) Run() {
 		case Ret:
 			IP := m.stack[m.SP]
 			m.SP--
-			m.IP = IP.Val
+			m.IP = IP.Int
 			continue
 		case LoadO:
-			object := m.stack[m.SP]
-			switch object.VType {
+			obj := m.stack[m.SP]
+			switch obj.Type {
 			case String:
 				index, ok := BuiltInFunctionsIndex["string."+ins.Str]
 				if ok == false {
@@ -367,26 +406,49 @@ func (m *Machine) Run() {
 				}
 				m.SP++
 				m.stack[m.SP] = Object{
-					VType: Func,
-					Val:   index,
+					Type: BFunc,
+					Int:  index,
 				}
+			case Obj:
+				m.stack[m.SP] = *obj.loadObj(ins.Str)
+			default:
+				log.Println("unknown obj type", obj)
+			}
+		case StoreO:
+			obj := &m.stack[m.SP]
+			m.SP--
+			ele := m.stack[m.SP]
+			m.SP--
+			switch obj.Type {
+			case Obj:
+				obj.Store(ins.Str, ele)
+			default:
+				log.Panicln("unknown obj type", obj.Type)
 			}
 		case Call:
-			count := m.R1[0].Val
-			objects := m.CallFunc(ins.Val, m.R1[1:count+1]...)
-			m.R1[0].Val = int64(len(objects))
+			count := m.R[0].Int
+			objects := m.CallFunc(ins.Val, m.R[1:count+1]...)
+			m.R[0].Int = int64(len(objects))
 			for index, obj := range objects {
-				m.R1[index+1] = obj
+				m.R[index+1] = obj
 			}
 		case CallO:
-			obj := m.stack[m.SP]
+			f := m.stack[m.SP]
 			m.SP--
-			objects := m.CallFunc(obj.Val, m.stack[m.SP])
-			m.SP--
-
-			m.R1[0].Val = int64(len(objects))
-			for index, obj := range objects {
-				m.R1[index+1] = obj
+			switch f.Type {
+			case BFunc:
+				objects := m.CallFunc(f.Int, m.stack[m.SP])
+				m.SP--
+				m.SP-- //pop IP on the stack
+				m.R[0].Int = int64(len(objects))
+				for index, obj := range objects {
+					m.R[index+1] = obj
+				}
+			case OFunc, Lambda:
+				m.IP = f.Int
+				continue
+			default:
+				log.Panicln("no function type", f.Type)
 			}
 
 		case Label:
@@ -395,11 +457,11 @@ func (m *Machine) Run() {
 		case Jump:
 			check := m.stack[m.SP]
 			m.SP--
-			if check.VType != Bool {
+			if check.Type != Bool {
 				log.Panicln("expect bool value for check", m.IP, m.SP)
 			}
-			if check.Val == TRUE {
-				//log.Println("true",ins.Val)
+			if check.Int == TRUE {
+				//log.Println("true",ins.Int)
 				if ins.JumpTyp == DJump {
 					m.IP = ins.Val
 				} else {
@@ -410,20 +472,12 @@ func (m *Machine) Run() {
 			//			log.Println("false")
 		}
 		m.IP++
-		//		log.Println(m.stack[:m.SP+1])
+		//log.Println(m.stack[:m.SP+1])
 	}
-}
-
-func (m *Machine) store(symbol string, val Object) {
-	m.mem[symbol] = val
 }
 
 func (m *Machine) CallFunc(funcIndex int64, object ...Object) []Object {
 	return BuiltInFunctions[funcIndex].Call(object...)
-}
-
-func (m *Machine) load(symbol string) Object {
-	return m.mem[symbol]
 }
 
 func (m *Machine) String() string {

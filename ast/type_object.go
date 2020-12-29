@@ -97,3 +97,7 @@ func (sObj *TypeObject) AddObject(k string, v *runtime.Object) {
 	}
 	sObj.objects[k] = v
 }
+
+func (sObj *TypeObject) GetObjects() map[string]*runtime.Object {
+	return sObj.objects
+}

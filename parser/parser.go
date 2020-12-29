@@ -752,6 +752,7 @@ func (p *Parser) isTerminateToken(next lexer.Token) bool {
 		next.Typ == lexer.VarType ||
 		next.Typ == lexer.BreakType ||
 		next.Typ == lexer.ReturnType ||
+		next.Typ == lexer.TypeType ||
 		next.Typ == lexer.EOFType {
 		return true
 	}
@@ -890,12 +891,12 @@ func (p *Parser) ParseObjInitStatement(exp runtime.Invokable) runtime.Invokable 
 	statement.VM = p.vm
 	if ahead := p.ahead(0); ahead.Typ == lexer.RightBraceType {
 		p.nextToken()
-		return &statement
+		return statement
 	} else {
 		statement.PropTemplates = p.parseTypeObjectInit()
 	}
 	p.expectType(p.nextToken(), lexer.RightBraceType)
-	return &statement
+	return statement
 }
 
 func (p *Parser) pushStatus(status PStatus) {
