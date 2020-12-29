@@ -132,9 +132,14 @@ for var i = 0; i < 36; i++ {
 func TestUserObject(t *testing.T) {
 	runScript(`
 
+type User{}
+func User.hello(a){
+	println("hello",100, a)
+	this.a = 100
+}
 var u = User{}
-u.id.id =  1
-u.id.id =  100
-println(u.id.id)
+u.hello(1)
+println(u.a)
 `)
+
 }
