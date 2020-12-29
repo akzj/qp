@@ -47,11 +47,8 @@ println(a)
 func TestGenCallCode(t *testing.T) {
 	script := `
 var a = "HELLO"
-a.to_lower()
-var c = 1
-println(a,c)
-var d = 2
-println(d)
+var b = a.to_lower()
+println(b,1,2,3,4)
 `
 	runScript(script)
 }

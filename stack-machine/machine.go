@@ -230,7 +230,7 @@ func (obj Object) String() string {
 		return time.Duration(obj.Int).String()
 	} else if obj.Type == Obj {
 		return "object"
-	} else if obj.Type == OFunc {
+	} else if obj.Type == OFunc || obj.Type == BFunc {
 		return "function"
 	} else {
 		return fmt.Sprintf("{%d %d}", obj.Type, obj.Int)
@@ -275,7 +275,7 @@ func getBuiltInSymbolTable() *SymbolTable {
 func (m *Machine) Run() {
 	for m.IP < int64(len(m.instructions)) {
 		ins := m.instructions[m.IP]
-//		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
+		//log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
 		switch ins.InstTyp {
 		case Push:
 			m.SP++
@@ -437,7 +437,9 @@ func (m *Machine) Run() {
 			m.SP--
 			switch f.Type {
 			case BFunc:
-				objects := m.CallFunc(f.Int)
+				objects := m.CallFunc(f.Int, m.stack[m.SP])
+				m.SP--
+				m.SP-- //pop IP on the stack
 				m.R[0].Int = int64(len(objects))
 				for index, obj := range objects {
 					m.R[index+1] = obj
@@ -470,7 +472,7 @@ func (m *Machine) Run() {
 			//			log.Println("false")
 		}
 		m.IP++
-//		log.Println(m.stack[:m.SP+1])
+		//log.Println(m.stack[:m.SP+1])
 	}
 }
 

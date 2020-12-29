@@ -159,6 +159,9 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 		genCode.genStoreIns(statement.Name)
 	case ast.VarStatement:
 		genCode.genStatement(statement.Exp)
+		if statement.Exp.GetType() == lexer.CallType {
+			genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
+		}
 		genCode.genStoreIns(statement.Label)
 	case ast.GetVarStatement:
 		genCode.genLoadIns(statement.Label)
