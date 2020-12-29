@@ -140,3 +140,22 @@ println(u.a)
 `)
 
 }
+
+
+func TestUserLambda(t *testing.T) {
+	runScript(`
+
+
+type User{}
+
+func User.printName(id){
+	println(this.name,id)
+}
+
+var u = User{}
+u.name = "jojo"
+u.printName(1999)
+
+`)
+
+}

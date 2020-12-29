@@ -2,9 +2,11 @@ package stackmachine
 
 import (
 	"bytes"
+	"fmt"
 	"gitlab.com/akzj/qp/ast"
 	"gitlab.com/akzj/qp/lexer"
 	"gitlab.com/akzj/qp/runtime"
+	"hash/crc32"
 	"log"
 	"reflect"
 	"strings"
@@ -357,6 +359,14 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 				InstTyp: Call,
 				Val:     index,
 			})
+		} else if index, ok := genCode.sm.load(function.Label); ok {
+			genCode.pushIns(Instruction{
+				InstTyp: Load,
+				Val:     index,
+			})
+			genCode.pushIns(Instruction{
+				InstTyp: CallO,
+			})
 		} else {
 			genCode.pushIns(Instruction{
 				InstTyp: Push,
@@ -372,8 +382,11 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 				label: function.Label,
 				IP:    int64(len(genCode.ins)) - 1,
 			})
+		}
+		if ok == false {
 			genCode.ins[retIP].Val = int64(len(genCode.ins)) - retIP
 		}
+
 	case ast.PeriodStatement:
 		genCode.pushIns(Instruction{InstTyp: Push, ValTyp: IP})
 		genCode.genStatement(function.Exp)
@@ -384,7 +397,7 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 		})
 
 		var R int64
-		statement.Arguments = append(ast.Statements{statement.ParentExp}, statement.Arguments...)
+		statement.Arguments = append(statement.Arguments, statement.ParentExp)
 		genCode.pushIns(Instruction{
 			InstTyp: Push,
 			ValTyp:  Int,
@@ -462,6 +475,23 @@ translate object member function .add init function
 */
 
 func (genCode *GenCode) genFuncStatement(statement *ast.FuncStatement) {
+	if statement.Closure {
+		hash := crc32.NewIEEE()
+		hash.Write([]byte(statement.String()))
+		statement.Label = fmt.Sprintf("lambda_%d", hash.Sum32())
+		defer func() {
+			genCode.toLinks = append(genCode.toLinks, toLink{
+				label: statement.Label,
+				IP:    int64(len(genCode.ins)),
+			})
+			genCode.pushIns(Instruction{
+				InstTyp: Push,
+				ValTyp:  Lambda,
+				Str:     statement.Label,
+				Val:     -1, //to link
+			})
+		}()
+	}
 
 	genCode.sm.pushStackFrame()
 	defer genCode.sm.popStackFrame()
@@ -480,39 +510,19 @@ func (genCode *GenCode) genFuncStatement(statement *ast.FuncStatement) {
 	genCode.pushIns(Instruction{
 		InstTyp: MakeStack,
 	})
-	//check argument count
-
-	genCode.pushIns(Instruction{
-		InstTyp: LoadR,
-		Val:     int64(0),
-	})
-
-	genCode.pushIns(Instruction{
-		InstTyp: Push,
-		ValTyp:  Int,
-		Val:     int64(len(statement.Parameters)),
-	})
-	genCode.pushIns(Instruction{
-		InstTyp: Cmp,
-		CmpTyp:  Equal,
-	})
-	genCode.pushIns(Instruction{
-		InstTyp: Jump,
-		JumpTyp: RJump,
-		Val:     2,
-	})
-	genCode.pushIns(Instruction{
-		InstTyp: Call,
-		Val:     genCode.symbolTable.addSymbol("panic"),
-	})
+	if len(statement.Parameters) > 1 {
+		if statement.Parameters[0] == "this" {
+			statement.Parameters[0], statement.Parameters[len(statement.Parameters)-1] =
+				statement.Parameters[len(statement.Parameters)-1],statement.Parameters[0]
+		}
+	}
 	for i := 0; i < len(statement.Parameters); i++ {
-		genCode.symbolTable.addSymbol(statement.Parameters[i])
-		index := genCode.sm.Store(statement.Parameters[i])
 		genCode.pushIns(Instruction{
 			InstTyp: LoadR,
 			Val:     int64(i + 1),
 		})
-		log.Println(statement.Parameters[i], index)
+		genCode.symbolTable.addSymbol(statement.Parameters[i])
+		genCode.sm.Store(statement.Parameters[i])
 	}
 
 	var last runtime.Invokable
@@ -570,7 +580,6 @@ func (genCode *GenCode) genInitStatement(statement objectInitStatement) {
 const objectInitFunctionName = "__init__"
 
 func (genCode *GenCode) genTypeObject(statement *ast.TypeObject) {
-	log.Println(statement.Label)
 	var initStatement objectInitStatement
 	for _, object := range statement.GetObjects() {
 		switch obj := object.Pointer.(type) {
@@ -607,7 +616,6 @@ func (genCode *GenCode) prepareGenFunction(label string) func() {
 		}
 		genCode.ins = ins
 		genCode.toLinks = toLink
-		log.Println(label)
 	}
 }
 

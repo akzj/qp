@@ -752,6 +752,7 @@ func (p *Parser) isTerminateToken(next lexer.Token) bool {
 		next.Typ == lexer.VarType ||
 		next.Typ == lexer.BreakType ||
 		next.Typ == lexer.ReturnType ||
+		next.Typ == lexer.TypeType ||
 		next.Typ == lexer.EOFType {
 		return true
 	}

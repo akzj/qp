@@ -50,8 +50,9 @@ const (
 	Mem
 	IP
 	String
-	BFunc // built in function
-	OFunc // object member function
+	BFunc  // built in function
+	OFunc  // object member function
+	Lambda //
 	Time
 	Duration
 	Obj
@@ -128,8 +129,8 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 			}
 		} else if i.ValTyp == String {
 			return "push \"" + i.Str + "\""
-		} else if i.ValTyp == OFunc {
-			return "push func \"" + i.Str + "\""
+		} else if i.ValTyp == OFunc || i.ValTyp == Lambda {
+			return "push func \"" + i.Str + "\" " + strconv.FormatInt(i.Val, 10)
 		} else if i.ValTyp == Obj {
 			return "push obj \"" + i.Str + "\""
 		} else {
@@ -196,10 +197,8 @@ func (obj *Object) loadObj(label string) *Object {
 	}
 	o, ok := obj.Obj.(objectMap)[label]
 	if ok {
-		log.Println(o.String())
 		return o
 	}
-	log.Panicln("no find label", label)
 	o = &Object{}
 	obj.Obj.(objectMap)[label] = o
 	return o
@@ -209,7 +208,6 @@ func (obj *Object) Store(str string, ele Object) {
 	if obj.Obj == nil {
 		obj.Obj = make(objectMap)
 	}
-	log.Println(str, ele.String())
 	obj.Obj.(objectMap)[str] = &ele
 }
 
@@ -231,7 +229,9 @@ func (obj Object) String() string {
 	} else if obj.Type == Obj {
 		return "object"
 	} else if obj.Type == OFunc || obj.Type == BFunc {
-		return "function"
+		return "function " + strconv.FormatInt(obj.Int, 10)
+	} else if obj.Type == Lambda {
+		return "lambda " + strconv.FormatInt(obj.Int, 10)
 	} else {
 		return fmt.Sprintf("{%d %d}", obj.Type, obj.Int)
 	}
@@ -444,7 +444,7 @@ func (m *Machine) Run() {
 				for index, obj := range objects {
 					m.R[index+1] = obj
 				}
-			case OFunc:
+			case OFunc, Lambda:
 				m.IP = f.Int
 				continue
 			default:

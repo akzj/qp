@@ -34,7 +34,7 @@ func __tLower_(object ...Object) []Object {
 }
 
 func __print(object ...Object) []Object {
-	fmt.Print(object)
+	log.Print(object)
 	return nil
 }
 
