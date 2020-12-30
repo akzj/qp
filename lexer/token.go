@@ -138,70 +138,73 @@ func (t Type) String() string {
 	}
 }
 
-const ErrorTokenType Type = -1
-const EOFType Type = 0
-const CommentType Type = 2                     // //
-const StringType Type = 3                      // string "" ''
-const NilType Type = 4                         // null
-const TrueType Type = 5                        // true
-const FalseType Type = 6                       // false
-const NewLineType Type = 7                     // \n
-const NoType Type = 8                          // !
-const OrType Type = 9                          // ||
-const AndType Type = 10                        // &&
-const IncType Type = 100                       // ++
-const AddType Type = 101                       // +
-const SubType Type = 102                       // -
-const MulOpType Type = 103                     // *
-const DivOpType Type = 104                     // /
-const LessType Type = 105                      // <
-const GreaterType Type = 106                   // >
-const LessEqualType Type = 116                 // <=
-const GreaterEqualType Type = 117              // >=
-const EqualType Type = 118                     // ==
-const NoEqualType Type = 119                   // !=
-const LeftParenthesisType Type = 120           // (
-const RightParenthesisType Type = 121          // )
-const LeftBraceType Type = 122                 // {
-const RightBraceType Type = 123                // }
-const CommaType Type = 124                     // ,
-const SemicolonType Type = 125                 // ;
-const ColonType Type = 126                     // :
-const PeriodType Type = 127                    // .
-const LeftBracketType Type = 128               // [
-const RightBracketType Type = 129              // ]
-const IfType Type = 230                        // if
-const ElseType Type = 331                      // else
-const FuncType Type = 332                      // func
-const ReturnType Type = 333                    // return
-const BreakType Type = 334                     // break
-const ForType Type = 335                       // for
-const ElseifType Type = 336                    // else if
-const VarType Type = 400                       // var
-const AssignType Type = 401                    // =
-const VarAssignType Type = 402                 // var x =
-const IntType Type = 700                       // int
-const TypeType Type = 999                      // type
-const MapObjectType Type = 1001                // map {}
-const ArrayObjectType Type = 1002              // array []
-const IDType Type = 5000                       // name
-const StatementType Type = 6001                // statement
-const StatementsType Type = 6003               // StatementType
-const ExpressionType Type = 6002               // ExpressionType
-const CallType Type = 6004                     // call function
-const NopStatementType Type = 6005             // nop
-const AssignStatementType Type = 6006          // =
-const ObjectType Type = 100000                 // objects
-const BoolObjectType Type = 10001              // bool
-const TypeObjectType Type = 10002              // type objects
-const FuncStatementType Type = 10003           // function objects
-const TypeObjectInitStatementType Type = 11003 // objects init statement
-const PropObjectStatementType Type = 10004     // getTypeObjectStatement statement
-const GetObjectObjectStatementType Type = 1005 // getObjectObjectStatement
-const FuncCallQueueStatementType Type = 10006  // FuncCallQueueStatement
-const DurationObjectType Type = 10007          // DurationObjectType
-const TimeObjectType Type = 10008              // DurationObjectType
-const BuiltInFunctionType = 10009              // built in function
+const (
+	ErrorTokenType               Type = iota
+	EOFType                           // EOF
+	CommentType                       // //
+	StringType                        // string "" ''
+	NilType                           // null
+	TrueType                          // true
+	FalseType                         // false
+	NewLineType                       // \n
+	NoType                            // !
+	OrType                            // ||
+	AndType                           // &&
+	IncType                           // ++
+	AddType                           // +
+	SubType                           // -
+	MulOpType                         // *
+	DivOpType                         // /
+	LessType                          // <
+	GreaterType                       // >
+	LessEqualType                     // <=
+	GreaterEqualType                  // >=
+	EqualType                         // ==
+	NoEqualType                       // !=
+	LeftParenthesisType               // (
+	RightParenthesisType              // )
+	LeftBraceType                     // {
+	RightBraceType                    // }
+	CommaType                         // ,
+	SemicolonType                     // ;
+	ColonType                         // :
+	PeriodType                        // .
+	LeftBracketType                   // [
+	RightBracketType                  // ]
+	IfType                            // if
+	ElseType                          // else
+	FuncType                          // func
+	ReturnType                        // return
+	BreakType                         // break
+	ForType                           // for
+	ElseifType                        // else if
+	VarType                           // var
+	AssignType                        // =
+	VarAssignType                     // var x =
+	IntType                           // int
+	TypeType                          // type
+	MapObjectType                     // map {}
+	ArrayObjectType                   // array []
+	IDType                            // name
+	StatementType                     // statement
+	StatementsType                    // StatementType
+	ExpressionType                    // ExpressionType
+	CallType                          // call function
+	NopStatementType                  // nop
+	AssignStatementType               // =
+	ObjectType                        // objects
+	BoolObjectType                    // bool
+	TypeObjectType                    // type objects
+	FuncStatementType                 // function objects
+	TypeObjectInitStatementType       // objects init statement
+	PropObjectStatementType           // getTypeObjectStatement statement
+	GetObjectObjectStatementType      // getObjectObjectStatement
+	FuncCallQueueStatementType        // FuncCallQueueStatement
+	DurationObjectType                // DurationObjectType
+	TimeObjectType                    // DurationObjectType
+	BuiltInFunctionType               // built in function
+	CreateObjectStatementType         // createObjectStatement
+)
 
 type Token struct {
 	Typ  Type

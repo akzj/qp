@@ -343,8 +343,8 @@ func (genCode *GenCode) genArguments(statement *ast.CallStatement) {
 		InstTyp: StoreR,
 		Val:     int64(0),
 	})
-	var R  = int64(len(statement.Arguments))
-	for  range statement.Arguments {
+	var R = int64(len(statement.Arguments))
+	for range statement.Arguments {
 		genCode.pushIns(Instruction{
 			InstTyp: StoreR,
 			Val:     int64(R),
@@ -428,7 +428,7 @@ func (c createObjectStatement) Invoke() runtime.Invokable {
 }
 
 func (c createObjectStatement) GetType() lexer.Type {
-	panic("implement me")
+	return lexer.CreateObjectStatementType
 }
 
 func (c createObjectStatement) String() string {
