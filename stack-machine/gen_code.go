@@ -9,6 +9,7 @@ import (
 	"hash/crc32"
 	"log"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -94,7 +95,9 @@ func NewGenCode() *GenCode {
 
 func (genCode *GenCode) String() string {
 	var buffer bytes.Buffer
-	for _, it := range genCode.ins {
+	for index, it := range genCode.ins {
+		buffer.WriteString(strconv.Itoa(index))
+		buffer.WriteString("\t")
 		if it.Type != Label {
 			buffer.WriteString("\t")
 		}
@@ -206,6 +209,8 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 		genCode.genInitStatement(statement)
 	case createObjectStatement:
 		genCode.genCreateObjectStatement(statement)
+	case ast.NilObject:
+		genCode.genNilObject(statement)
 	default:
 		log.Panicf("unknown statement %s", reflect.TypeOf(statement).String())
 	}
@@ -231,6 +236,18 @@ func (genCode *GenCode) genOpCode(op lexer.Type) {
 		genCode.pushIns(Instruction{
 			Type: Sub,
 		})
+	case lexer.NoEqualType:
+		genCode.pushIns(Instruction{
+			Type:   Cmp,
+			CmpTyp: NoEqual,
+		})
+	case lexer.AndType:
+		genCode.pushIns(Instruction{
+			Type: And,
+		})
+	case lexer.EqualType:
+		genCode.pushIns(Instruction{Type: Cmp,
+			CmpTyp: Equal})
 	default:
 		log.Panicf("unknown instruction %s", op.String())
 	}
@@ -720,9 +737,9 @@ func (genCode *GenCode) genIncFieldStatement(statement ast.IncFieldStatement) {
 	case ast.PeriodStatement:
 		genCode.genStatement(obj.Exp)
 		genCode.pushIns(Instruction{
-			Type:          LoadO,
-			Val:           0,
-			Str:           obj.Val,
+			Type: LoadO,
+			Val:  0,
+			Str:  obj.Val,
 		})
 		genCode.pushIns(Instruction{
 			Type:   Push,
@@ -738,4 +755,12 @@ func (genCode *GenCode) genIncFieldStatement(statement ast.IncFieldStatement) {
 			Str:  obj.Val,
 		})
 	}
+}
+
+func (genCode *GenCode) genNilObject(statement ast.NilObject) {
+	genCode.pushIns(Instruction{
+		Type:   Push,
+		ValTyp: Nil,
+		Str:    "nil",
+	})
 }

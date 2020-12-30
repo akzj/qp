@@ -214,3 +214,50 @@ println(u.id)
 
 `)
 }
+
+func TestNil(t *testing.T) {
+	runScript(`
+
+var a = nil
+if a == nil{
+	println("a is nil ")
+}
+
+`)
+}
+
+//todo fix
+func TestList(t *testing.T) {
+	runScript(`
+
+type Item {
+}
+
+type List {
+}
+
+func List.insert(left){
+	println(left,"1")
+    var item =Item{}
+	item.value = left
+    if this.head == nil {
+		println(left,"2")
+        this.head = item
+    }else{
+		println(left,"3")
+        item.Next = this.head
+        this.head = item
+    }
+}
+
+
+var list = List{}
+
+for var count = 0;count < 10;count++{
+	list.insert(count)
+}
+
+
+
+`)
+}
