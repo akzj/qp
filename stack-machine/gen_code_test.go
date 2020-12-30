@@ -175,3 +175,35 @@ printlnN(getNum(1),getNum(2),getNum(3),getNum(4),getNum(5))
 
 `)
 }
+
+func TestTestLambdaClosure(t *testing.T) {
+	runScript(`
+
+type User{}
+
+var u = User{}
+
+u.name = "hello"
+
+var f = func(){
+	println(u.name)
+	u.id = 100
+}
+
+f()
+println(u.id)
+
+`)
+}
+
+func TestFff(t *testing.T) {
+	var  a= []int{0,1,2,3}
+	f := func() {
+		b := &a[0]
+		fmt.Println(*b)
+		*b = 100
+	}
+	a[0] = 10000
+	f()
+	fmt.Println(a)
+}

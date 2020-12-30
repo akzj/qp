@@ -29,7 +29,7 @@ func NewLinker(functions map[string]FuncInstruction,
 func (linker *Linker) link() []Instruction {
 	for _, link := range linker.toLink {
 		ins := linker.ins[link.IP]
-		if ins.InstTyp != Jump && ins.ValTyp != OFunc {
+		if ins.Type != Jump && ins.ValTyp != OFunc {
 			log.Println("toLink error", ins.String(linker.symbolTable, linker.builtInSymbolTable), link.IP)
 		}
 		ins.Val = linker.getFunctionPoint(link.label)
