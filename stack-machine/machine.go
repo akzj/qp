@@ -20,11 +20,13 @@ const (
 	Greater                  // >
 	GreaterEQ                // >=
 	Equal                    // ==
+	NoEqual                  // !=
 )
 const (
 	Push InstType = iota + 0
 	Add
 	Sub
+	And
 	Load
 	Store
 	Call
@@ -61,6 +63,7 @@ const (
 	Duration
 	Obj
 	Array
+	Nil // nilObject
 
 	DJump JumpType = 0
 	RJump JumpType = 1
@@ -115,6 +118,8 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 		return "add"
 	case Sub:
 		return "sub"
+	case And:
+		return "&&"
 	case Jump:
 		if i.JumpTyp == DJump {
 			return "jump D " + strconv.FormatInt(i.Val, 10)
@@ -138,6 +143,8 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 			return "push func \"" + i.Str + "\" " + strconv.FormatInt(i.Val, 10)
 		} else if i.ValTyp == Obj {
 			return "push obj \"" + i.Str + "\""
+		} else if i.ValTyp == Nil {
+			return "nil"
 		} else {
 			panic(i.ValTyp)
 		}
@@ -187,6 +194,8 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 			return "cmp >="
 		case Equal:
 			return "cmp =="
+		case NoEqual:
+			return "cmp !="
 		}
 	}
 	log.Panicln("unknown instruction", i)
@@ -288,12 +297,12 @@ func getBuiltInSymbolTable() *SymbolTable {
 func (m *Machine) Run() {
 	var tick int64
 	defer func() {
-		log.Println("tick",tick)
+		log.Println("tick", tick)
 	}()
 	for m.IP < int64(len(m.instructions)) {
 		tick++
 		ins := m.instructions[m.IP]
-//		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
+		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
 		switch ins.Type {
 		case Push:
 			m.SP++
@@ -356,6 +365,12 @@ func (m *Machine) Run() {
 							if operand1.Int == operand2.Int {
 								result.Int = TRUE
 							}
+						case NoEqual:
+							if operand1.Int != operand2.Int {
+								result.Int = TRUE
+							}
+						default:
+							log.Panicln("unknown instruction", ins, m.IP)
 						}
 					case Add:
 						result.Type = Int
@@ -363,7 +378,19 @@ func (m *Machine) Run() {
 					case Sub:
 						result.Type = Int
 						result.Int = operand1.Int - operand2.Int
+					default:
+						log.Panicln("unknown instruction", ins, m.IP)
 					}
+				case Nil:
+					result.Type = Bool
+					result.Int = FALSE
+					switch ins.CmpTyp {
+					case Equal:
+					case NoEqual:
+						result.Int = TRUE
+					}
+				default:
+					log.Panicln("unknown instruction", ins.String(m.symbolTable, m.builtInSymbolTable), m.IP, operand2.String())
 				}
 			case Time:
 				switch operand2.Type {
@@ -374,8 +401,65 @@ func (m *Machine) Run() {
 						result.Int = int64(operand1.Obj.(time.Time).Sub(operand2.Obj.(time.Time)))
 						operand1.Obj = nil
 						operand2.Obj = nil
+					default:
+						log.Panicln("unknown instruction", ins, m.IP)
+					}
+				default:
+					log.Panicln("unknown instruction", ins, m.IP)
+				}
+			case Obj:
+				switch operand2.Type {
+				case Nil:
+					switch ins.Type {
+					case Cmp:
+						result.Type = Bool
+						result.Int = FALSE
+						switch ins.CmpTyp {
+						case NoEqual:
+							result.Int = TRUE
+						case Equal:
+							result.Int = FALSE
+						default:
+							log.Panicln("unknown instruction", ins, m.IP)
+						}
+					default:
+						log.Panicln("unknown instruction", ins, m.IP)
+					}
+				default:
+					log.Panicln("unknown instruction", ins, m.IP)
+				}
+			case Bool:
+				switch operand2.Type {
+				case Bool:
+					result.Type = Bool
+					result.Int = FALSE
+					switch ins.Type {
+					case And:
+						if operand1.Int == TRUE && operand2.Int == TRUE {
+							result.Int = TRUE
+						}
+					default:
+						log.Panicln("unknown instruction", ins, m.IP)
 					}
 				}
+			case Nil:
+				switch operand2.Type {
+				case Nil:
+					result.Type = Bool
+					result.Int = FALSE
+					switch ins.CmpTyp {
+					case Equal:
+						result.Int = TRUE
+					case NoEqual:
+					default:
+						log.Panicln("unknown instruction",
+							ins.String(m.symbolTable, m.builtInSymbolTable),
+							m.IP,
+							operand2.String())
+					}
+				}
+			default:
+				log.Panicln("unknown instruction", ins, m.IP)
 			}
 			//log.Println(operand1, operand2, result)
 			m.SP++
@@ -424,8 +508,7 @@ func (m *Machine) Run() {
 			case Obj, Lambda:
 				m.stack[m.SP] = *obj.loadObj(ins.Str)
 			default:
-				log.Panicln("unknown obj type", obj, m.SP,
-				)
+				log.Panicln("unknown obj type", obj, m.SP)
 			}
 		case StoreO:
 			obj := m.stack[m.SP]
@@ -471,7 +554,7 @@ func (m *Machine) Run() {
 				m.closure = f.loadObj(closureLabel).Obj.(ObjectArray)
 				continue
 			default:
-				log.Panicln("no function type", f.Type)
+				log.Panicln("no function type", f.Type, m.IP)
 			}
 
 		case Label:
@@ -512,7 +595,7 @@ func (m *Machine) Run() {
 			m.closure = nil
 		}
 		m.IP++
-		//log.Println(m.stack[:m.SP+1])
+		log.Println(m.stack[:m.SP+1])
 	}
 }
 
