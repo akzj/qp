@@ -61,8 +61,9 @@ func fib(a){
 	}
 	return fib(a-1) + fib(a-2)
 }
+var begin = now()
 var a = fib(35)
-println("35",a)
+println("35",a,now()-begin)
 `
 	runScript(script)
 }
