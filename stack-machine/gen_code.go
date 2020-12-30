@@ -407,7 +407,7 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 			ValTyp:  String,
 			Str:     function.Val,
 		})
-
+		statement.Arguments = append(statement.Arguments, statement.ParentExp)
 		genCode.genArguments(statement)
 
 		genCode.pushIns(Instruction{
