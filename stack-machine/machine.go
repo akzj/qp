@@ -23,7 +23,6 @@ const (
 )
 const (
 	Push InstType = iota + 0
-	Pop
 	Add
 	Sub
 	Load
@@ -148,8 +147,6 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 		return "init_closure"
 	case StoreO:
 		return "StoreO \"" + i.Str + "\""
-	case Pop:
-		return "pop"
 	case MakeArray:
 		return "make_array"
 	case Append:
@@ -289,42 +286,30 @@ func getBuiltInSymbolTable() *SymbolTable {
 }
 
 func (m *Machine) Run() {
+	var tick int64
+	defer func() {
+		log.Println("tick",tick)
+	}()
 	for m.IP < int64(len(m.instructions)) {
+		tick++
 		ins := m.instructions[m.IP]
-	//	log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
+//		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
 		switch ins.Type {
 		case Push:
 			m.SP++
+			m.stack[m.SP].Type = ins.ValTyp
 			if ins.ValTyp == IP {
-				m.stack[m.SP] = Object{
-					Type: ins.ValTyp,
-					Int:  m.IP + ins.Val, //return addr
-				}
+				m.stack[m.SP].Int = m.IP + ins.Val //return addr
 			} else if ins.ValTyp == String {
-				str := ins.Str
-				m.stack[m.SP] = Object{
-					Type: ins.ValTyp,
-					Obj:  str,
-				}
+				m.stack[m.SP].Obj = ins.Str
 			} else if ins.ValTyp == Obj {
-				m.stack[m.SP] = Object{
-					Type: ins.ValTyp,
-					Obj:  make(objectMap),
-				}
+				m.stack[m.SP].Obj = make(objectMap)
 			} else if ins.ValTyp == Lambda {
-				m.stack[m.SP] = Object{
-					Obj:  make(objectMap),
-					Int:  ins.Val,
-					Type: ins.ValTyp,
-				}
+				m.stack[m.SP].Obj = make(objectMap)
+				m.stack[m.SP].Int = ins.Val
 			} else {
-				m.stack[m.SP] = Object{
-					Type: ins.ValTyp,
-					Int:  ins.Val,
-				}
+				m.stack[m.SP].Int = ins.Val
 			}
-		case Pop:
-			m.SP--
 		case MakeStack:
 			m.stackFrames = append(m.stackFrames, StackFrame{SP: m.SP, stack: m.stack})
 			m.stack = m.stack[m.SP+1:]
@@ -336,9 +321,9 @@ func (m *Machine) Run() {
 			m.stackFrames = m.stackFrames[:len(m.stackFrames)-1]
 
 		case Add, Sub, Cmp:
-			operand2 := m.stack[m.SP]
+			operand2 := &m.stack[m.SP]
 			m.SP--
-			operand1 := m.stack[m.SP]
+			operand1 := &m.stack[m.SP]
 			m.SP--
 			var result Object
 			switch operand1.Type {
@@ -387,6 +372,8 @@ func (m *Machine) Run() {
 					case Sub:
 						result.Type = Duration
 						result.Int = int64(operand1.Obj.(time.Time).Sub(operand2.Obj.(time.Time)))
+						operand1.Obj = nil
+						operand2.Obj = nil
 					}
 				}
 			}
@@ -400,9 +387,9 @@ func (m *Machine) Run() {
 		case IncStack:
 			m.SP += ins.Val
 		case StoreR:
-			object := m.stack[m.SP]
+			m.R[ins.Val] = m.stack[m.SP]
+			m.stack[m.SP].Obj = nil
 			m.SP--
-			m.R[ins.Val] = object
 		case LoadR:
 			m.SP++
 			m.stack[m.SP] = m.R[ins.Val]
@@ -441,29 +428,36 @@ func (m *Machine) Run() {
 				)
 			}
 		case StoreO:
-			obj := &m.stack[m.SP]
+			obj := m.stack[m.SP]
 			m.SP--
 			ele := m.stack[m.SP]
 			m.SP--
 			switch obj.Type {
 			case Obj, Lambda:
 				obj.Store(ins.Str, ele)
+				obj.Obj = nil
+				ele.Obj = nil
 			default:
 				log.Panicln("unknown obj type", obj.Type)
 			}
 		case Call:
 			count := m.R[0].Int
 			objects := m.CallFunc(ins.Val, m.R[1:count+1]...)
+			for i := range m.R[1 : count+1] {
+				m.R[i+1].Obj = nil
+			}
 			m.R[0].Int = int64(len(objects))
 			for index, obj := range objects {
 				m.R[index+1] = obj
 			}
 		case CallO:
-			f := m.stack[m.SP]
+			f := &m.stack[m.SP]
 			m.SP--
 			switch f.Type {
 			case BFunc:
 				objects := m.CallFunc(f.Int, m.stack[m.SP])
+				f.Obj = nil
+				m.stack[m.SP].Obj = nil
 				m.SP--
 				m.SP-- //pop IP on the stack
 				m.R[0].Int = int64(len(objects))
@@ -508,6 +502,7 @@ func (m *Machine) Run() {
 			}
 		case Append:
 			m.stack[m.SP-1].Obj = append(m.stack[m.SP-1].Obj.(ObjectArray), m.stack[m.SP])
+			m.stack[m.SP].Obj = nil
 			m.SP--
 		case InitClosure:
 			for _, obj := range m.closure {
@@ -517,7 +512,7 @@ func (m *Machine) Run() {
 			m.closure = nil
 		}
 		m.IP++
-//		log.Println(m.stack[:m.SP+1])
+		//log.Println(m.stack[:m.SP+1])
 	}
 }
 

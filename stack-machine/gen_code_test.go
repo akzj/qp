@@ -53,7 +53,7 @@ println(b,1,2,3,4)
 	runScript(script)
 }
 
-func TestGenReturnVal(t *testing.T) {
+func TestFib35(t *testing.T) {
 	script := `
 func fib(a){
 	if a < 2 {
@@ -64,6 +64,24 @@ func fib(a){
 var begin = now()
 var a = fib(35)
 println("35",a,now()-begin)
+`
+	runScript(script)
+}
+
+func TestFib35Cunt(t *testing.T) {
+	script := `
+type Count {}
+var count = Count{}
+func fib(a,count){
+	if a < 2 {
+		return a
+	}
+	count.i ++
+	return fib(a-1,count) + fib(a-2,count)
+}
+var begin = now()
+var a = fib(35,count)
+println("35",a,now()-begin,count.i)
 `
 	runScript(script)
 }
@@ -138,10 +156,11 @@ func User.hello(a){
 var u = User{}
 u.hello(1)
 println(u.a)
+var c = u
+println(c.a)
 `)
 
 }
-
 
 func TestUserLambda(t *testing.T) {
 	runScript(`
@@ -194,16 +213,4 @@ f()
 println(u.id)
 
 `)
-}
-
-func TestFff(t *testing.T) {
-	var  a= []int{0,1,2,3}
-	f := func() {
-		b := &a[0]
-		fmt.Println(*b)
-		*b = 100
-	}
-	a[0] = 10000
-	f()
-	fmt.Println(a)
 }
