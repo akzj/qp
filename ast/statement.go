@@ -150,7 +150,7 @@ type IncFieldStatement struct {
 }
 
 func (statement IncFieldStatement) String() string {
-	panic("implement me")
+	return statement.Exp.String()+"++"
 }
 
 type BreakStatement struct {
@@ -219,7 +219,7 @@ func (statement ObjectInitStatement) String() string {
 	for _, statement := range statement.PropTemplates {
 		str += statement.String() + "\n"
 	}
-	return statement.Exp.String()+"{" + str + "}"
+	return statement.Exp.String() + "{" + str + "}"
 }
 
 type ArrayGetElement struct {
@@ -483,12 +483,12 @@ func (f *CallStatement) Invoke() runtime.Invokable {
 		f.ParentExp != nil && (ok == false || Func.Closure == false) {
 		switch argument := f.ParentExp.Invoke().(type) {
 		case *runtime.Object:
-			if argument.Pointer == nil{
+			if argument.Pointer == nil {
 				panic(argument.Label)
 			}
 			arguments = append(arguments, argument.Pointer)
 		default:
-			if argument == nil{
+			if argument == nil {
 				panic("argument nil")
 			}
 			arguments = append(arguments, argument)
@@ -499,12 +499,12 @@ func (f *CallStatement) Invoke() runtime.Invokable {
 		for _, argument := range f.Arguments {
 			switch job := argument.Invoke().(type) {
 			case *runtime.Object:
-				if job.Pointer == nil{
-					panic(job.Label+" "+f.Function.String())
+				if job.Pointer == nil {
+					panic(job.Label + " " + f.Function.String())
 				}
 				arguments = append(arguments, job.Pointer)
 			default:
-				if job == nil{
+				if job == nil {
 					panic("argument nil")
 				}
 				arguments = append(arguments, job)

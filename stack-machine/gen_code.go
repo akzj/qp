@@ -695,26 +695,47 @@ func (genCode *GenCode) genAssignStatement(statement ast.AssignStatement) {
 }
 
 func (genCode *GenCode) genIncFieldStatement(statement ast.IncFieldStatement) {
-	object := statement.Exp.(ast.GetVarStatement)
-	index, ok := genCode.sm.load(object.Label)
-	if ok == false {
-		log.Panicln("no find label`" + object.Label + "`")
+	switch obj := statement.Exp.(type) {
+	case ast.GetVarStatement:
+		index, ok := genCode.sm.load(obj.Label)
+		if ok == false {
+			log.Panicln("no find label`" + obj.Label + "`")
+		}
+		genCode.pushIns(Instruction{
+			Type: Load,
+			Val:  index,
+		})
+		genCode.pushIns(Instruction{
+			Type:   Push,
+			ValTyp: Int,
+			Val:    1,
+		})
+		genCode.pushIns(Instruction{
+			Type: Add,
+		})
+		genCode.pushIns(Instruction{
+			Type: Store,
+			Val:  index,
+		})
+	case ast.PeriodStatement:
+		genCode.genStatement(obj.Exp)
+		genCode.pushIns(Instruction{
+			Type:          LoadO,
+			Val:           0,
+			Str:           obj.Val,
+		})
+		genCode.pushIns(Instruction{
+			Type:   Push,
+			ValTyp: Int,
+			Val:    1,
+		})
+		genCode.pushIns(Instruction{
+			Type: Add,
+		})
+		genCode.genStatement(obj.Exp)
+		genCode.pushIns(Instruction{
+			Type: StoreO,
+			Str:  obj.Val,
+		})
 	}
-	genCode.pushIns(Instruction{
-		Type: Load,
-		Val:  index,
-	})
-	genCode.pushIns(Instruction{
-		Type:   Push,
-		ValTyp: Int,
-		Val:    1,
-	})
-	genCode.pushIns(Instruction{
-		Type: Add,
-	})
-	genCode.pushIns(Instruction{
-		Type: Store,
-		Val:  index,
-	})
-
 }
