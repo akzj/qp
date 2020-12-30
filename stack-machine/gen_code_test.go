@@ -62,8 +62,7 @@ func fib(a){
 	return fib(a-1) + fib(a-2)
 }
 var begin = now()
-var a = fib(35)
-println("35",a,now()-begin)
+println("35",fib(35),now()-begin)
 `
 	runScript(script)
 }
@@ -80,8 +79,7 @@ func fib(a,count){
 	return fib(a-1,count) + fib(a-2,count)
 }
 var begin = now()
-var a = fib(35,count)
-println("35",a,now()-begin,count.i)
+println("35",fib(35,count),now()-begin,count.i)
 `
 	runScript(script)
 }
