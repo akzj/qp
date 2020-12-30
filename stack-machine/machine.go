@@ -20,8 +20,9 @@ const (
 	Greater                  // >
 	GreaterEQ                // >=
 	Equal                    // ==
-
-	Push InstType = iota
+)
+const (
+	Push InstType = iota + 0
 	Pop
 	Add
 	Sub
@@ -34,17 +35,21 @@ const (
 	Ret
 	Label
 	Exit
-	IncStack  // update stack
-	StoreR    // stack -> register
-	LoadR     // register -> stack
-	MakeStack // make stack for function call
-	PopStack  // pop stack for return function call
-	LoadO     // load from object
-	StoreO    // store to object
+	IncStack    // update stack
+	StoreR      // stack -> register
+	LoadR       // register -> stack
+	MakeStack   // make stack for function call
+	PopStack    // pop stack for return function call
+	LoadO       // load from object
+	StoreO      // store to object
+	MakeArray   // make array
+	Append      // append to array
+	InitClosure // init lambda closure
 
 	TRUE  int64 = 1
 	FALSE int64 = 0
-
+)
+const (
 	Int ValType = iota
 	Bool
 	Mem
@@ -56,6 +61,7 @@ const (
 	Time
 	Duration
 	Obj
+	Array
 
 	DJump JumpType = 0
 	RJump JumpType = 1
@@ -94,7 +100,7 @@ func (t *SymbolTable) getSymbol(s string) (int64, bool) {
 }
 
 type Instruction struct {
-	InstTyp       InstType
+	Type          InstType
 	ValTyp        ValType
 	CmpTyp        CmpType
 	JumpTyp       JumpType
@@ -105,7 +111,7 @@ type Instruction struct {
 }
 
 func (i Instruction) String(table, builtIn *SymbolTable) string {
-	switch i.InstTyp {
+	switch i.Type {
 	case Add:
 		return "add"
 	case Sub:
@@ -138,10 +144,16 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 		}
 	case Exit:
 		return "exit"
+	case InitClosure:
+		return "init_closure"
 	case StoreO:
 		return "StoreO \"" + i.Str + "\""
 	case Pop:
 		return "pop"
+	case MakeArray:
+		return "make_array"
+	case Append:
+		return "append"
 	case Load:
 		return "load " + table.symbols[i.symbol] + " " + strconv.FormatInt(i.Val, 10)
 	case LoadR:
@@ -189,6 +201,7 @@ type Object struct {
 	Int  int64
 	Obj  interface{}
 }
+type ObjectArray []Object
 type objectMap map[string]*Object
 
 func (obj *Object) loadObj(label string) *Object {
@@ -229,9 +242,11 @@ func (obj Object) String() string {
 	} else if obj.Type == Obj {
 		return "object"
 	} else if obj.Type == OFunc || obj.Type == BFunc {
-		return "function " + strconv.FormatInt(obj.Int, 10)
+		return "{ function " + strconv.FormatInt(obj.Int, 10) + " }"
 	} else if obj.Type == Lambda {
-		return "lambda " + strconv.FormatInt(obj.Int, 10)
+		return "{ lambda " + strconv.FormatInt(obj.Int, 10) + " }"
+	} else if obj.Type == Array {
+		return fmt.Sprintf("%+v", obj.Obj)
 	} else {
 		return fmt.Sprintf("{%d %d}", obj.Type, obj.Int)
 	}
@@ -251,6 +266,7 @@ type Machine struct {
 	instructions       []Instruction
 	IP                 int64
 	R                  [32]Object //register
+	closure            ObjectArray
 }
 
 func New() *Machine {
@@ -275,8 +291,8 @@ func getBuiltInSymbolTable() *SymbolTable {
 func (m *Machine) Run() {
 	for m.IP < int64(len(m.instructions)) {
 		ins := m.instructions[m.IP]
-		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
-		switch ins.InstTyp {
+	//	log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
+		switch ins.Type {
 		case Push:
 			m.SP++
 			if ins.ValTyp == IP {
@@ -294,6 +310,12 @@ func (m *Machine) Run() {
 				m.stack[m.SP] = Object{
 					Type: ins.ValTyp,
 					Obj:  make(objectMap),
+				}
+			} else if ins.ValTyp == Lambda {
+				m.stack[m.SP] = Object{
+					Obj:  make(objectMap),
+					Int:  ins.Val,
+					Type: ins.ValTyp,
 				}
 			} else {
 				m.stack[m.SP] = Object{
@@ -323,7 +345,7 @@ func (m *Machine) Run() {
 			case Int:
 				switch operand2.Type {
 				case Int:
-					switch ins.InstTyp {
+					switch ins.Type {
 					case Cmp:
 						//log.Println(operand1, operand2)
 						result.Type = Bool
@@ -361,7 +383,7 @@ func (m *Machine) Run() {
 			case Time:
 				switch operand2.Type {
 				case Time:
-					switch ins.InstTyp {
+					switch ins.Type {
 					case Sub:
 						result.Type = Duration
 						result.Int = int64(operand1.Obj.(time.Time).Sub(operand2.Obj.(time.Time)))
@@ -385,12 +407,15 @@ func (m *Machine) Run() {
 			m.SP++
 			m.stack[m.SP] = m.R[ins.Val]
 		case Load:
-			sp := ins.Val
-			if sp > m.SP {
-				log.Panicln("stack error", sp, m.SP)
+			SP := ins.Val
+			if ins.Val < 0 {
+				SP = m.SP + ins.Val + 1 // -1 top
+			}
+			if SP > m.SP || SP < 0 {
+				log.Panicln("stack error", SP, m.SP)
 			}
 			m.SP++
-			m.stack[m.SP] = m.stack[sp]
+			m.stack[m.SP] = m.stack[SP]
 		case Ret:
 			IP := m.stack[m.SP]
 			m.SP--
@@ -409,7 +434,7 @@ func (m *Machine) Run() {
 					Type: BFunc,
 					Int:  index,
 				}
-			case Obj:
+			case Obj, Lambda:
 				m.stack[m.SP] = *obj.loadObj(ins.Str)
 			default:
 				log.Panicln("unknown obj type", obj, m.SP,
@@ -421,7 +446,7 @@ func (m *Machine) Run() {
 			ele := m.stack[m.SP]
 			m.SP--
 			switch obj.Type {
-			case Obj:
+			case Obj, Lambda:
 				obj.Store(ins.Str, ele)
 			default:
 				log.Panicln("unknown obj type", obj.Type)
@@ -445,8 +470,11 @@ func (m *Machine) Run() {
 				for index, obj := range objects {
 					m.R[index+1] = obj
 				}
-			case OFunc, Lambda:
+			case OFunc:
 				m.IP = f.Int
+			case Lambda:
+				m.IP = f.Int
+				m.closure = f.loadObj(closureLabel).Obj.(ObjectArray)
 				continue
 			default:
 				log.Panicln("no function type", f.Type)
@@ -470,10 +498,26 @@ func (m *Machine) Run() {
 				}
 				continue
 			}
-			//			log.Println("false")
+		//			log.Println("false")
+
+		case MakeArray:
+			m.SP++
+			m.stack[m.SP] = Object{
+				Type: Array,
+				Obj:  make(ObjectArray, 0, 8),
+			}
+		case Append:
+			m.stack[m.SP-1].Obj = append(m.stack[m.SP-1].Obj.(ObjectArray), m.stack[m.SP])
+			m.SP--
+		case InitClosure:
+			for _, obj := range m.closure {
+				m.SP++
+				m.stack[m.SP] = obj
+			}
+			m.closure = nil
 		}
 		m.IP++
-		log.Println(m.stack[:m.SP+1])
+//		log.Println(m.stack[:m.SP+1])
 	}
 }
 

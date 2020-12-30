@@ -95,7 +95,7 @@ func NewGenCode() *GenCode {
 func (genCode *GenCode) String() string {
 	var buffer bytes.Buffer
 	for _, it := range genCode.ins {
-		if it.InstTyp != Label {
+		if it.Type != Label {
 			buffer.WriteString("\t")
 		}
 		buffer.WriteString(it.String(genCode.symbolTable, genCode.builtSymbolTable))
@@ -127,9 +127,9 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 	switch statement := statement.(type) {
 	case ast.Int:
 		genCode.pushIns(Instruction{
-			InstTyp: Push,
-			ValTyp:  Int,
-			Val:     int64(statement),
+			Type:   Push,
+			ValTyp: Int,
+			Val:    int64(statement),
 		})
 	case ast.Bool:
 		var b = FALSE
@@ -137,32 +137,32 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 			b = TRUE
 		}
 		genCode.pushIns(Instruction{
-			InstTyp: Push,
-			ValTyp:  Bool,
-			Val:     b,
+			Type:   Push,
+			ValTyp: Bool,
+			Val:    b,
 		})
 	case *runtime.Object:
 		genCode.genObject(statement)
 	case ast.BinaryOpExpression:
 		genCode.genStatement(statement.Left)
 		if statement.Left.GetType() == lexer.CallType {
-			genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
+			genCode.pushIns(Instruction{Type: LoadR, Val: 1})
 		}
 		genCode.genStatement(statement.Right)
 		if statement.Right.GetType() == lexer.CallType {
-			genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
+			genCode.pushIns(Instruction{Type: LoadR, Val: 1})
 		}
 		genCode.genOpCode(statement.OP)
 	case ast.VarAssignStatement:
 		genCode.genStatement(statement.Exp)
 		if statement.Exp.GetType() == lexer.CallType {
-			genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
+			genCode.pushIns(Instruction{Type: LoadR, Val: 1})
 		}
 		genCode.genStoreIns(statement.Name)
 	case ast.VarStatement:
 		genCode.genStatement(statement.Exp)
 		if statement.Exp.GetType() == lexer.CallType {
-			genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
+			genCode.pushIns(Instruction{Type: LoadR, Val: 1})
 		}
 		genCode.genStoreIns(statement.Label)
 	case ast.GetVarStatement:
@@ -184,15 +184,15 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 		genCode.genAssignStatement(statement)
 	case ast.String:
 		genCode.pushIns(Instruction{
-			InstTyp: Push,
-			ValTyp:  String,
-			Str:     string(statement),
+			Type:   Push,
+			ValTyp: String,
+			Str:    string(statement),
 		})
 	case ast.PeriodStatement:
 		genCode.genStatement(statement.Exp)
 		genCode.pushIns(Instruction{
-			InstTyp: LoadO,
-			Str:     statement.Val,
+			Type: LoadO,
+			Str:  statement.Val,
 		})
 	case ast.ForStatement:
 		genCode.genForStatement(statement)
@@ -215,21 +215,21 @@ func (genCode *GenCode) genOpCode(op lexer.Type) {
 	switch op {
 	case lexer.AddType:
 		genCode.pushIns(Instruction{
-			InstTyp: Add,
+			Type: Add,
 		})
 	case lexer.LessType:
 		genCode.pushIns(Instruction{
-			InstTyp: Cmp,
-			CmpTyp:  Less,
+			Type:   Cmp,
+			CmpTyp: Less,
 		})
 	case lexer.GreaterType:
 		genCode.pushIns(Instruction{
-			InstTyp: Cmp,
-			CmpTyp:  Greater,
+			Type:   Cmp,
+			CmpTyp: Greater,
 		})
 	case lexer.SubType:
 		genCode.pushIns(Instruction{
-			InstTyp: Sub,
+			Type: Sub,
 		})
 	default:
 		log.Panicf("unknown instruction %s", op.String())
@@ -244,17 +244,17 @@ func (genCode *GenCode) genStoreIns(label string) {
 func (genCode *GenCode) genIfStatement(statement ast.IfStatement) {
 	genCode.genStatement(statement.Check)
 	genCode.pushIns(Instruction{
-		InstTyp: Jump,
+		Type:    Jump,
 		JumpTyp: RJump,
 		Val:     3,
 	})
 	genCode.pushIns(Instruction{
-		InstTyp: Push,
-		ValTyp:  Bool,
-		Val:     TRUE,
+		Type:   Push,
+		ValTyp: Bool,
+		Val:    TRUE,
 	})
 	genCode.pushIns(Instruction{
-		InstTyp: Jump,
+		Type:    Jump,
 		JumpTyp: RJump,
 	})
 	index := len(genCode.ins)
@@ -276,17 +276,17 @@ func (genCode *GenCode) genForStatement(statement ast.ForStatement) {
 
 	baseSP := genCode.sm.SP()
 	genCode.pushIns(Instruction{
-		InstTyp: Jump,
+		Type:    Jump,
 		JumpTyp: RJump,
 		Val:     3,
 	})
 	genCode.pushIns(Instruction{
-		InstTyp: Push,
-		ValTyp:  Bool,
-		Val:     TRUE,
+		Type:   Push,
+		ValTyp: Bool,
+		Val:    TRUE,
 	})
 	genCode.pushIns(Instruction{
-		InstTyp: Jump,
+		Type:    Jump,
 		JumpTyp: RJump,
 	})
 	jumpStatement := len(genCode.ins)
@@ -295,18 +295,18 @@ func (genCode *GenCode) genForStatement(statement ast.ForStatement) {
 	genCode.genStatement(statement.Statements)
 
 	genCode.pushIns(Instruction{
-		InstTyp: IncStack,
-		Val:     baseSP - genCode.sm.SP(),
+		Type: IncStack,
+		Val:  baseSP - genCode.sm.SP(),
 	})
 	genCode.genStatement(statement.Post)
 
 	genCode.pushIns(Instruction{
-		InstTyp: Push,
-		ValTyp:  Bool,
-		Val:     TRUE,
+		Type:   Push,
+		ValTyp: Bool,
+		Val:    TRUE,
 	})
 	genCode.pushIns(Instruction{
-		InstTyp: Jump,
+		Type:    Jump,
 		JumpTyp: RJump,
 		Val:     int64(begin - len(genCode.ins)),
 	})
@@ -321,9 +321,9 @@ func (genCode *GenCode) genLoadIns(label string) {
 		log.Panicln("no find label`" + label + "`")
 	}
 	genCode.pushIns(Instruction{
-		InstTyp: Load,
-		Val:     index,
-		symbol:  genCode.symbolTable.addSymbol(label),
+		Type:   Load,
+		Val:    index,
+		symbol: genCode.symbolTable.addSymbol(label),
 	})
 }
 
@@ -331,23 +331,23 @@ func (genCode *GenCode) genArguments(statement *ast.CallStatement) {
 	for _, argument := range statement.Arguments {
 		genCode.genStatement(argument)
 		if argument.GetType() == lexer.CallType {
-			genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
+			genCode.pushIns(Instruction{Type: LoadR, Val: 1})
 		}
 	}
 	genCode.pushIns(Instruction{
-		InstTyp: Push,
-		ValTyp:  Int,
-		Val:     int64(len(statement.Arguments)),
+		Type:   Push,
+		ValTyp: Int,
+		Val:    int64(len(statement.Arguments)),
 	})
 	genCode.pushIns(Instruction{
-		InstTyp: StoreR,
-		Val:     int64(0),
+		Type: StoreR,
+		Val:  int64(0),
 	})
 	var R = int64(len(statement.Arguments))
 	for range statement.Arguments {
 		genCode.pushIns(Instruction{
-			InstTyp: StoreR,
-			Val:     int64(R),
+			Type: StoreR,
+			Val:  int64(R),
 		})
 		R--
 	}
@@ -361,32 +361,32 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 	case ast.GetVarStatement:
 		index, ok := genCode.builtSymbolTable.getSymbol(function.Label)
 		if ok == false { // push IP to stack for return
-			genCode.pushIns(Instruction{InstTyp: Push, ValTyp: IP})
+			genCode.pushIns(Instruction{Type: Push, ValTyp: IP})
 		}
 
 		genCode.genArguments(statement)
 
 		if ok {
 			genCode.pushIns(Instruction{
-				InstTyp: Call,
-				Val:     index,
+				Type: Call,
+				Val:  index,
 			})
 		} else if index, ok := genCode.sm.load(function.Label); ok {
 			genCode.pushIns(Instruction{
-				InstTyp: Load,
-				Val:     index,
+				Type: Load,
+				Val:  index,
 			})
 			genCode.pushIns(Instruction{
-				InstTyp: CallO,
+				Type: CallO,
 			})
 		} else {
 			genCode.pushIns(Instruction{
-				InstTyp: Push,
-				ValTyp:  Bool,
-				Val:     TRUE,
+				Type:   Push,
+				ValTyp: Bool,
+				Val:    TRUE,
 			})
 			genCode.pushIns(Instruction{
-				InstTyp: Jump,
+				Type:    Jump,
 				JumpTyp: DJump,
 				Val:     -1, //todo link
 			})
@@ -400,18 +400,18 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 		}
 
 	case ast.PeriodStatement:
-		genCode.pushIns(Instruction{InstTyp: Push, ValTyp: IP})
+		genCode.pushIns(Instruction{Type: Push, ValTyp: IP})
 		genCode.genStatement(function.Exp)
 		genCode.pushIns(Instruction{
-			InstTyp: LoadO,
-			ValTyp:  String,
-			Str:     function.Val,
+			Type:   LoadO,
+			ValTyp: String,
+			Str:    function.Val,
 		})
 		statement.Arguments = append(statement.Arguments, statement.ParentExp)
 		genCode.genArguments(statement)
 
 		genCode.pushIns(Instruction{
-			InstTyp: CallO,
+			Type: CallO,
 		})
 		genCode.ins[retIP].Val = int64(len(genCode.ins)) - retIP
 	default:
@@ -437,10 +437,10 @@ func (c createObjectStatement) String() string {
 
 func (genCode *GenCode) genCreateObjectStatement(statement createObjectStatement) {
 	genCode.pushIns(Instruction{
-		InstTyp: Push,
-		ValTyp:  Obj,
-		Str:     statement.label,
-		Val:     genCode.symbolTable.addSymbol(statement.label),
+		Type:   Push,
+		ValTyp: Obj,
+		Str:    statement.label,
+		Val:    genCode.symbolTable.addSymbol(statement.label),
 	})
 }
 
@@ -453,7 +453,7 @@ func (genCode *GenCode) genObjectInitStatement(statement ast.ObjectInitStatement
 			obj.Label + "." + objectInitFunctionName},
 			Arguments: []ast.Statement{createObjectStatement{label: obj.Label}},
 		})
-		genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
+		genCode.pushIns(Instruction{Type: LoadR, Val: 1})
 	default:
 		log.Panicln(reflect.TypeOf(obj).String())
 	}
@@ -469,21 +469,49 @@ func (genCode *GenCode) genObject(label *runtime.Object) {
 	genCode.genStatement(label.Pointer)
 }
 
+const closureLabel = "__Closure__"
+
 func (genCode *GenCode) genFuncStatement(statement *ast.FuncStatement) {
 	if statement.Closure {
+
+		//generate function label
 		hash := crc32.NewIEEE()
 		hash.Write([]byte(statement.String()))
 		statement.Label = fmt.Sprintf("lambda_%d", hash.Sum32())
+
+		// link
 		defer func() {
 			genCode.toLinks = append(genCode.toLinks, toLink{
 				label: statement.Label,
 				IP:    int64(len(genCode.ins)),
 			})
 			genCode.pushIns(Instruction{
-				InstTyp: Push,
-				ValTyp:  Lambda,
-				Str:     statement.Label,
-				Val:     -1, //to link
+				Type:   Push,
+				ValTyp: Lambda,
+				Str:    statement.Label,
+				Val:    -1, //to link
+			})
+
+			genCode.pushIns(Instruction{Type: MakeArray})
+			// store closure val to function
+			for _, label := range statement.ClosureLabel {
+				index, ok := genCode.sm.load(label)
+				if ok == false {
+					log.Panicf("no find label `%s`", label)
+				}
+				genCode.pushIns(Instruction{
+					Type: Load,
+					Val:  index,
+				})
+				genCode.pushIns(Instruction{Type: Append})
+			}
+			genCode.pushIns(Instruction{
+				Type: Load,
+				Val:  -2, //top stack
+			})
+			genCode.pushIns(Instruction{
+				Type: StoreO,
+				Str:  closureLabel,
 			})
 		}()
 	}
@@ -499,26 +527,38 @@ func (genCode *GenCode) genFuncStatement(statement *ast.FuncStatement) {
 	defer done()
 
 	genCode.pushIns(Instruction{
-		InstTyp: Label,
-		symbol:  genCode.symbolTable.addSymbol(label),
+		Type:   Label,
+		symbol: genCode.symbolTable.addSymbol(label),
 	})
 	genCode.pushIns(Instruction{
-		InstTyp: MakeStack,
+		Type: MakeStack,
 	})
+
 	if len(statement.Parameters) > 1 {
 		if statement.Parameters[0] == "this" {
-			statement.Parameters[0], statement.Parameters[len(statement.Parameters)-1] =
-				statement.Parameters[len(statement.Parameters)-1], statement.Parameters[0]
+			statement.Parameters = append(statement.Parameters[1:], "this")
 		}
 	}
+	// arguments
 	for i := 0; i < len(statement.Parameters); i++ {
 		genCode.pushIns(Instruction{
-			InstTyp: LoadR,
-			Val:     int64(i + 1),
+			Type: LoadR,
+			Val:  int64(i + 1),
 		})
 		genCode.symbolTable.addSymbol(statement.Parameters[i])
 		genCode.sm.Store(statement.Parameters[i])
 	}
+
+	for _, it := range statement.ClosureLabel {
+		genCode.symbolTable.addSymbol(it)
+		genCode.sm.Store(it)
+	}
+
+	if statement.Closure {
+		genCode.pushIns(Instruction{Type: InitClosure})
+	}
+
+	// closure
 
 	var last runtime.Invokable
 	for _, statement := range statement.Statements {
@@ -528,8 +568,8 @@ func (genCode *GenCode) genFuncStatement(statement *ast.FuncStatement) {
 	switch last.(type) {
 	case ast.ReturnStatement:
 	default:
-		genCode.pushIns(Instruction{InstTyp: PopStack})
-		genCode.pushIns(Instruction{InstTyp: Ret})
+		genCode.pushIns(Instruction{Type: PopStack})
+		genCode.pushIns(Instruction{Type: Ret})
 	}
 }
 
@@ -552,22 +592,22 @@ func (i objectInitStatement) String() string {
 func (genCode *GenCode) genInitStatement(statement objectInitStatement) {
 	for _, function := range statement.functions {
 		genCode.pushIns(Instruction{
-			InstTyp: Push,
-			ValTyp:  OFunc,
-			Str:     function.Labels[1],
-			Val:     -1, // to link
+			Type:   Push,
+			ValTyp: OFunc,
+			Str:    function.Labels[1],
+			Val:    -1, // to link
 		})
 		genCode.toLinks = append(genCode.toLinks, toLink{
 			label: strings.Join(function.Labels, "."),
 			IP:    int64(len(genCode.ins)) - 1,
 		})
 		genCode.pushIns(Instruction{
-			InstTyp: Load,
-			Val:     0,
+			Type: Load,
+			Val:  0,
 		})
 		genCode.pushIns(Instruction{
-			InstTyp: StoreO,
-			Str:     function.Labels[1],
+			Type: StoreO,
+			Str:  function.Labels[1],
 		})
 	}
 }
@@ -617,19 +657,19 @@ func (genCode *GenCode) prepareGenFunction(label string) func() {
 func (genCode *GenCode) genReturnStatement(statement ast.ReturnStatement) {
 	genCode.genStatement(statement.Exp)
 	if statement.Exp.GetType() == lexer.CallType {
-		genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
+		genCode.pushIns(Instruction{Type: LoadR, Val: 1})
 	}
 	genCode.pushIns(Instruction{
-		InstTyp: StoreR,
-		Val:     1,
+		Type: StoreR,
+		Val:  1,
 	})
-	genCode.pushIns(Instruction{InstTyp: PopStack})
-	genCode.pushIns(Instruction{InstTyp: Ret})
+	genCode.pushIns(Instruction{Type: PopStack})
+	genCode.pushIns(Instruction{Type: Ret})
 }
 
 func (genCode *GenCode) GenExit() {
 	genCode.pushIns(Instruction{
-		InstTyp: Exit,
+		Type: Exit,
 	})
 }
 
@@ -639,15 +679,15 @@ func (genCode *GenCode) genAssignStatement(statement ast.AssignStatement) {
 	case ast.GetVarStatement:
 		if index, ok := genCode.sm.load(obj.Label); ok {
 			genCode.pushIns(Instruction{
-				InstTyp: Store,
-				Val:     index,
+				Type: Store,
+				Val:  index,
 			})
 		}
 	case ast.PeriodStatement:
 		genCode.genStatement(obj.Exp)
 		genCode.pushIns(Instruction{
-			InstTyp: StoreO,
-			Str:     obj.Val,
+			Type: StoreO,
+			Str:  obj.Val,
 		})
 	default:
 		log.Panicln(reflect.TypeOf(obj).String())
@@ -661,20 +701,20 @@ func (genCode *GenCode) genIncFieldStatement(statement ast.IncFieldStatement) {
 		log.Panicln("no find label`" + object.Label + "`")
 	}
 	genCode.pushIns(Instruction{
-		InstTyp: Load,
-		Val:     index,
+		Type: Load,
+		Val:  index,
 	})
 	genCode.pushIns(Instruction{
-		InstTyp: Push,
-		ValTyp:  Int,
-		Val:     1,
+		Type:   Push,
+		ValTyp: Int,
+		Val:    1,
 	})
 	genCode.pushIns(Instruction{
-		InstTyp: Add,
+		Type: Add,
 	})
 	genCode.pushIns(Instruction{
-		InstTyp: Store,
-		Val:     index,
+		Type: Store,
+		Val:  index,
 	})
 
 }
