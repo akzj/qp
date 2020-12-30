@@ -327,7 +327,34 @@ func (genCode *GenCode) genLoadIns(label string) {
 	})
 }
 
+func (genCode *GenCode) genArguments(statement *ast.CallStatement) {
+	for _, argument := range statement.Arguments {
+		genCode.genStatement(argument)
+		if argument.GetType() == lexer.CallType {
+			genCode.pushIns(Instruction{InstTyp: LoadR, Val: 1})
+		}
+	}
+	genCode.pushIns(Instruction{
+		InstTyp: Push,
+		ValTyp:  Int,
+		Val:     int64(len(statement.Arguments)),
+	})
+	genCode.pushIns(Instruction{
+		InstTyp: StoreR,
+		Val:     int64(0),
+	})
+	var R  = int64(len(statement.Arguments))
+	for  range statement.Arguments {
+		genCode.pushIns(Instruction{
+			InstTyp: StoreR,
+			Val:     int64(R),
+		})
+		R--
+	}
+}
+
 func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
+
 	//statement.ParentExp todo
 	var retIP = int64(len(genCode.ins))
 	switch function := statement.Function.(type) {
@@ -336,24 +363,9 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 		if ok == false { // push IP to stack for return
 			genCode.pushIns(Instruction{InstTyp: Push, ValTyp: IP})
 		}
-		var R int64
-		genCode.pushIns(Instruction{
-			InstTyp: Push,
-			ValTyp:  Int,
-			Val:     int64(len(statement.Arguments)),
-		})
-		genCode.pushIns(Instruction{
-			InstTyp: StoreR,
-			Val:     int64(R),
-		})
-		for _, argument := range statement.Arguments {
-			R++
-			genCode.genStatement(argument)
-			genCode.pushIns(Instruction{
-				InstTyp: StoreR,
-				Val:     int64(R),
-			})
-		}
+
+		genCode.genArguments(statement)
+
 		if ok {
 			genCode.pushIns(Instruction{
 				InstTyp: Call,
@@ -396,25 +408,8 @@ func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
 			Str:     function.Val,
 		})
 
-		var R int64
-		statement.Arguments = append(statement.Arguments, statement.ParentExp)
-		genCode.pushIns(Instruction{
-			InstTyp: Push,
-			ValTyp:  Int,
-			Val:     int64(len(statement.Arguments)),
-		})
-		genCode.pushIns(Instruction{
-			InstTyp: StoreR,
-			Val:     int64(R),
-		})
-		for _, argument := range statement.Arguments {
-			R++
-			genCode.genStatement(argument)
-			genCode.pushIns(Instruction{
-				InstTyp: StoreR,
-				Val:     int64(R),
-			})
-		}
+		genCode.genArguments(statement)
+
 		genCode.pushIns(Instruction{
 			InstTyp: CallO,
 		})
@@ -465,14 +460,14 @@ func (genCode *GenCode) genObjectInitStatement(statement ast.ObjectInitStatement
 
 }
 
-func (genCode *GenCode) genObject(label *runtime.Object) {
-	genCode.genStatement(label.Pointer)
-}
-
 /*
 
 translate object member function .add init function
 */
+
+func (genCode *GenCode) genObject(label *runtime.Object) {
+	genCode.genStatement(label.Pointer)
+}
 
 func (genCode *GenCode) genFuncStatement(statement *ast.FuncStatement) {
 	if statement.Closure {
@@ -513,7 +508,7 @@ func (genCode *GenCode) genFuncStatement(statement *ast.FuncStatement) {
 	if len(statement.Parameters) > 1 {
 		if statement.Parameters[0] == "this" {
 			statement.Parameters[0], statement.Parameters[len(statement.Parameters)-1] =
-				statement.Parameters[len(statement.Parameters)-1],statement.Parameters[0]
+				statement.Parameters[len(statement.Parameters)-1], statement.Parameters[0]
 		}
 	}
 	for i := 0; i < len(statement.Parameters); i++ {

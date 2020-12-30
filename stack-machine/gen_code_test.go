@@ -159,3 +159,18 @@ u.printName(1999)
 `)
 
 }
+
+func TestFixFunctionCallAsArguments(t *testing.T) {
+	runScript(`
+
+func getNum(a){
+	return a
+}
+
+func printlnN(a,b,c,d,e){
+	println(a,b,c,d,e)
+}
+printlnN(getNum(1),getNum(2),getNum(3),getNum(4),getNum(5))
+
+`)
+}

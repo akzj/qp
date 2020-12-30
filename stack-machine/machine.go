@@ -151,7 +151,7 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 	case Store:
 		return "store "
 	case StoreR:
-		return "storeR"
+		return "storeR " + strconv.FormatInt(i.Val, 10)
 	case Call:
 		return "call " + builtIn.symbols[i.symbol]
 	case CallO:
@@ -275,7 +275,7 @@ func getBuiltInSymbolTable() *SymbolTable {
 func (m *Machine) Run() {
 	for m.IP < int64(len(m.instructions)) {
 		ins := m.instructions[m.IP]
-		//log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
+//		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
 		switch ins.InstTyp {
 		case Push:
 			m.SP++
@@ -472,7 +472,7 @@ func (m *Machine) Run() {
 			//			log.Println("false")
 		}
 		m.IP++
-		//log.Println(m.stack[:m.SP+1])
+//		log.Println(m.stack[:m.SP+1])
 	}
 }
 
