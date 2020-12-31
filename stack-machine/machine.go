@@ -295,14 +295,9 @@ func getBuiltInSymbolTable() *SymbolTable {
 }
 
 func (m *Machine) Run() {
-	var tick int64
-	defer func() {
-		log.Println("tick", tick)
-	}()
 	for m.IP < int64(len(m.instructions)) {
-		tick++
 		ins := m.instructions[m.IP]
-		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
+//		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
 		switch ins.Type {
 		case Push:
 			m.SP++
@@ -595,7 +590,7 @@ func (m *Machine) Run() {
 			m.closure = nil
 		}
 		m.IP++
-		log.Println(m.stack[:m.SP+1])
+//		log.Println(m.stack[:m.SP+1])
 	}
 }
 
