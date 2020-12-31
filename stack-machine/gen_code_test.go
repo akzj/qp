@@ -30,6 +30,38 @@ func runScript(script string) {
 	m.Run()
 }
 
+func TestIfElse(t *testing.T) {
+	runScript(`
+
+for var a = 0; a <11;a++{ 
+
+	if a > 10{
+		println("a > 10")
+	}else if a > 9{
+		println("a > 9")
+	}else if a > 8{
+		println("a > 8")
+	}else if a > 7{
+		println("a > 7")
+	}else if a > 6{
+		println("a > 6")
+	}else if a > 5{
+		println("a > 5")
+	}else if a > 4{
+		println("a > 4")
+	}else if a > 3{
+		println("a > 3")
+	}else if a > 2{
+		println("a > 2")
+	}else if a > 1{
+		println("a > 1")
+	}else{
+		println("a < 1")
+	}
+}
+`)
+}
+
 func TestGenStoreIns(t *testing.T) {
 	script := `
 var a = 1
@@ -213,6 +245,7 @@ println(u.id)
 `)
 }
 
+//todo fix me
 func TestNil(t *testing.T) {
 	runScript(`
 
@@ -220,6 +253,19 @@ var a = nil
 if a == nil{
 	println("a is nil ")
 }
+
+a =1
+println(a)
+
+type User{}
+
+a = User{}
+
+println(a)
+
+a.b.c.d = 1
+
+println(a.b.c.d)
 
 `)
 }
@@ -235,7 +281,6 @@ type List {
 }
 
 func List.insert(left){
-	println(left,"1")
     var item =Item{}
 	item.value = left
     if this.head == nil {

@@ -208,9 +208,9 @@ type Object struct {
 	Obj  interface{}
 }
 type ObjectArray []Object
-type objectMap map[string]*Object
+type objectMap map[string]Object
 
-func (obj *Object) loadObj(label string) *Object {
+func (obj *Object) loadObj(label string) Object {
 	if obj.Obj == nil {
 		obj.Obj = make(objectMap)
 	}
@@ -218,16 +218,19 @@ func (obj *Object) loadObj(label string) *Object {
 	if ok {
 		return o
 	}
-	o = &Object{}
+	o = Object{
+		Type: Nil,
+	}
 	obj.Obj.(objectMap)[label] = o
 	return o
 }
 
 func (obj *Object) Store(str string, ele Object) {
 	if obj.Obj == nil {
+		obj.Type = Obj
 		obj.Obj = make(objectMap)
 	}
-	obj.Obj.(objectMap)[str] = &ele
+	obj.Obj.(objectMap)[str] = ele
 }
 
 func (obj Object) String() string {
@@ -297,7 +300,7 @@ func getBuiltInSymbolTable() *SymbolTable {
 func (m *Machine) Run() {
 	for m.IP < int64(len(m.instructions)) {
 		ins := m.instructions[m.IP]
-//		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
+		//		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), "\tSP : ", m.SP,"\tIP : ",m.IP)
 		switch ins.Type {
 		case Push:
 			m.SP++
@@ -500,10 +503,10 @@ func (m *Machine) Run() {
 					Type: BFunc,
 					Int:  index,
 				}
-			case Obj, Lambda:
-				m.stack[m.SP] = *obj.loadObj(ins.Str)
+			//case Obj, Lambda:
 			default:
-				log.Panicln("unknown obj type", obj, m.SP)
+				m.stack[m.SP] = obj.loadObj(ins.Str)
+			//	log.Panicln("unknown obj type", obj, m.SP)
 			}
 		case StoreO:
 			obj := m.stack[m.SP]
@@ -590,7 +593,7 @@ func (m *Machine) Run() {
 			m.closure = nil
 		}
 		m.IP++
-//		log.Println(m.stack[:m.SP+1])
+		//		log.Println(m.stack[:m.SP+1])
 	}
 }
 

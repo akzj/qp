@@ -259,29 +259,61 @@ func (genCode *GenCode) genStoreIns(label string) {
 }
 
 func (genCode *GenCode) genIfStatement(statement ast.IfStatement) {
-	genCode.genStatement(statement.Check)
-	genCode.pushIns(Instruction{
-		Type:    Jump,
-		JumpTyp: RJump,
-		Val:     3,
-	})
-	genCode.pushIns(Instruction{
-		Type:   Push,
-		ValTyp: Bool,
-		Val:    TRUE,
-	})
-	genCode.pushIns(Instruction{
-		Type:    Jump,
-		JumpTyp: RJump,
-	})
-	index := len(genCode.ins)
 
-	//if statement
-	genCode.genStatement(statement.Statements)
+	baseSP := genCode.sm.SP()
 
-	//fix jump val
-	jumpTo := len(genCode.ins) - index + 1
-	genCode.ins[index-1].Val = int64(jumpTo)
+	var jumpEndIndex []int64
+	for _, ifStatement := range append([]ast.IfStatement{statement}, statement.ElseIf...) {
+		genCode.genStatement(ifStatement.Check)
+		genCode.pushIns(Instruction{
+			Type:    Jump,
+			JumpTyp: RJump,
+			Val:     3,
+		})
+		genCode.pushIns(Instruction{
+			Type:   Push,
+			ValTyp: Bool,
+			Val:    TRUE,
+		})
+
+		index := len(genCode.ins)
+		genCode.pushIns(Instruction{
+			Type:    Jump,
+			JumpTyp: RJump,
+		})
+		//if statement
+		genCode.genStatement(ifStatement.Statements)
+
+		genCode.pushIns(Instruction{
+			Type:   Push,
+			ValTyp: Bool,
+			Val:    TRUE,
+		})
+
+		jumpEndIndex = append(jumpEndIndex, int64(len(genCode.ins)))
+		genCode.pushIns(Instruction{
+			Type:    Jump,
+			JumpTyp: RJump,
+		})
+
+		//fix jump val
+		jumpTo := len(genCode.ins) - index
+		genCode.ins[index].Val = int64(jumpTo)
+	}
+
+	if statement.Else != nil {
+		genCode.genStatement(statement.Else)
+	}
+
+	end := int64(len(genCode.ins))
+	for _, index := range jumpEndIndex {
+		genCode.ins[index].Val = end - index
+	}
+
+	genCode.pushIns(Instruction{
+		Type: IncStack,
+		Val:  baseSP - genCode.sm.SP(),
+	})
 }
 
 func (genCode *GenCode) genForStatement(statement ast.ForStatement) {
