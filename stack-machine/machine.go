@@ -214,15 +214,12 @@ func (obj *Object) loadObj(label string) Object {
 	if obj.Obj == nil {
 		obj.Obj = make(objectMap)
 	}
-	o, ok := obj.Obj.(objectMap)[label]
-	if ok {
+	if o, ok := obj.Obj.(objectMap)[label]; ok {
 		return o
 	}
-	o = Object{
+	return Object{
 		Type: Nil,
 	}
-	obj.Obj.(objectMap)[label] = o
-	return o
 }
 
 func (obj *Object) Store(str string, ele Object) {
@@ -506,7 +503,7 @@ func (m *Machine) Run() {
 			//case Obj, Lambda:
 			default:
 				m.stack[m.SP] = obj.loadObj(ins.Str)
-			//	log.Panicln("unknown obj type", obj, m.SP)
+				//	log.Panicln("unknown obj type", obj, m.SP)
 			}
 		case StoreO:
 			obj := m.stack[m.SP]

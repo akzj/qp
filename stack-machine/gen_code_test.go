@@ -263,7 +263,10 @@ a = User{}
 
 println(a)
 
-a.b.c.d = 1
+a.b = User{}
+a.b.c = User{}
+a.b.c.d =1
+
 
 println(a.b.c.d)
 
@@ -284,15 +287,12 @@ func List.insert(left){
     var item =Item{}
 	item.value = left
     if this.head == nil {
-		println(left,"2")
         this.head = item
     }else{
-		println(left,"3")
         item.Next = this.head
         this.head = item
     }
 }
-
 
 var list = List{}
 
@@ -300,7 +300,8 @@ for var count = 0;count < 10;count++{
 	list.insert(count)
 }
 
-
-
+for var head =list.head ;head != nil; head = head.Next{
+	println(head.value)
+}
 `)
 }
