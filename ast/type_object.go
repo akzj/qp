@@ -22,7 +22,7 @@ func (t TypeObjectPropTemplate) String() string {
 }
 
 type TypeObject struct {
-	VM    *runtime.VMContext
+	VM    *runtime.VMRuntime
 	Label string
 	//Init Statement when create objects
 	Init                    bool

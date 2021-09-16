@@ -32,8 +32,7 @@ type StackManager struct {
 }
 
 func NewStackManager() *StackManager {
-	return &StackManager{
-	}
+	return &StackManager{}
 }
 
 func (s *StackManager) Store(symbol string) int64 {
@@ -111,7 +110,7 @@ func (genCode *GenCode) pushIns(instruction Instruction) {
 	genCode.ins = append(genCode.ins, instruction)
 }
 
-func (genCode *GenCode) Gen(statements []ast.Statement) *GenCode {
+func (genCode *GenCode) Gen(statements []ast.Expression) *GenCode {
 	for _, statement := range statements {
 		log.Println(statement.String())
 		genCode.genStatement(statement)
@@ -170,16 +169,16 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 		genCode.genStoreIns(statement.Label)
 	case ast.GetVarStatement:
 		genCode.genLoadIns(statement.Label)
-	case ast.IfStatement:
+	case ast.IfExpression:
 		genCode.genIfStatement(statement)
-	case ast.Statements:
+	case ast.Expressions:
 		for _, next := range statement {
 			genCode.genStatement(next)
 		}
 	case *ast.CallStatement:
 		genCode.genCallStatement(statement)
 	case ast.NopStatement:
-	case *ast.FuncStatement:
+	case *ast.FuncExpression:
 		genCode.genFuncStatement(statement)
 	case ast.ReturnStatement:
 		genCode.genReturnStatement(statement)
@@ -197,7 +196,7 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 			Type: LoadO,
 			Str:  statement.Val,
 		})
-	case ast.ForStatement:
+	case ast.ForExpression:
 		genCode.genForStatement(statement)
 	case ast.IncFieldStatement:
 		genCode.genIncFieldStatement(statement)
@@ -258,7 +257,7 @@ func (genCode *GenCode) genStoreIns(label string) {
 	genCode.symbolTable.addSymbol(label)
 }
 
-func (genCode *GenCode) genIfStatement(statement ast.IfStatement) {
+func (genCode *GenCode) genIfStatement(statement ast.IfExpression) {
 	genCode.genStatement(statement.Check)
 	genCode.pushIns(Instruction{
 		Type:    Jump,
@@ -284,7 +283,7 @@ func (genCode *GenCode) genIfStatement(statement ast.IfStatement) {
 	genCode.ins[index-1].Val = int64(jumpTo)
 }
 
-func (genCode *GenCode) genForStatement(statement ast.ForStatement) {
+func (genCode *GenCode) genForStatement(statement ast.ForExpression) {
 
 	genCode.genStatement(statement.Pre)
 
@@ -466,9 +465,8 @@ func (genCode *GenCode) genObjectInitStatement(statement ast.ObjectInitStatement
 	case ast.GetVarStatement:
 		genCode.genCallStatement(&ast.CallStatement{
 			ParentExp: nil,
-			Function: ast.GetVarStatement{Label:
-			obj.Label + "." + objectInitFunctionName},
-			Arguments: []ast.Statement{createObjectStatement{label: obj.Label}},
+			Function:  ast.GetVarStatement{Label: obj.Label + "." + objectInitFunctionName},
+			Arguments: []ast.Expression{createObjectStatement{label: obj.Label}},
 		})
 		genCode.pushIns(Instruction{Type: LoadR, Val: 1})
 	default:
@@ -488,7 +486,7 @@ func (genCode *GenCode) genObject(label *runtime.Object) {
 
 const closureLabel = "__Closure__"
 
-func (genCode *GenCode) genFuncStatement(statement *ast.FuncStatement) {
+func (genCode *GenCode) genFuncStatement(statement *ast.FuncExpression) {
 	if statement.Closure {
 
 		//generate function label
@@ -591,7 +589,7 @@ func (genCode *GenCode) genFuncStatement(statement *ast.FuncStatement) {
 }
 
 type objectInitStatement struct {
-	functions []ast.FuncStatement
+	functions []ast.FuncExpression
 }
 
 func (i objectInitStatement) Invoke() runtime.Invokable {
@@ -635,7 +633,7 @@ func (genCode *GenCode) genTypeObject(statement *ast.TypeObject) {
 	var initStatement objectInitStatement
 	for _, object := range statement.GetObjects() {
 		switch obj := object.Pointer.(type) {
-		case *ast.FuncStatement:
+		case *ast.FuncExpression:
 			initStatement.functions = append(initStatement.functions, *obj)
 		default:
 			log.Println("type", reflect.TypeOf(obj).String())
@@ -645,10 +643,10 @@ func (genCode *GenCode) genTypeObject(statement *ast.TypeObject) {
 		genCode.genFuncStatement(&function)
 	}
 	//generate init function for object
-	genCode.genFuncStatement(&ast.FuncStatement{
+	genCode.genFuncStatement(&ast.FuncExpression{
 		Labels:     []string{statement.Label, objectInitFunctionName},
 		Parameters: []string{"this"},
-		Statements: []ast.Statement{initStatement,
+		Statements: []ast.Expression{initStatement,
 			ast.ReturnStatement{
 				Exp: ast.GetVarStatement{Label: "this"},
 			}},

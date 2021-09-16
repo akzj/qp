@@ -1,8 +1,9 @@
 package runtime
 
 import (
-	"gitlab.com/akzj/qp/lexer"
 	"reflect"
+
+	"gitlab.com/akzj/qp/lexer"
 )
 
 type Object struct {
@@ -13,12 +14,12 @@ type Object struct {
 func (obj *Object) Invoke() Invokable {
 	switch obj.Pointer.(type) {
 	case Invokable:
-		return obj.Pointer.(Invokable).Invoke()
+		return obj.Pointer.Invoke()
 	default:
 		panic(reflect.TypeOf(obj.Pointer).String())
 	}
 }
-func (obj *Object) isNil() bool {
+func (obj *Object) IsNil() bool {
 	return obj.Pointer == nil
 }
 func (obj *Object) GetType() lexer.Type {

@@ -1,12 +1,12 @@
 package ast
 
 import (
-	"gitlab.com/akzj/qp/lexer"
-	"gitlab.com/akzj/qp/runtime"
 	"reflect"
 	"time"
-)
 
+	"gitlab.com/akzj/qp/lexer"
+	"gitlab.com/akzj/qp/runtime"
+)
 
 type ParenthesisExpression struct {
 	Exp runtime.Invokable
@@ -23,7 +23,6 @@ func (p ParenthesisExpression) GetType() lexer.Type {
 func (p ParenthesisExpression) String() string {
 	return "(" + p.Exp.String() + ")"
 }
-
 
 func unwrapObject(expression runtime.Invokable) runtime.Invokable {
 	for {
@@ -42,7 +41,7 @@ type BinaryOpExpression struct {
 }
 
 func (b BinaryOpExpression) String() string {
-	return b.Left.String() + b.OP.String() + b.Right.String()
+	return b.Left.String() + " " + b.OP.String() + " " + b.Right.String()
 }
 
 func (b BinaryOpExpression) Invoke() runtime.Invokable {
@@ -107,7 +106,7 @@ func (b BinaryOpExpression) Invoke() runtime.Invokable {
 				return DurationObject(time.Time(lVal).Sub(time.Time(rVal)))
 			}
 		}
-	case *FuncStatement:
+	case *FuncExpression:
 		switch right.(type) {
 		case NilObject:
 			switch b.OP {

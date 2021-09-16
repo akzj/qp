@@ -73,7 +73,7 @@ BoolExpression:Factor BoolOperator Factor
 */
 
 type Parser struct {
-	vm           *runtime.VMContext
+	vm           *runtime.VMRuntime
 	lexer        *lexer.Lexer
 	tokens       []lexer.Token
 	hTokens      []lexer.Token
@@ -122,10 +122,10 @@ func New(buffer string) *Parser {
 	}
 }
 
-func Parse(data string) ast.Statements {
+func Parse(data string) ast.Expressions {
 	return New(data).Parse()
 }
-func (p *Parser) GetVMContext() *runtime.VMContext {
+func (p *Parser) GetVMContext() *runtime.VMRuntime {
 	return p.vm
 }
 func (p *Parser) putToken(token lexer.Token) {
@@ -158,9 +158,9 @@ func (p *Parser) initTokens() *Parser {
 	return p
 }
 
-func (p *Parser) Parse() ast.Statements {
+func (p *Parser) Parse() ast.Expressions {
 	p.initTokens()
-	var statements ast.Statements
+	var statements ast.Expressions
 	for {
 		if statement := p.ParseStatement(); statement != nil {
 			statements = append(statements, statement)
@@ -182,7 +182,7 @@ func (p *Parser) Parse() ast.Statements {
 		|FunctionCallStatement()
 		|lambda
 */
-func (p *Parser) ParseIDPrefixStatement(token lexer.Token) ast.Statement {
+func (p *Parser) ParseIDPrefixStatement(token lexer.Token) ast.Expression {
 	var exp runtime.Invokable = ast.GetVarStatement{
 		VM:    p.vm,
 		Label: token.Val,
@@ -219,8 +219,8 @@ func (p *Parser) ParseIDPrefixStatement(token lexer.Token) ast.Statement {
 	}
 }
 
-func (p *Parser) ParseStatement() ast.Statement {
-	var statement ast.Statement
+func (p *Parser) ParseStatement() ast.Expression {
+	var statement ast.Expression
 	for {
 		token := p.nextToken()
 		//		log.Println(token)
@@ -346,7 +346,7 @@ func (p *Parser) expectType(token lexer.Token, expect lexer.Type) {
 	}
 }
 
-func (p *Parser) parseVarStatement() ast.Statement {
+func (p *Parser) parseVarStatement() ast.Expression {
 	token := p.nextToken()
 	//log.Println(token)
 	p.expectType(token, lexer.IDType)
@@ -372,12 +372,12 @@ func (p *Parser) parseVarStatement() ast.Statement {
 func(){}()
 
 */
-func (p *Parser) parseLambdaStatement() ast.Statement {
+func (p *Parser) parseLambdaStatement() ast.Expression {
 	p.pushStatus(FunctionStatus)
 	defer func() {
 		p.assertTrue(p.popStatus() == FunctionStatus)
 	}()
-	var funcS ast.FuncStatement
+	var funcS ast.FuncExpression
 	funcS.Closure = true
 	funcS.VM = p.vm
 	token := p.nextToken()
@@ -628,8 +628,8 @@ func User.add(){
 
 }
 */
-func (p *Parser) parseFuncStatement() *ast.FuncStatement {
-	var funcS ast.FuncStatement
+func (p *Parser) parseFuncStatement() *ast.FuncExpression {
+	var funcS ast.FuncExpression
 	token := p.nextToken()
 	p.expectType(token, lexer.IDType)
 
@@ -690,14 +690,14 @@ func (p *Parser) parseBoolExpression(pre int) runtime.Invokable {
 	return exp
 }
 
-func (p *Parser) parseIfStatement(elseif bool) ast.Statement {
+func (p *Parser) parseIfStatement(elseif bool) ast.Expression {
 	p.pushStatus(IfStatus)
 	//log.Println("enter parseIfStatement")
 	defer func() {
 		p.assertTrue(p.popStatus() == IfStatus)
 		//log.Println("out parseIfStatement")
 	}()
-	var ifS ast.IfStatement
+	var ifS ast.IfExpression
 	if p.ahead(0).Typ != lexer.LeftBraceType {
 		ifS.Check = p.parseBoolExpression(0)
 	}
@@ -716,7 +716,7 @@ func (p *Parser) parseIfStatement(elseif bool) ast.Statement {
 		if next.Typ == lexer.ElseifType {
 			p.nextToken()
 			statement := p.parseIfStatement(true)
-			ifS.ElseIf = append(ifS.ElseIf, statement.(ast.IfStatement))
+			ifS.ElseIf = append(ifS.ElseIf, statement.(ast.IfExpression))
 		} else if next.Typ == lexer.ElseType {
 			p.expectType(p.nextToken(), lexer.ElseType)
 			p.expectType(p.nextToken(), lexer.LeftBraceType)
@@ -796,7 +796,7 @@ func (p *Parser) popClosureLabels() []string {
 	return nil
 }
 
-func (p *Parser) parseReturn() ast.Statement {
+func (p *Parser) parseReturn() ast.Expression {
 	if p.ahead(0).Typ == lexer.RightBraceType {
 		return ast.ReturnStatement{
 			Exp: ast.NilObject{},
@@ -808,12 +808,12 @@ func (p *Parser) parseReturn() ast.Statement {
 	}
 }
 
-func (p *Parser) parseForStatement() ast.Statement {
+func (p *Parser) parseForStatement() ast.Expression {
 	p.pushStatus(ForStatus)
 	defer func() {
 		p.assertTrue(p.popStatus() == ForStatus)
 	}()
-	var forStatement = ast.ForStatement{
+	var forStatement = ast.ForExpression{
 		VM: p.vm,
 	}
 	token := p.nextToken()
@@ -867,8 +867,8 @@ func (p *Parser) parseForStatement() ast.Statement {
 	return forStatement
 }
 
-func (p *Parser) ParseStatements() ast.Statements {
-	var statements ast.Statements
+func (p *Parser) ParseStatements() ast.Expressions {
+	var statements ast.Expressions
 	if p.ahead(0).Typ == lexer.RightBraceType {
 		return append(statements, ast.NopStatement{})
 	}
@@ -936,7 +936,7 @@ func (p Parser) getStatus() PStatus {
 	return 0
 }
 
-func (p *Parser) parseBreakStatement() ast.Statement {
+func (p *Parser) parseBreakStatement() ast.Expression {
 	if p.checkInStatus(ForStatus) == false {
 		log.Panic("current no in `for` brock ")
 	}
@@ -950,7 +950,7 @@ func (p *Parser) parseAssignStatement(exp runtime.Invokable) ast.AssignStatement
 	}
 }
 
-func (p *Parser) addUserFunction(function *ast.FuncStatement) {
+func (p *Parser) addUserFunction(function *ast.FuncExpression) {
 	if function.Labels != nil {
 		structObject := p.vm.GetTypeObject(function.Labels[0])
 		if structObject == nil { //todo fixme

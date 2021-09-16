@@ -252,39 +252,6 @@ println(a+1)
 	}
 }
 
-func TestFor(t *testing.T) {
-	cases := []struct {
-		exp string
-		val interface{}
-	}{{
-		exp: `
-
-var b = 1
-for var a = 1 ;a < 10; a++{
-	println(a,b)
-	if a > 3{
-		return 1
-	}
-	//local var 
-	var a = 100
-	println(a)
-	a = 101
-	println(a)
-}
-
-`, val: int64(3),
-	}}
-
-	for _, Case := range cases {
-		expression := Parse(Case.exp)
-		if expression == nil {
-			t.Fatal("Parse failed")
-		}
-		fmt.Println("---------------------------")
-		expression.Invoke()
-	}
-}
-
 func TestFunction(t *testing.T) {
 	data := `
 func add(a,b){

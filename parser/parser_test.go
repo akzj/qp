@@ -99,59 +99,6 @@ func TestIfElseIF(t *testing.T) {
 	}
 }
 
-func TestPeriod(t *testing.T) {
-	data := `
-
-type Item {
-}
-
-type User{
-}
-
-func User.insert(val){
-	var item = Item{value:val}
-	if this.head==nil{
-		this.head = item
-	}else{
-		item.next = this.head
-		this.head = item
-	}
-	println(this.head.value)
-}
-
-
-func User.getFirst(){
-	return this.head.value
-}
-
-var user = User{}
-
-user.insert(1)
-user.insert(2)
-user.insert(3)
-user.insert(4)
-user.insert(5)
-
-var value = user.getFirst()
-if value == nil{
-	println("value is nil")
-} else if value == 1{
-	println("value is 1")
-} else{
-	println(value)	
-}
-println(value)
-
-for var first=user.head;first != nil;first = first.next{
-	println(first.value)
-}
-
-`
-
-	fmt.Println(New(data).Parse().String())
-	New(data).Parse().Invoke()
-}
-
 func TestTypeStruct(t *testing.T) {
 	data := `
 
@@ -213,5 +160,6 @@ func(){
 		statements := New(testcase.data).Parse()
 		fmt.Println("--------")
 		statements.Invoke()
+		fmt.Println(statements.String())
 	}
 }

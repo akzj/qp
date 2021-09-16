@@ -85,25 +85,25 @@ func (m *Memory) popStackFrame() {
 	}
 }
 
-type VMContext struct {
+type VMRuntime struct {
 	mem             *Memory
 	GlobalFunctions map[string]*Object
 	structObjects   map[string]*Object
 }
 
-func New() *VMContext {
-	return &VMContext{
+func New() *VMRuntime {
+	return &VMRuntime{
 		mem:             NewMemory(),
 		structObjects:   map[string]*Object{},
 		GlobalFunctions: map[string]*Object{},
 	}
 }
 
-func (ctx *VMContext) AllocObject(label string) *Object {
+func (ctx *VMRuntime) AllocObject(label string) *Object {
 	return ctx.mem.Alloc(label)
 }
 
-func (ctx *VMContext) GetObject(label string) *Object {
+func (ctx *VMRuntime) GetObject(label string) *Object {
 	if obj, ok := Functions[label]; ok {
 		return &Object{Pointer: obj}
 	}
@@ -116,41 +116,40 @@ func (ctx *VMContext) GetObject(label string) *Object {
 	return ctx.mem.GetObject(label)
 }
 
-func (ctx *VMContext) PushStackFrame(isolate bool) {
+func (ctx *VMRuntime) PushStackFrame(isolate bool) {
 	ctx.mem.pushStackFrame(isolate)
 }
 
-func (ctx *VMContext) PopStackFrame() {
+func (ctx *VMRuntime) PopStackFrame() {
 	ctx.mem.popStackFrame()
 }
 
-func (ctx *VMContext) AddGlobalFunction(object *Object) {
+func (ctx *VMRuntime) AddGlobalFunction(object *Object) {
 	if _, ok := ctx.GlobalFunctions[object.Label]; ok {
 		log.Panic("Object name repeated")
 	}
 	ctx.GlobalFunctions[object.Label] = object
 }
 
-func (ctx *VMContext) AddStructObject(object *Object) {
+func (ctx *VMRuntime) AddStructObject(object *Object) {
 	if _, ok := ctx.structObjects[object.Label]; ok {
 		log.Panic("structObject repeated", object.Label)
 	}
 	ctx.structObjects[object.Label] = object
 }
 
-func (ctx *VMContext) GetTypeObject(label string) *Object {
-	obj, _ := ctx.structObjects[label]
-	return obj
+func (ctx *VMRuntime) GetTypeObject(label string) *Object {
+	return ctx.structObjects[label]
 }
 
-func (ctx *VMContext) IsGlobal(label string) bool {
+func (ctx *VMRuntime) IsGlobal(label string) bool {
 	if _, ok := Functions[label]; ok {
 		return true
 	}
 	return false
 }
 
-func (ctx *VMContext) Objects() []*Object {
+func (ctx *VMRuntime) Objects() []*Object {
 	var objs []*Object
 	for _, object := range ctx.structObjects {
 		objs = append(objs, object)

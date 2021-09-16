@@ -7,38 +7,37 @@ import (
 	"gitlab.com/akzj/qp/runtime"
 )
 
-type ForStatement struct {
-	VM         *runtime.VMContext
+type ForExpression struct {
+	VM         *runtime.VMRuntime
 	Pre        runtime.Invokable
 	Check      runtime.Invokable
 	Post       runtime.Invokable
-	Statements Statements
+	Statements Expressions
 }
 
-func (f ForStatement) String() string {
+func (exp ForExpression) String() string {
 	var codes = "for "
-	codes += f.Pre.String() + ";" + f.Check.String() + ";" + f.Post.String() + " {\n\t"
-	codes += f.Statements.String() + "\n}"
+	codes += exp.Pre.String() + ";" + exp.Check.String() + ";" + exp.Post.String() + " {\n\t"
+	codes += exp.Statements.String() + "\n}"
 	return codes
 }
 
-func (f ForStatement) Invoke() runtime.Invokable {
-	f.VM.PushStackFrame(false) //make stack frame
+func (exp ForExpression) Invoke() runtime.Invokable {
 
-	//make for brock stack
-	f.Pre.Invoke()
-
+	//make stack frame
+	exp.VM.PushStackFrame(false)
+	exp.Pre.Invoke()
 	for {
-		val, ok := f.Check.Invoke().(Bool)
+		val, ok := exp.Check.Invoke().(Bool)
 		if !ok {
 			log.Panic("for Check expect Bool")
 		}
 		if !val {
-			f.VM.PopStackFrame() //end of for
+			exp.VM.PopStackFrame() //end of for
 			return nil
 		}
-		f.VM.PushStackFrame(false) //make stack frame for `{` brock
-		for _, statement := range f.Statements {
+		exp.VM.PushStackFrame(false) //make stack frame for `{` brock
+		for _, statement := range exp.Statements {
 			val := statement.Invoke()
 			if val == BreakObj {
 				return nil
@@ -47,11 +46,11 @@ func (f ForStatement) Invoke() runtime.Invokable {
 				return val
 			}
 		}
-		f.VM.PopStackFrame()
-		f.Post.Invoke()
+		exp.VM.PopStackFrame()
+		exp.Post.Invoke()
 	}
 }
 
-func (f ForStatement) GetType() lexer.Type {
+func (f ForExpression) GetType() lexer.Type {
 	return lexer.ForType
 }
