@@ -1,10 +1,10 @@
 package parser
 
 import (
-	"container/list"
 	"fmt"
-	"gitlab.com/akzj/qp/lexer"
 	"testing"
+
+	"gitlab.com/akzj/qp/lexer"
 )
 
 func TestParser2_Parse(t *testing.T) {
@@ -116,6 +116,7 @@ func User.insert(val){
 		item.next = this.head
 		this.head = item
 	}
+	println(this.head.value)
 }
 
 
@@ -126,15 +127,29 @@ func User.getFirst(){
 var user = User{}
 
 user.insert(1)
+user.insert(2)
+user.insert(3)
+user.insert(4)
+user.insert(5)
+
 var value = user.getFirst()
 if value == nil{
 	println("value is nil")
+} else if value == 1{
+	println("value is 1")
+} else{
+	println(value)	
 }
 println(value)
 
+for var first=user.head;first != nil;first = first.next{
+	println(first.value)
+}
+
 `
+
+	fmt.Println(New(data).Parse().String())
 	New(data).Parse().Invoke()
-	list.New()
 }
 
 func TestTypeStruct(t *testing.T) {

@@ -20,7 +20,7 @@ func (s String) AddObject(k string, v *runtime.Object) {
 }
 
 func (s String) String() string {
-	return string(s)
+	return "\"" + string(s) + "\""
 }
 
 func (s String) Invoke() runtime.Invokable {
