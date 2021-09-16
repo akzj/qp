@@ -1,11 +1,12 @@
 package ast
 
 import (
-	"gitlab.com/akzj/qp/lexer"
-	"gitlab.com/akzj/qp/runtime"
 	"log"
 	"reflect"
 	"strings"
+
+	"gitlab.com/akzj/qp/lexer"
+	"gitlab.com/akzj/qp/runtime"
 )
 
 type Statements []Statement
@@ -34,7 +35,16 @@ type IfStatement struct {
 }
 
 func (ifStm IfStatement) String() string {
-	return "if " + ifStm.Check.String() + "{}"
+	codes := "if " + ifStm.Check.String() +
+		" {\n\t" + ifStm.Statements.String() + "\n}"
+
+	for _, elseif := range ifStm.ElseIf {
+		codes += " else " + elseif.String()
+	}
+	if ifStm.Else != nil {
+		codes += " else {\n\t" + ifStm.Else.String() + "\n}"
+	}
+	return codes
 }
 
 type ReturnStatement struct {
@@ -123,7 +133,7 @@ func (f *CallStatement) String() string {
 		}
 		str += statement.String()
 	}
-	return str + ")"
+	return str + ") "
 }
 
 type AssignStatement struct {
@@ -150,7 +160,7 @@ type IncFieldStatement struct {
 }
 
 func (statement IncFieldStatement) String() string {
-	return statement.Exp.String()+"++"
+	return statement.Exp.String() + "++"
 }
 
 type BreakStatement struct {
@@ -194,18 +204,6 @@ func (f *FuncStatement) String() string {
 func (f *FuncStatement) Invoke() runtime.Invokable {
 	f.doClosureInit()
 	return f
-}
-
-type ForStatement struct {
-	VM         *runtime.VMContext
-	Pre        runtime.Invokable
-	Check      runtime.Invokable
-	Post       runtime.Invokable
-	Statements Statements
-}
-
-func (f ForStatement) String() string {
-	return "for"
 }
 
 type ObjectInitStatement struct {
@@ -418,41 +416,6 @@ func (n NopStatement) GetType() lexer.Type {
 	return lexer.NopStatementType
 }
 
-func (f ForStatement) Invoke() runtime.Invokable {
-	f.VM.PushStackFrame(false) //make stack frame
-
-	//make for brock stack
-	f.Pre.Invoke()
-
-	for ; ; {
-		val := f.Check.Invoke()
-		bObj, ok := val.(Bool)
-		if ok == false {
-			log.Panic("for Check expect Bool")
-		}
-		if bObj == false {
-			f.VM.PopStackFrame() //end of for
-			return nil
-		}
-		f.VM.PushStackFrame(false) //make stack frame for `{` brock
-		for _, statement := range f.Statements {
-			val := statement.Invoke()
-			if val == BreakObj {
-				return nil
-			}
-			if _, ok := val.(ReturnStatement); ok {
-				return val
-			}
-		}
-		f.VM.PopStackFrame()
-		f.Post.Invoke()
-	}
-}
-
-func (f ForStatement) GetType() lexer.Type {
-	return lexer.ForType
-}
-
 func (statement IncFieldStatement) Invoke() runtime.Invokable {
 	object := statement.Exp.Invoke().(*runtime.Object)
 	object.Pointer = object.Pointer.(Int) + 1
@@ -479,8 +442,7 @@ func (f *CallStatement) Invoke() runtime.Invokable {
 		log.Panic("Function nil")
 	}
 	var arguments []runtime.Invokable
-	if Func, ok := exp.(*FuncStatement);
-		f.ParentExp != nil && (ok == false || Func.Closure == false) {
+	if Func, ok := exp.(*FuncStatement); f.ParentExp != nil && (ok == false || Func.Closure == false) {
 		switch argument := f.ParentExp.Invoke().(type) {
 		case *runtime.Object:
 			if argument.Pointer == nil {
