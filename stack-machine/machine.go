@@ -275,13 +275,13 @@ type Machine struct {
 	closure            ObjectArray
 }
 
-func New() *Machine {
+func NewMachine(gen *CodeGenerator) *Machine {
 	return &Machine{
-		symbolTable:        NewSymbolTable(),
+		symbolTable:        gen.symbolTable,
 		builtInSymbolTable: getBuiltInSymbolTable(),
 		stack:              make([]Object, 1024*1024),
 		SP:                 -1,
-		instructions:       nil,
+		instructions:       gen.ins,
 		IP:                 0,
 	}
 }
@@ -297,7 +297,7 @@ func getBuiltInSymbolTable() *SymbolTable {
 func (m *Machine) Run() {
 	for m.IP < int64(len(m.instructions)) {
 		ins := m.instructions[m.IP]
-//		log.Print(ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
+		fmt.Println(m.IP, ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
 		switch ins.Type {
 		case Push:
 			m.SP++
@@ -385,7 +385,8 @@ func (m *Machine) Run() {
 						result.Int = TRUE
 					}
 				default:
-					log.Panicln("unknown instruction", ins.String(m.symbolTable, m.builtInSymbolTable), m.IP, operand2.String())
+					log.Panicln("unknown instruction",
+						ins.String(m.symbolTable, m.builtInSymbolTable), m.IP, operand2.String())
 				}
 			case Time:
 				switch operand2.Type {
@@ -562,7 +563,7 @@ func (m *Machine) Run() {
 				log.Panicln("expect bool value for check", m.IP, m.SP)
 			}
 			if check.Int == TRUE {
-				//log.Println("true",ins.Int)
+				log.Println("check true")
 				if ins.JumpTyp == DJump {
 					m.IP = ins.Val
 				} else {
@@ -570,7 +571,7 @@ func (m *Machine) Run() {
 				}
 				continue
 			}
-		//			log.Println("false")
+			log.Println("check false")
 
 		case MakeArray:
 			m.SP++
@@ -590,7 +591,7 @@ func (m *Machine) Run() {
 			m.closure = nil
 		}
 		m.IP++
-//		log.Println(m.stack[:m.SP+1])
+		//		log.Println(m.stack[:m.SP+1])
 	}
 }
 

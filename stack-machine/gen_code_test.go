@@ -2,9 +2,10 @@ package stackmachine
 
 import (
 	"fmt"
-	"gitlab.com/akzj/qp/parser"
 	"log"
 	"testing"
+
+	"gitlab.com/akzj/qp/parser"
 )
 
 func init() {
@@ -20,13 +21,9 @@ func runScript(script string) {
 	for _, it := range objects {
 		statements = append(statements, it)
 	}
-	GC := NewGenCode()
+	GC := NewCodeGenerator()
 	fmt.Println(GC.Gen(statements))
-
-	m := New()
-	m.instructions = GC.ins
-	m.symbolTable = GC.symbolTable
-
+	m := NewMachine(GC)
 	m.Run()
 }
 

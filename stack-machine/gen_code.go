@@ -3,14 +3,15 @@ package stackmachine
 import (
 	"bytes"
 	"fmt"
-	"gitlab.com/akzj/qp/ast"
-	"gitlab.com/akzj/qp/lexer"
-	"gitlab.com/akzj/qp/runtime"
 	"hash/crc32"
 	"log"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"gitlab.com/akzj/qp/ast"
+	"gitlab.com/akzj/qp/lexer"
+	"gitlab.com/akzj/qp/runtime"
 )
 
 type toLink struct {
@@ -69,7 +70,7 @@ func (s *StackManager) SP() int64 {
 	return int64(len(s.stack))
 }
 
-type GenCode struct {
+type CodeGenerator struct {
 	symbolTable      *SymbolTable
 	builtSymbolTable *SymbolTable
 	ins              []Instruction
@@ -78,8 +79,8 @@ type GenCode struct {
 	funcInstructions map[string]FuncInstruction
 }
 
-func NewGenCode() *GenCode {
-	gc := &GenCode{
+func NewCodeGenerator() *CodeGenerator {
+	gc := &CodeGenerator{
 		symbolTable:      NewSymbolTable(),
 		builtSymbolTable: NewSymbolTable(),
 		ins:              []Instruction{},
@@ -92,7 +93,7 @@ func NewGenCode() *GenCode {
 	return gc
 }
 
-func (genCode *GenCode) String() string {
+func (genCode *CodeGenerator) String() string {
 	var buffer bytes.Buffer
 	for index, it := range genCode.ins {
 		buffer.WriteString(strconv.Itoa(index))
@@ -106,13 +107,12 @@ func (genCode *GenCode) String() string {
 	return buffer.String()
 }
 
-func (genCode *GenCode) pushIns(instruction Instruction) {
+func (genCode *CodeGenerator) pushIns(instruction Instruction) {
 	genCode.ins = append(genCode.ins, instruction)
 }
 
-func (genCode *GenCode) Gen(statements []ast.Expression) *GenCode {
+func (genCode *CodeGenerator) Gen(statements []ast.Expression) *CodeGenerator {
 	for _, statement := range statements {
-		log.Println(statement.String())
 		genCode.genStatement(statement)
 	}
 	genCode.GenExit()
@@ -125,7 +125,7 @@ func (genCode *GenCode) Gen(statements []ast.Expression) *GenCode {
 	return genCode
 }
 
-func (genCode *GenCode) genStatement(statement runtime.Invokable) {
+func (genCode *CodeGenerator) genStatement(statement runtime.Invokable) {
 	switch statement := statement.(type) {
 	case ast.Int:
 		genCode.pushIns(Instruction{
@@ -215,7 +215,7 @@ func (genCode *GenCode) genStatement(statement runtime.Invokable) {
 	}
 }
 
-func (genCode *GenCode) genOpCode(op lexer.Type) {
+func (genCode *CodeGenerator) genOpCode(op lexer.Type) {
 	switch op {
 	case lexer.AddType:
 		genCode.pushIns(Instruction{
@@ -252,12 +252,12 @@ func (genCode *GenCode) genOpCode(op lexer.Type) {
 	}
 }
 
-func (genCode *GenCode) genStoreIns(label string) {
+func (genCode *CodeGenerator) genStoreIns(label string) {
 	genCode.sm.Store(label)
 	genCode.symbolTable.addSymbol(label)
 }
 
-func (genCode *GenCode) genIfStatement(statement ast.IfExpression) {
+func (genCode *CodeGenerator) genIfStatement(statement ast.IfExpression) {
 	genCode.genStatement(statement.Check)
 	genCode.pushIns(Instruction{
 		Type:    Jump,
@@ -283,7 +283,7 @@ func (genCode *GenCode) genIfStatement(statement ast.IfExpression) {
 	genCode.ins[index-1].Val = int64(jumpTo)
 }
 
-func (genCode *GenCode) genForStatement(statement ast.ForExpression) {
+func (genCode *CodeGenerator) genForStatement(statement ast.ForExpression) {
 
 	genCode.genStatement(statement.Pre)
 
@@ -331,7 +331,7 @@ func (genCode *GenCode) genForStatement(statement ast.ForExpression) {
 	genCode.ins[jumpStatement-1].Val = int64(len(genCode.ins) - jumpStatement + 1)
 }
 
-func (genCode *GenCode) genLoadIns(label string) {
+func (genCode *CodeGenerator) genLoadIns(label string) {
 	index, ok := genCode.sm.load(label)
 	if ok == false {
 		log.Panicln("no find label`" + label + "`")
@@ -343,7 +343,7 @@ func (genCode *GenCode) genLoadIns(label string) {
 	})
 }
 
-func (genCode *GenCode) genArguments(statement *ast.CallStatement) {
+func (genCode *CodeGenerator) genArguments(statement *ast.CallStatement) {
 	for _, argument := range statement.Arguments {
 		genCode.genStatement(argument)
 		if argument.GetType() == lexer.CallType {
@@ -369,7 +369,7 @@ func (genCode *GenCode) genArguments(statement *ast.CallStatement) {
 	}
 }
 
-func (genCode *GenCode) genCallStatement(statement *ast.CallStatement) {
+func (genCode *CodeGenerator) genCallStatement(statement *ast.CallStatement) {
 
 	//statement.ParentExp todo
 	var retIP = int64(len(genCode.ins))
@@ -451,7 +451,7 @@ func (c createObjectStatement) String() string {
 	panic("implement me")
 }
 
-func (genCode *GenCode) genCreateObjectStatement(statement createObjectStatement) {
+func (genCode *CodeGenerator) genCreateObjectStatement(statement createObjectStatement) {
 	genCode.pushIns(Instruction{
 		Type:   Push,
 		ValTyp: Obj,
@@ -460,7 +460,7 @@ func (genCode *GenCode) genCreateObjectStatement(statement createObjectStatement
 	})
 }
 
-func (genCode *GenCode) genObjectInitStatement(statement ast.ObjectInitStatement) {
+func (genCode *CodeGenerator) genObjectInitStatement(statement ast.ObjectInitStatement) {
 	switch obj := statement.Exp.(type) {
 	case ast.GetVarStatement:
 		genCode.genCallStatement(&ast.CallStatement{
@@ -480,13 +480,13 @@ func (genCode *GenCode) genObjectInitStatement(statement ast.ObjectInitStatement
 translate object member function .add init function
 */
 
-func (genCode *GenCode) genObject(label *runtime.Object) {
+func (genCode *CodeGenerator) genObject(label *runtime.Object) {
 	genCode.genStatement(label.Pointer)
 }
 
 const closureLabel = "__Closure__"
 
-func (genCode *GenCode) genFuncStatement(statement *ast.FuncExpression) {
+func (genCode *CodeGenerator) genFuncStatement(statement *ast.FuncExpression) {
 	if statement.Closure {
 
 		//generate function label
@@ -604,7 +604,7 @@ func (i objectInitStatement) String() string {
 	panic("implement me")
 }
 
-func (genCode *GenCode) genInitStatement(statement objectInitStatement) {
+func (genCode *CodeGenerator) genInitStatement(statement objectInitStatement) {
 	for _, function := range statement.functions {
 		genCode.pushIns(Instruction{
 			Type:   Push,
@@ -629,7 +629,7 @@ func (genCode *GenCode) genInitStatement(statement objectInitStatement) {
 
 const objectInitFunctionName = "__init__"
 
-func (genCode *GenCode) genTypeObject(statement *ast.TypeObject) {
+func (genCode *CodeGenerator) genTypeObject(statement *ast.TypeObject) {
 	var initStatement objectInitStatement
 	for _, object := range statement.GetObjects() {
 		switch obj := object.Pointer.(type) {
@@ -653,7 +653,7 @@ func (genCode *GenCode) genTypeObject(statement *ast.TypeObject) {
 	})
 }
 
-func (genCode *GenCode) prepareGenFunction(label string) func() {
+func (genCode *CodeGenerator) prepareGenFunction(label string) func() {
 	ins := genCode.ins
 	toLink := genCode.toLinks
 	genCode.ins = nil
@@ -669,7 +669,7 @@ func (genCode *GenCode) prepareGenFunction(label string) func() {
 	}
 }
 
-func (genCode *GenCode) genReturnStatement(statement ast.ReturnStatement) {
+func (genCode *CodeGenerator) genReturnStatement(statement ast.ReturnStatement) {
 	genCode.genStatement(statement.Exp)
 	if statement.Exp.GetType() == lexer.CallType {
 		genCode.pushIns(Instruction{Type: LoadR, Val: 1})
@@ -682,13 +682,13 @@ func (genCode *GenCode) genReturnStatement(statement ast.ReturnStatement) {
 	genCode.pushIns(Instruction{Type: Ret})
 }
 
-func (genCode *GenCode) GenExit() {
+func (genCode *CodeGenerator) GenExit() {
 	genCode.pushIns(Instruction{
 		Type: Exit,
 	})
 }
 
-func (genCode *GenCode) genAssignStatement(statement ast.AssignStatement) {
+func (genCode *CodeGenerator) genAssignStatement(statement ast.AssignStatement) {
 	genCode.genStatement(statement.Exp)
 	switch obj := statement.Left.(type) {
 	case ast.GetVarStatement:
@@ -709,7 +709,7 @@ func (genCode *GenCode) genAssignStatement(statement ast.AssignStatement) {
 	}
 }
 
-func (genCode *GenCode) genIncFieldStatement(statement ast.IncFieldStatement) {
+func (genCode *CodeGenerator) genIncFieldStatement(statement ast.IncFieldStatement) {
 	switch obj := statement.Exp.(type) {
 	case ast.GetVarStatement:
 		index, ok := genCode.sm.load(obj.Label)
@@ -755,7 +755,7 @@ func (genCode *GenCode) genIncFieldStatement(statement ast.IncFieldStatement) {
 	}
 }
 
-func (genCode *GenCode) genNilObject(statement ast.NilObject) {
+func (genCode *CodeGenerator) genNilObject(statement ast.NilObject) {
 	genCode.pushIns(Instruction{
 		Type:   Push,
 		ValTyp: Nil,

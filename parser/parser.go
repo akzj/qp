@@ -2,13 +2,14 @@ package parser
 
 import (
 	"bytes"
+	"log"
+	"strconv"
+	"strings"
+
 	"gitlab.com/akzj/qp/ast"
 	_ "gitlab.com/akzj/qp/builtin"
 	"gitlab.com/akzj/qp/lexer"
 	"gitlab.com/akzj/qp/runtime"
-	"log"
-	"strconv"
-	"strings"
 )
 
 /*
@@ -697,7 +698,9 @@ func (p *Parser) parseIfStatement(elseif bool) ast.Expression {
 		p.assertTrue(p.popStatus() == IfStatus)
 		//log.Println("out parseIfStatement")
 	}()
-	var ifS ast.IfExpression
+	var ifS = ast.IfExpression{
+		VM: p.vm,
+	}
 	if p.ahead(0).Typ != lexer.LeftBraceType {
 		ifS.Check = p.parseBoolExpression(0)
 	}
@@ -711,7 +714,7 @@ func (p *Parser) parseIfStatement(elseif bool) ast.Expression {
 	ifS.Statements = p.ParseStatements()
 	p.expectType(p.nextToken(), lexer.RightBraceType)
 
-	for elseif == false {
+	for !elseif {
 		next := p.ahead(0)
 		if next.Typ == lexer.ElseifType {
 			p.nextToken()
