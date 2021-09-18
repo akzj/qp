@@ -183,17 +183,21 @@ func (p *Parser) Parse() ast.Expressions {
 		|FunctionCallStatement()
 		|lambda
 */
-func (p *Parser) ParseIDPrefixStatement(token lexer.Token) ast.Expression {
+func (p *Parser) ParseIDPrefixExpression(token lexer.Token) ast.Expression {
 	var exp runtime.Invokable = ast.GetVarStatement{
 		VM:    p.vm,
 		Label: token.Val,
 	}
 	var parentExp runtime.Invokable
 	for {
-		token := p.nextToken()
-		switch token.Typ {
+		next := p.nextToken()
+		switch next.Typ {
 		case lexer.AssignType:
 			return p.parseAssignStatement(exp)
+		case lexer.VarInitType:
+			p.putToken(next)
+			p.putToken(token)
+			return p.parseVarInitStatement()
 		case lexer.IncType:
 			return ast.IncFieldStatement{
 				Exp: exp,
@@ -215,7 +219,7 @@ func (p *Parser) ParseIDPrefixStatement(token lexer.Token) ast.Expression {
 				return exp
 			}
 		default:
-			log.Panic("unexpect token ", token)
+			log.Panic("unexpect token ", next)
 		}
 	}
 }
@@ -259,7 +263,7 @@ func (p *Parser) ParseStatement() ast.Expression {
 		case lexer.SemicolonType:
 			continue
 		case lexer.IDType:
-			return p.ParseIDPrefixStatement(token)
+			return p.ParseIDPrefixExpression(token)
 		case lexer.ReturnType:
 			return p.parseReturn()
 		case lexer.RightBraceType:
@@ -343,8 +347,26 @@ func (p *Parser) parseTypeStatement() *ast.TypeObject {
 
 func (p *Parser) expectType(token lexer.Token, expect lexer.Type) {
 	if token.Typ != expect {
-		log.Panicf("unexpect %s token", token)
+		log.Panicf("unexpect %s token", token.String())
 	}
+}
+
+func (p *Parser) parseVarInitStatement() ast.Expression {
+	token := p.nextToken()
+	log.Println(token)
+	p.expectType(token, lexer.IDType)
+	next := p.nextToken()
+	p.closureCheckAddVar(token.Val)
+	if next.Typ == lexer.VarInitType {
+		expression := p.parseFactor(0)
+		return ast.VarInitExpression{
+			Ctx:  p.vm,
+			Name: token.Val,
+			Exp:  expression,
+		}
+	}
+	log.Panicf("unknown token %s", next)
+	return nil
 }
 
 func (p *Parser) parseVarStatement() ast.Expression {
@@ -832,8 +854,9 @@ func (p *Parser) parseForStatement() ast.Expression {
 		forStatement.Statements = statements
 		return &forStatement
 	} else {
-		//support var= ;
-		expression := p.parseVarStatement()
+		//support object := expression;
+		p.putToken(token)
+		expression := p.parseVarInitStatement()
 		if p.nextToken().Typ != lexer.SemicolonType {
 			log.Panic("expect ; in `for` statement")
 			return nil

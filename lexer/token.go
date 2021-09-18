@@ -133,6 +133,8 @@ func (t Type) String() string {
 		return "||"
 	case AndType:
 		return "&&"
+	case VarInitType:
+		return ":="
 	default:
 		panic("unknown token type " + strconv.Itoa(int(t)))
 	}
@@ -181,6 +183,7 @@ const (
 	VarType                           // var
 	AssignType                        // =
 	VarAssignType                     // var x =
+	VarInitType                       // :=
 	IntType                           // int
 	TypeType                          // type
 	MapObjectType                     // map {}
@@ -214,9 +217,9 @@ type Token struct {
 
 func (t Token) String() string {
 	if t.Val == "" {
-		return fmt.Sprintf("Line:%d type`%s`", t.Line, t.Typ.String())
+		return fmt.Sprintf("line:%d type`%s`", t.Line, t.Typ.String())
 	}
-	return fmt.Sprintf("Line:%d type`%s` Val `%s`", t.Line, t.Typ.String(), t.Val)
+	return fmt.Sprintf("line:%d type`%s` var `%s`", t.Line, t.Typ.String(), t.Val)
 }
 
 var (
@@ -244,6 +247,7 @@ var (
 	SubOperatorToken      = Token{Typ: SubType}
 	OrToken               = Token{Typ: OrType}
 	AndToken              = Token{Typ: AndType}
+	VarInitToken          = Token{Typ: VarInitType}
 )
 
 var Keywords = []string{

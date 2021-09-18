@@ -30,14 +30,20 @@ func TestForExpressionTest(t *testing.T) {
 		val interface{}
 	}{{
 		exp: `
-var a = 10
-var a1 = a
-if a < 2{
-	a = 3
-}
+		if 1 < 2 {
+			a := 1
+			b := 1
+			c := 1
+			d := 1
+			e := 1
+			e2 := 1
+			e3 := 1
+			e4 := 1
+			e5 := 1
+		}
 
-println(a)
-
+		println(e2)
+		
 `, val: int64(3),
 	}}
 
@@ -47,7 +53,7 @@ println(a)
 			t.Fatal("Parse failed")
 		}
 		fmt.Println("---------------------------")
-		expression.Invoke()
+		//	expression.Invoke()
 		fmt.Println()
 		fmt.Println("---------------------------")
 		runScript(Case.exp)

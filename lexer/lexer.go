@@ -121,6 +121,10 @@ func (l *Lexer) Peek() Token {
 			token = SemicolonToken
 		case c == ':':
 			token = ColonToken
+			if c, _ = l.ahead(); c == '=' {
+				_, _ = l.Get()
+				token = VarInitToken
+			}
 		case c == '.':
 			token = PeriodToken
 		case c == '"':

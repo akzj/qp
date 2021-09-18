@@ -36,7 +36,7 @@ const (
 	Ret
 	Label
 	Exit
-	IncStack    // update stack
+	MoveStack   // update stack
 	StoreR      // stack -> register
 	LoadR       // register -> stack
 	MakeStack   // make stack for function call
@@ -176,8 +176,8 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 		return "return"
 	case Label:
 		return table.symbols[i.symbol] + ":"
-	case IncStack:
-		return "reset " + strconv.FormatInt(i.Val, 10)
+	case MoveStack:
+		return "move stack " + strconv.FormatInt(i.Val, 10)
 	case MakeStack:
 		return "make_stack"
 	case PopStack:
@@ -464,7 +464,7 @@ func (m *Machine) Run() {
 			val := m.stack[m.SP]
 			m.SP--
 			m.stack[ins.Val] = val
-		case IncStack:
+		case MoveStack:
 			m.SP += ins.Val
 		case StoreR:
 			m.R[ins.Val] = m.stack[m.SP]

@@ -58,17 +58,21 @@ func (f *CallStatement) Invoke() runtime.Invokable {
 
 	if function, ok := exp.(Function); ok {
 		for _, argument := range f.Arguments {
-			switch job := argument.Invoke().(type) {
+			obj := argument.Invoke()
+			switch obj := obj.(type) {
 			case *runtime.Object:
-				if job.Pointer == nil {
-					panic(job.Label + " " + f.Function.String())
+				if obj == nil {
+					log.Panicf("no find object %s\n", argument.String())
 				}
-				arguments = append(arguments, job.Pointer)
+				if obj.Pointer == nil {
+					panic(obj.Label + " " + f.Function.String())
+				}
+				arguments = append(arguments, obj.Pointer)
 			default:
-				if job == nil {
+				if obj == nil {
 					panic("argument nil")
 				}
-				arguments = append(arguments, job)
+				arguments = append(arguments, obj)
 			}
 		}
 		return function.Call(arguments...)

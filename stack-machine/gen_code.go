@@ -161,6 +161,12 @@ func (genCode *CodeGenerator) genStatement(statement runtime.Invokable) {
 			genCode.pushIns(Instruction{Type: LoadR, Val: 1})
 		}
 		genCode.genStoreIns(statement.Name)
+	case ast.VarInitExpression:
+		genCode.genStatement(statement.Exp)
+		if statement.Exp.GetType() == lexer.CallType {
+			genCode.pushIns(Instruction{Type: LoadR, Val: 1})
+		}
+		genCode.genStoreIns(statement.Name)
 	case ast.VarStatement:
 		genCode.genStatement(statement.Exp)
 		if statement.Exp.GetType() == lexer.CallType {
@@ -275,8 +281,15 @@ func (genCode *CodeGenerator) genIfStatement(statement ast.IfExpression) {
 	})
 	index := len(genCode.ins)
 
+	baseSP := genCode.sm.SP()
 	//if statement
 	genCode.genStatement(statement.Statements)
+
+	//clear if expression stack
+	genCode.pushIns(Instruction{
+		Type: MoveStack,
+		Val:  baseSP - genCode.sm.SP(),
+	})
 
 	//fix jump val
 	jumpTo := len(genCode.ins) - index + 1
@@ -291,6 +304,7 @@ func (genCode *CodeGenerator) genForStatement(statement ast.ForExpression) {
 	genCode.genStatement(statement.Check)
 
 	baseSP := genCode.sm.SP()
+
 	genCode.pushIns(Instruction{
 		Type:    Jump,
 		JumpTyp: RJump,
@@ -310,10 +324,12 @@ func (genCode *CodeGenerator) genForStatement(statement ast.ForExpression) {
 	//if statement
 	genCode.genStatement(statement.Statements)
 
+	//reset for expression Stack
 	genCode.pushIns(Instruction{
-		Type: IncStack,
+		Type: MoveStack,
 		Val:  baseSP - genCode.sm.SP(),
 	})
+
 	genCode.genStatement(statement.Post)
 
 	genCode.pushIns(Instruction{
