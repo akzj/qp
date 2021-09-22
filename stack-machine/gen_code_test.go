@@ -23,7 +23,7 @@ func runScript(script string) {
 	}
 	GC := NewCodeGenerator()
 	fmt.Println(GC.Gen(statements))
-	m := NewMachine(GC)
+	m := NewMachine(GC, Options{Debug: true})
 	m.Run()
 }
 

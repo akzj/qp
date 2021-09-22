@@ -2,6 +2,7 @@ package ast
 
 import (
 	"log"
+	"strings"
 
 	"gitlab.com/akzj/qp/lexer"
 	"gitlab.com/akzj/qp/runtime"
@@ -17,8 +18,12 @@ type ForExpression struct {
 
 func (exp ForExpression) String() string {
 	var codes = "for "
-	codes += exp.Pre.String() + ";" + exp.Check.String() + ";" + exp.Post.String() + " {\n\t"
-	codes += exp.Statements.String() + "\n}"
+	codes += exp.Pre.String() + ";" + exp.Check.String() + ";" + exp.Post.String() + " {"
+
+	for _, str := range strings.Split(exp.Statements.String(), "\n") {
+		codes += "\n\t" + str
+	}
+	codes += "\n}"
 	return codes
 }
 

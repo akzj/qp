@@ -3,6 +3,7 @@ package ast
 import (
 	"log"
 	"reflect"
+	"strings"
 
 	"gitlab.com/akzj/qp/lexer"
 	"gitlab.com/akzj/qp/runtime"
@@ -16,15 +17,32 @@ type IfExpression struct {
 	Else       Expressions
 }
 
+func addTag(lines string) string {
+	var codes string
+	for _, line := range strings.Split(lines, "\n") {
+		codes += line + "\n\t"
+	}
+	return codes
+}
+
 func (exp IfExpression) String() string {
-	codes := "if " + exp.Check.String() +
-		" {\n\t" + exp.Statements.String() + "\n}"
+	codes := "if " + exp.Check.String() + " {\n\t" + addTag(exp.Statements.String())
+	if strings.HasSuffix(codes, "\n") {
+		codes += "}"
+	} else {
+		codes += "\n}"
+	}
 
 	for _, elseif := range exp.ElseIf {
 		codes += " else " + elseif.String()
 	}
 	if exp.Else != nil {
-		codes += " else {\n\t" + exp.Else.String() + "\n}"
+		codes += " else {\n\t" + addTag(exp.Else.String())
+		if strings.HasSuffix(codes, "\n") {
+			codes += "}"
+		} else {
+			codes += "\n}"
+		}
 	}
 	return codes
 }

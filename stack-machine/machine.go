@@ -165,7 +165,7 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 	case LoadO:
 		return "LoadO " + i.Str
 	case Store:
-		return "store "
+		return "store " + table.symbols[i.symbol] + " " + strconv.FormatInt(i.Val, 10)
 	case StoreR:
 		return "storeR " + strconv.FormatInt(i.Val, 10)
 	case Call:
@@ -264,6 +264,7 @@ type StackFrame struct {
 }
 
 type Machine struct {
+	Options
 	symbolTable        *SymbolTable
 	builtInSymbolTable *SymbolTable
 	stack              []Object
@@ -275,8 +276,13 @@ type Machine struct {
 	closure            ObjectArray
 }
 
-func NewMachine(gen *CodeGenerator) *Machine {
+type Options struct {
+	Debug bool
+}
+
+func NewMachine(gen *CodeGenerator, options Options) *Machine {
 	return &Machine{
+		Options:            options,
 		symbolTable:        gen.symbolTable,
 		builtInSymbolTable: getBuiltInSymbolTable(),
 		stack:              make([]Object, 1024*1024),
@@ -297,7 +303,9 @@ func getBuiltInSymbolTable() *SymbolTable {
 func (m *Machine) Run() {
 	for m.IP < int64(len(m.instructions)) {
 		ins := m.instructions[m.IP]
-		fmt.Println(m.IP, ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
+		if m.Debug {
+			fmt.Println(m.IP, ins.String(m.symbolTable, m.builtInSymbolTable), " SP: ", m.SP)
+		}
 		switch ins.Type {
 		case Push:
 			m.SP++
@@ -563,7 +571,9 @@ func (m *Machine) Run() {
 				log.Panicln("expect bool value for check", m.IP, m.SP)
 			}
 			if check.Int == TRUE {
-				log.Println("check true")
+				if m.Debug {
+					log.Println("check true")
+				}
 				if ins.JumpTyp == DJump {
 					m.IP = ins.Val
 				} else {
@@ -571,8 +581,9 @@ func (m *Machine) Run() {
 				}
 				continue
 			}
-			log.Println("check false")
-
+			if m.Debug {
+				log.Println("check false")
+			}
 		case MakeArray:
 			m.SP++
 			m.stack[m.SP] = Object{

@@ -8,7 +8,7 @@ import (
 	stackmachine "gitlab.com/akzj/qp/stack-machine"
 )
 
-func runScript(script string) {
+func runScript(script string, printIns bool) {
 	parser := parser.New(script)
 
 	statements := parser.Parse()
@@ -20,7 +20,7 @@ func runScript(script string) {
 	GC := stackmachine.NewCodeGenerator()
 	fmt.Println(GC.Gen(statements))
 
-	m := stackmachine.NewMachine(GC)
+	m := stackmachine.NewMachine(GC, stackmachine.Options{Debug: printIns})
 	m.Run()
 }
 
@@ -30,20 +30,13 @@ func TestForExpressionTest(t *testing.T) {
 		val interface{}
 	}{{
 		exp: `
-		if 1 < 2 {
-			a := 1
-			b := 1
-			c := 1
-			d := 1
-			e := 1
-			e2 := 1
-			e3 := 1
-			e4 := 1
-			e5 := 1
-		}
-
-		println(e2)
 		
+		for k := 0; k < 10;k++{
+			for i := 1;i < 4;i++{
+				println(k,i)
+			}
+			println("---------------")
+		}
 `, val: int64(3),
 	}}
 
@@ -53,9 +46,9 @@ func TestForExpressionTest(t *testing.T) {
 			t.Fatal("Parse failed")
 		}
 		fmt.Println("---------------------------")
-		//	expression.Invoke()
+		fmt.Println(expression.String())
 		fmt.Println()
 		fmt.Println("---------------------------")
-		runScript(Case.exp)
+		runScript(Case.exp, false)
 	}
 }

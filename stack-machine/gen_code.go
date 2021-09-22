@@ -25,11 +25,18 @@ type FuncInstruction struct {
 	label   string
 }
 
+type stackSymbol struct {
+	symbol string
+	sp     int
+}
+type stackFrame struct {
+	function bool
+	stack    []stackSymbol
+	sp       int
+}
 type StackManager struct {
-	stack      []string
-	stackFrame []struct {
-		stack []string
-	}
+	currStack  stackFrame
+	stackFrame []stackFrame
 }
 
 func NewStackManager() *StackManager {
@@ -38,36 +45,49 @@ func NewStackManager() *StackManager {
 
 func (s *StackManager) Store(symbol string) int64 {
 	if len(symbol) != 0 {
-		for _, label := range s.stack {
-			if label == symbol {
-				log.Panicln("redefine symbol", symbol, s.stackFrame, s.stack)
+		for _, label := range s.currStack.stack {
+			if label.symbol == symbol {
+				log.Panicln("redefine symbol", symbol, s.stackFrame, s.currStack)
 			}
 		}
 	}
-	s.stack = append(s.stack, symbol)
-	return int64(len(s.stack)) - 1
+	s.currStack.stack = append(s.currStack.stack, stackSymbol{
+		symbol: symbol,
+		sp:     s.currStack.sp,
+	})
+	s.currStack.sp++
+	return s.SP()
 }
 
 func (s *StackManager) load(label string) (int64, bool) {
-	for i := len(s.stack) - 1; i >= 0; i-- {
-		if s.stack[i] == label {
-			return int64(i), true
+	stacks := append([]stackFrame{}, s.currStack)
+	stacks = append(stacks, s.stackFrame...)
+	for j := len(stacks) - 1; j >= 0; j-- {
+		stack := stacks[j]
+		for i := len(stack.stack) - 1; i >= 0; i-- {
+			if stack.stack[i].symbol == label {
+				return int64(stack.stack[i].sp), true
+			}
 		}
 	}
 	return -1, false
 }
 
-func (s *StackManager) pushStackFrame() {
-	s.stackFrame = append(s.stackFrame, struct{ stack []string }{stack: s.stack})
-	s.stack = nil
+func (s *StackManager) pushStackFrame(funcStack bool) {
+	s.stackFrame = append(s.stackFrame, s.currStack)
+	if !funcStack {
+		s.currStack.stack = nil
+	} else {
+		s.currStack = stackFrame{function: funcStack}
+	}
 }
 func (s *StackManager) popStackFrame() {
-	s.stack = s.stackFrame[len(s.stackFrame)-1].stack
+	s.currStack = s.stackFrame[len(s.stackFrame)-1]
 	s.stackFrame = s.stackFrame[:len(s.stackFrame)-1]
 }
 
 func (s *StackManager) SP() int64 {
-	return int64(len(s.stack))
+	return int64(s.currStack.sp)
 }
 
 type CodeGenerator struct {
@@ -125,7 +145,7 @@ func (genCode *CodeGenerator) Gen(statements []ast.Expression) *CodeGenerator {
 	return genCode
 }
 
-func (genCode *CodeGenerator) genStatement(statement runtime.Invokable) {
+func (genCode *CodeGenerator) genStatement(statement runtime.Invokable) int {
 	switch statement := statement.(type) {
 	case ast.Int:
 		genCode.pushIns(Instruction{
@@ -161,26 +181,31 @@ func (genCode *CodeGenerator) genStatement(statement runtime.Invokable) {
 			genCode.pushIns(Instruction{Type: LoadR, Val: 1})
 		}
 		genCode.genStoreIns(statement.Name)
+		return 1
 	case ast.VarInitExpression:
 		genCode.genStatement(statement.Exp)
 		if statement.Exp.GetType() == lexer.CallType {
 			genCode.pushIns(Instruction{Type: LoadR, Val: 1})
 		}
 		genCode.genStoreIns(statement.Name)
+		return 1
 	case ast.VarStatement:
 		genCode.genStatement(statement.Exp)
 		if statement.Exp.GetType() == lexer.CallType {
 			genCode.pushIns(Instruction{Type: LoadR, Val: 1})
 		}
 		genCode.genStoreIns(statement.Label)
+		return 1
 	case ast.GetVarStatement:
 		genCode.genLoadIns(statement.Label)
 	case ast.IfExpression:
 		genCode.genIfStatement(statement)
 	case ast.Expressions:
+		var stackSize int
 		for _, next := range statement {
-			genCode.genStatement(next)
+			stackSize += genCode.genStatement(next)
 		}
+		return stackSize
 	case *ast.CallStatement:
 		genCode.genCallStatement(statement)
 	case ast.NopStatement:
@@ -219,6 +244,7 @@ func (genCode *CodeGenerator) genStatement(statement runtime.Invokable) {
 	default:
 		log.Panicf("unknown statement %s", reflect.TypeOf(statement).String())
 	}
+	return 0
 }
 
 func (genCode *CodeGenerator) genOpCode(op lexer.Type) {
@@ -231,6 +257,11 @@ func (genCode *CodeGenerator) genOpCode(op lexer.Type) {
 		genCode.pushIns(Instruction{
 			Type:   Cmp,
 			CmpTyp: Less,
+		})
+	case lexer.LessEqualType:
+		genCode.pushIns(Instruction{
+			Type:   Cmp,
+			CmpTyp: LessEQ,
 		})
 	case lexer.GreaterType:
 		genCode.pushIns(Instruction{
@@ -281,14 +312,15 @@ func (genCode *CodeGenerator) genIfStatement(statement ast.IfExpression) {
 	})
 	index := len(genCode.ins)
 
-	baseSP := genCode.sm.SP()
 	//if statement
-	genCode.genStatement(statement.Statements)
+	genCode.sm.pushStackFrame(false)
+	stackSize := genCode.genStatement(statement.Statements)
+	genCode.sm.popStackFrame()
 
 	//clear if expression stack
 	genCode.pushIns(Instruction{
 		Type: MoveStack,
-		Val:  baseSP - genCode.sm.SP(),
+		Val:  -int64(stackSize),
 	})
 
 	//fix jump val
@@ -298,18 +330,29 @@ func (genCode *CodeGenerator) genIfStatement(statement ast.IfExpression) {
 
 func (genCode *CodeGenerator) genForStatement(statement ast.ForExpression) {
 
-	genCode.genStatement(statement.Pre)
+	genCode.sm.pushStackFrame(false)
+	preStackSize := genCode.genStatement(statement.Pre)
 
 	begin := len(genCode.ins)
 	genCode.genStatement(statement.Check)
 
-	baseSP := genCode.sm.SP()
-
-	genCode.pushIns(Instruction{
-		Type:    Jump,
-		JumpTyp: RJump,
-		Val:     3,
-	})
+	if preStackSize > 0 {
+		genCode.pushIns(Instruction{
+			Type:    Jump,
+			JumpTyp: RJump,
+			Val:     4,
+		})
+		genCode.pushIns(Instruction{
+			Type: MoveStack,
+			Val:  -int64(preStackSize),
+		})
+	} else {
+		genCode.pushIns(Instruction{
+			Type:    Jump,
+			JumpTyp: RJump,
+			Val:     3,
+		})
+	}
 	genCode.pushIns(Instruction{
 		Type:   Push,
 		ValTyp: Bool,
@@ -321,16 +364,20 @@ func (genCode *CodeGenerator) genForStatement(statement ast.ForExpression) {
 	})
 	jumpStatement := len(genCode.ins)
 
-	//if statement
-	genCode.genStatement(statement.Statements)
+	// statement
+
+	stackSize := genCode.genStatement(statement.Statements)
 
 	//reset for expression Stack
-	genCode.pushIns(Instruction{
-		Type: MoveStack,
-		Val:  baseSP - genCode.sm.SP(),
-	})
+	if stackSize > 0 {
+		genCode.pushIns(Instruction{
+			Type: MoveStack,
+			Val:  -int64(stackSize),
+		})
+	}
 
 	genCode.genStatement(statement.Post)
+	genCode.sm.pushStackFrame(false)
 
 	genCode.pushIns(Instruction{
 		Type:   Push,
@@ -547,7 +594,7 @@ func (genCode *CodeGenerator) genFuncStatement(statement *ast.FuncExpression) {
 		}()
 	}
 
-	genCode.sm.pushStackFrame()
+	genCode.sm.pushStackFrame(true)
 	defer genCode.sm.popStackFrame()
 
 	label := statement.Label

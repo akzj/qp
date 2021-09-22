@@ -63,7 +63,7 @@ func (b BinaryOpExpression) Invoke() runtime.Invokable {
 			case lexer.LessType:
 				return Bool(lVal < rVal)
 			case lexer.LessEqualType:
-				return Bool(lVal < rVal)
+				return Bool(lVal <= rVal)
 			case lexer.GreaterType:
 				return Bool(lVal > rVal)
 			case lexer.GreaterEqualType:
