@@ -95,7 +95,7 @@ const (
 
 func precedence(tokenType lexer.Type) int {
 	switch tokenType {
-	case lexer.MulOpType, lexer.DivOpType:
+	case lexer.MulOpType, lexer.DivOpType, lexer.ModOpType:
 		return 10
 	case lexer.AddType, lexer.SubType:
 		return 9
@@ -442,7 +442,7 @@ func (p *Parser) parseFactor(pre int) runtime.Invokable {
 		case lexer.LeftParenthesisType:
 			if exp == nil {
 				p.pStack = append(p.pStack, token.Line)
-				exp = ast.ParenthesisExpression{Exp: p.parseFactor(pre)}
+				exp = ast.ParenthesisExpression{Exp: p.parseFactor(0)}
 				p.expectType(p.nextToken(), lexer.RightParenthesisType)
 			} else {
 				//log.Println("parseCallStatement")
@@ -461,16 +461,6 @@ func (p *Parser) parseFactor(pre int) runtime.Invokable {
 			exp = ast.PeriodStatement{
 				Val: token.Val,
 				Exp: exp,
-			}
-		case lexer.MulOpType, lexer.DivOpType:
-			if exp == nil {
-				log.Panicf("unexpect token %s", token)
-			}
-			p.nextToken()
-			return ast.BinaryOpExpression{
-				OP:    token.Typ,
-				Left:  exp,
-				Right: p.parseFactor(precedence(token.Typ)),
 			}
 		case lexer.NoType:
 			p.assertNoNil(exp)
@@ -518,6 +508,9 @@ func (p *Parser) parseFactor(pre int) runtime.Invokable {
 			lexer.AddType,          // +
 			lexer.LessType,         // <
 			lexer.AndType,          // &&
+			lexer.MulOpType,        // *
+			lexer.DivOpType,        // /
+			lexer.ModOpType,        // %
 			lexer.OrType:           // ||
 			if exp == nil {
 				log.Panic("exp nil")

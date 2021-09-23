@@ -157,6 +157,7 @@ const (
 	SubType                           // -
 	MulOpType                         // *
 	DivOpType                         // /
+	ModOpType                         // %
 	LessType                          // <
 	GreaterType                       // >
 	LessEqualType                     // <=
@@ -248,6 +249,8 @@ var (
 	OrToken               = Token{Typ: OrType}
 	AndToken              = Token{Typ: AndType}
 	VarInitToken          = Token{Typ: VarInitType}
+	ModToken              = Token{Typ: ModOpType}
+	DivToken              = Token{Typ: DivOpType}
 )
 
 var Keywords = []string{

@@ -23,12 +23,15 @@ const (
 	NoEqual                  // !=
 )
 const (
-	Push InstType = iota + 0
-	Add
-	Sub
-	And
-	Load
-	Store
+	Push  InstType = iota + 0
+	Add            // +
+	Sub            // -
+	Mul            // *
+	Div            // /
+	Mod            // %
+	And            // &&
+	Load           // load
+	Store          //store
 	Call
 	CallO // call object member function
 	Cmp
@@ -118,6 +121,10 @@ func (i Instruction) String(table, builtIn *SymbolTable) string {
 		return "add"
 	case Sub:
 		return "sub"
+	case Mul:
+		return "mul"
+	case Mod:
+		return "mod"
 	case And:
 		return "&&"
 	case Jump:
@@ -332,7 +339,7 @@ func (m *Machine) Run() {
 			m.SP = frame.SP
 			m.stackFrames = m.stackFrames[:len(m.stackFrames)-1]
 
-		case Add, Sub, Cmp:
+		case Add, Sub, Cmp, Mul:
 			operand2 := &m.stack[m.SP]
 			m.SP--
 			operand1 := &m.stack[m.SP]
@@ -375,12 +382,21 @@ func (m *Machine) Run() {
 						default:
 							log.Panicln("unknown instruction", ins, m.IP)
 						}
+					case Mul:
+						result.Type = Int
+						result.Int = operand1.Int * operand2.Int
 					case Add:
 						result.Type = Int
 						result.Int = operand1.Int + operand2.Int
 					case Sub:
 						result.Type = Int
 						result.Int = operand1.Int - operand2.Int
+					case Div:
+						result.Type = Int
+						result.Int = operand1.Int / operand2.Int
+					case Mod:
+						result.Type = Int
+						result.Int = operand1.Int % operand2.Int
 					default:
 						log.Panicln("unknown instruction", ins, m.IP)
 					}

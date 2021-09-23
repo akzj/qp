@@ -30,12 +30,8 @@ func TestForExpressionTest(t *testing.T) {
 		val interface{}
 	}{{
 		exp: `
-		
-		for k := 0; k < 10;k++{
-			for i := 1;i < 4;i++{
-				println(k,i)
-			}
-			println("---------------")
+		if 2 *(2 + 4) > 0 {
+			println(2 *(2 + 4))
 		}
 `, val: int64(3),
 	}}

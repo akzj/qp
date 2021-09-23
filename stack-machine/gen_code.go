@@ -241,6 +241,8 @@ func (genCode *CodeGenerator) genStatement(statement runtime.Invokable) int {
 		genCode.genCreateObjectStatement(statement)
 	case ast.NilObject:
 		genCode.genNilObject(statement)
+	case ast.ParenthesisExpression:
+		genCode.genStatement(statement.Exp)
 	default:
 		log.Panicf("unknown statement %s", reflect.TypeOf(statement).String())
 	}
@@ -249,9 +251,21 @@ func (genCode *CodeGenerator) genStatement(statement runtime.Invokable) int {
 
 func (genCode *CodeGenerator) genOpCode(op lexer.Type) {
 	switch op {
+	case lexer.MulOpType:
+		genCode.pushIns(Instruction{
+			Type: Mul,
+		})
 	case lexer.AddType:
 		genCode.pushIns(Instruction{
 			Type: Add,
+		})
+	case lexer.ModOpType:
+		genCode.pushIns(Instruction{
+			Type: Mod,
+		})
+	case lexer.DivOpType:
+		genCode.pushIns(Instruction{
+			Type: Div,
 		})
 	case lexer.LessType:
 		genCode.pushIns(Instruction{

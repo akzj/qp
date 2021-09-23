@@ -140,6 +140,8 @@ func (l *Lexer) Peek() Token {
 					Line: l.line,
 				}
 			}
+		case c == '%':
+			token = ModToken
 		case c == '|':
 			if c, _ := l.ahead(); c == '|' {
 				l.Get()
