@@ -203,7 +203,6 @@ func (p *Parser) ParseIDPrefixExpression(token lexer.Token) ast.Expression {
 				Exp: exp,
 			}
 		case lexer.ColonType:
-			log.Println("ColonType")
 			return ast.AssignStatement{Left: exp, Exp: p.parseFactor(0)}
 		case lexer.PeriodType:
 			token := p.nextToken()
@@ -353,7 +352,7 @@ func (p *Parser) expectType(token lexer.Token, expect lexer.Type) {
 
 func (p *Parser) parseVarInitStatement() ast.Expression {
 	token := p.nextToken()
-	log.Println(token)
+	//log.Println(token)
 	p.expectType(token, lexer.IDType)
 	next := p.nextToken()
 	p.closureCheckAddVar(token.Val)
